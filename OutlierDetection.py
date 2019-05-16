@@ -22,7 +22,8 @@ def OutlierDetection(Data, calibperiod, Channel, param):
     return Data, param
 
 def Outlier_Detection_online(Data, calibperiod, Channel, param):
-    import ModelCalibration
+    from ModelCalibration import ModelCalib, lambda_determination,objFun_alpha_z, objFun_alpha_MAD, objFun_alpha_MADini
+    from outlierdetection_Online_EWMA import Outlier_Detection_Online_EWMA, calc_z, calc_forecast
     # DATA : Original data to filter. 
     #           Column 1 = date of the observation in Matlab format.
     #           Column 2 = raw observation.
@@ -44,7 +45,7 @@ def Outlier_Detection_online(Data, calibperiod, Channel, param):
 
     ########################Find the outliers################################## 
     
-    Data = outlierdetection_Online_EWMA(Data, param )
+    Data = Outlier_Detection_Online_EWMA(Data, param )
 
     return Data, param 
 

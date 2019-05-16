@@ -11,7 +11,7 @@ def calc_forecast(alpha,z):
     c = (alpha/(1-alpha))**2 * (z[0]-2*z[1]+z[2])
     return a + b + 0.5 * c
 
-def outlierdetection_Online_EWMA(newData, param):
+def Outlier_Detection_Online_EWMA(newData, param):
     import numpy as np
     import pandas as pd
 

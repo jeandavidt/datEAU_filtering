@@ -13,6 +13,11 @@ from pandas.plotting import register_matplotlib_converters
 
 register_matplotlib_converters()
 
+import OutlierDetection
+import outlierdetection_Online_EWMA
+import plotRaw_D
+import DefaultParam
+import DataCoherence
 
 # -------------------------------------------------------------------------
 # -------------------------------Sensor------------------------------------
@@ -42,7 +47,7 @@ raw_data =pd.read_csv(path, sep='')
 #save ('SENSOR.mat')# Save the data. 
  
 parameters_list = []
-for column in Data.columns:
+for column in raw_data.columns:
     if (('Unit' not in column) & ('equipment' not in column)):
         parameters_list.app(column)
 print('Parameters are {}'.format(parameters_list))
@@ -84,13 +89,13 @@ paramX['nb_reject']= 100
 Tini = '15 January 2018'
 Tfin = '15 February 2018'
 
-calibX = raw_data.loc[Tini:Tfin, [channel]].copy()
+CalibX = raw_data.loc[Tini:Tfin, [channel]].copy()
 #Plot calibration data 
 title = 'Calibration subset'
 plotRaw_D(CalibX, channel,title)
 
 #################Test the dataset for missing values, NaN, etc.############
-flag = DataCoherence(calibX, paramX)
+flag = DataCoherence(CalibX, paramX)
 print(flag)
 answer = None
 while answer not in ("y", "n"):
@@ -104,10 +109,10 @@ while answer not in ("y", "n"):
 
 ############################## Outlier detection ##########################
 
-Sensor, paramX = OutlierDetection(Sensor, calibX, channel, paramX)
+Sensor, paramX = OutlierDetection(Sensor, CalibX, channel, paramX)
 
 # Plot the outliers detected
-Plot_Outliers(Sensor, channel)
+'''Plot_Outliers(Sensor, channel)
 
 ###########################################################################
 
@@ -177,3 +182,4 @@ plotTreatedD( Sensor, channel)
 clear flag calibX posSensorX T Tini paramX err i
  
 
+'''
