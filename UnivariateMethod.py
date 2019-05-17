@@ -15,7 +15,7 @@ register_matplotlib_converters()
 
 import OutlierDetection 
 import outlierdetection_Online_EWMA
-from PlottingTools import plotRaw_D
+import PlottingTools
 from DefaultSettings import DefaultParam
 from DataCoherence import Data_Coherence
 
@@ -56,7 +56,7 @@ print('Parameters are {}'.format(parameters_list))
 
 #Plot raw data 
 title = 'Raw Data'
-plotRaw_D(raw_data, parameters_list,title)
+PlottingTools.plotRaw_D(raw_data, parameters_list,title)
 
 # -------------------------------------------------------------------------
 # ----------------------------------X--------------------------------------
@@ -94,7 +94,7 @@ Tfin = '15 February 2018'
 CalibX = raw_data.loc[Tini:Tfin,:].copy()
 #Plot calibration data 
 title = 'Calibration subset'
-plotRaw_D(CalibX, [channel],title)
+PlottingTools.plotRaw_D(CalibX, [channel],title)
 
 #################Test the dataset for missing values, NaN, etc.############
 flag = Data_Coherence(raw_data, paramX)
@@ -117,12 +117,14 @@ import ModelCalibration
 importlib.reload(ModelCalibration)
 importlib.reload(OutlierDetection)
 importlib.reload(outlierdetection_Online_EWMA)
+importlib.reload(PlottingTools)
 
 out_dat, paramX = OutlierDetection.outlier_detection(raw_data, CalibX, channel, paramX)
 
 # Plot the outliers detected
-Plot_Outliers(Sensor, channel)
+PlottingTools.Plot_Outliers(out_dat, channel)
 
+'''
 ###########################################################################
 
 ###########################  DATA SMOOTHER   ##############################
@@ -187,7 +189,7 @@ plotTreatedD( Sensor, channel)
 
 # save ('Sensor.mat')# Save the whole data 
 
-#Allow to clear the different created variable in the workspace.
+Allow to clear the different created variable in the workspace.
 clear flag calibX posSensorX T Tini paramX err i
  
 

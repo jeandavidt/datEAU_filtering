@@ -19,7 +19,7 @@ def plotRaw_D(Data_df, param_list, title):
     plt.title(title)
     plt.show()
 
-def Plot_Outliers(FullData):
+def Plot_Outliers(df,var_name):
 
     import pandas as pd
     import numpy as np
@@ -31,22 +31,20 @@ def Plot_Outliers(FullData):
 
     _, ax = plt.subplots(figsize=(12,8))
 
-    data = FullData(channel).values
+    AD = df[var_name+'_Accepted']
+    outlier = df.loc[df.outlier,[var_name]]
+    ub = df.UpperLimit_outlier
+    lb = df.LowerLimit_outlier
 
-    AD = FullData(channel).AD
-    outlier = FullData(channel).Sec_Result.outlier
-    ub = FullData(channel).Sec_Result.UpperLimit_outlier
-    lb = FullData(channel).Sec_Result.LowerLimit_outlier
-
-
-    figure
-    hold on
-    plot(t,AD,'k',t,lb,'b',t,ub,'g','markersize',6)
-    plot(t(outlier),data(outlier,2),'rx','markersize',6)
-    xlabel('Time','fontsize',10)
-    xtickangle(-20)
-    ylabel (FullData(channel).channel, 'fontsize',10)  
-    dynamicDateTicks([],[],'dd/mm')
+    
+    ax.plot(lb,'b')
+    ax.plot(ub,'g')
+    ax.plot(outlier,'rx')
+    ax.plot(AD,'purple')
+    
+    plt.xlabel('Time')
     plt.xticks(rotation=45)
-    plt.legend('Raw Data','LowerLimit', 'UpperLimit', 'Outliers', 'location','northoutside', 'Orientation', 'horizontal')
+    plt.ylabel(var_name)  
+    plt.xticks(rotation=45)
+    plt.legend(['LowerLimit', 'UpperLimit', 'Outliers','Accepted Data'])
     plt.show()
