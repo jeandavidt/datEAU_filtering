@@ -13,9 +13,7 @@ def plotRaw_D(Data_df, param_list, title):
 
     day_month_year_Fmt = mdates.DateFormatter('%d %B %Y')
     ax.xaxis.set_major_formatter(day_month_year_Fmt)
-    ax.set_ylim([0, Data_df.max()*1.1])
     plt.xticks(rotation=45)
-    
     plt.legend(param_list)
     plt.title(title)
     plt.show()
