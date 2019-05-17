@@ -38,7 +38,13 @@ def Data_Coherence(Data, param):
 
     nb_reject = param['nb_reject']
 
-    flag = []
+    definition_0 = 'No error was encontered'
+    definition_1 = 'NaN were detected in the dates or in the observations. A NAN prevents the outlier filter to work properly, but the filter can recover once more than NB_REJECT real values are present. The weigthed average filter do not filter NAN values (they are rejected from calculation).'
+    definition_2 = 'A variable time step was detected. The filter is not designed for varying time step. '
+    definition_3 ='A large gap in data was detected. The width of the gap is compared to the parameter nb_reject. The user should fill the gap with NAN values. These values will not be filtered, but will prevent unpredictable or undesirable effect from the filter.'
+    definition_4 ='Negative time step was detected. T_(i+1) < T_(i). This could cause improper behavior of the filters. A common fix is to sort data with respect to time and to keep unique value for each time step.'
+
+    flag = {}
 
     # Check for NaN
     n_nulls = Data.isnull().sum()
@@ -46,7 +52,7 @@ def Data_Coherence(Data, param):
         if param.Verbose:
             warnings.warn('DataCoherence warning: NaN values are present in the dataset')
         
-        flag.append(1)
+        flag[1] = definition_1
     
     # Check for variable time step
     Time = pd.Series(Data.index.astype('int64')/10**9)
@@ -61,20 +67,21 @@ def Data_Coherence(Data, param):
             if param['Verbose']:
                 warnings.warn('DataCoherence warning: Large gap is present in the dataset')
             
-            flag.append(2)
+            flag[2] = definition_2
         
         if param['Verbose']:
             warnings.warn('DataCoherence warning: the timestep is not constant')
         
-        flag.append(3)
+        flag[3] = definition_3
 
     if minDT < 0:
         if param['Verbose']:
             warnings.warn('DataCoherence warning: Negative time step found.')
             
-        flag.append(4)
+        flag[4] = definition_4
     
     if not flag:
-        flag.append(0)
+        flag.append[0] = definition_0
 
-    return flag
+
+    return flag 

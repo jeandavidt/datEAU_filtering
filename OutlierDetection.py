@@ -1,4 +1,4 @@
-def Outlier_Detection(Data, calibperiod, Channel, param):
+def outlier_detection(Data, Channel, param):
     # This function serves as a relay for all Outlier Detection methods
     # implemented. It only transfer the inputs to the chosen function and
     # return the outputs provided.
@@ -16,12 +16,12 @@ def Outlier_Detection(Data, calibperiod, Channel, param):
         raise Exception('Not implemented yet')
         #Data, param = Outlier_Detection_NeuralNetworks(Data, calibperiod, Channel, param)
     elif param['OutlierDetectionMethod'] is'Online_EWMA':
-        Data, param = Outlier_Detection_online(Data, calibperiod, Channel, param)
+        Data, param = Outlier_Detection_online(Data, Channel, param)
     else:
         raise Exception('Outlier detection: unknown method')
     return Data, param
 
-def Outlier_Detection_online(Data, calibperiod, Channel, param):
+def Outlier_Detection_online(Data, Channel, param):
     from ModelCalibration import ModelCalib, lambda_determination,objFun_alpha_z, objFun_alpha_MAD, objFun_alpha_MADini
     from outlierdetection_Online_EWMA import Outlier_Detection_Online_EWMA, calc_z, calc_forecast
     # DATA : Original data to filter. 
@@ -40,7 +40,7 @@ def Outlier_Detection_online(Data, calibperiod, Channel, param):
     #The Output are explained in each function below: 
 
     ################Automatic calibration of some parameters.#################
-    param = ModelCalib(calibperiod,param)
+    param = ModelCalib(Data,param)
 
 
     ########################Find the outliers################################## 

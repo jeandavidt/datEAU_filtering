@@ -13,7 +13,7 @@ from pandas.plotting import register_matplotlib_converters
 
 register_matplotlib_converters()
 
-from OutlierDetection import Outlier_Detection, Outlier_Detection_online
+import OutlierDetection
 import outlierdetection_Online_EWMA
 from PlottingTools import plotRaw_D
 from DefaultSettings import DefaultParam
@@ -97,9 +97,9 @@ plotRaw_D(CalibX, [channel],title)
 
 #################Test the dataset for missing values, NaN, etc.############
 flag = Data_Coherence(CalibX, paramX)
-print(flag)
+print('Raised flag: {}'.format(flag))
 answer = None
-while answer not in ("y", "n"):
+'''while answer not in ("y", "n"):
     answer = input("Continue?")
     if answer == "y":
          pass
@@ -107,10 +107,10 @@ while answer not in ("y", "n"):
          exit()
     else:
     	print("Please enter y or n.")
-
+'''
 ############################## Outlier detection ##########################
 
-Sensor, paramX = Outlier_Detection(Sensor, CalibX, channel, paramX)
+Sensor, paramX = OutlierDetection.outlier_detection(CalibX, channel, paramX)
 
 # Plot the outliers detected
 '''Plot_Outliers(Sensor, channel)
