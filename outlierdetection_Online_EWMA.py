@@ -391,14 +391,18 @@ def Outlier_Detection_Online_EWMA(newData, param):
     #index0 = len(RawData) - 3
 
     # Generation of outputs
-    Sec_Results = pd.DataFrame(index = newData.index, columns ={
+    Sec_data = {
         'forecast':forecast,
         'UpperLimit_outlier':UpperLimit,
         'LowerLimit_outlier':LowerLimit,
         'outlier': [x==1 for x in outlier],
         'out_of_control_outlier': out_of_control,
         'reini_outlier':reini
-    })
+    }
+    Sec_Results = pd.DataFrame(index = newData.index, data =Sec_data)
+
     newData[name+'_Accepted'] = AcceptedData
-    return newData, Sec_Results
+    newData = pd.concat([newData, Sec_Results],axis=1)
+
+    return newData
 

@@ -116,11 +116,13 @@ import importlib
 import ModelCalibration
 importlib.reload(ModelCalibration)
 importlib.reload(outlierdetection_Online_EWMA)
-
+import time
+a=time.time()
 (CalDat, secDat), paramX = OutlierDetection.outlier_detection(CalibX, channel, paramX)
-
+b=time.time()
+print(b-a)
 # Plot the outliers detected
-'''Plot_Outliers(Sensor, channel)
+Plot_Outliers(Sensor, channel)
 
 ###########################################################################
 
