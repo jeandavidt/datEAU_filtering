@@ -1,4 +1,4 @@
-a=7
+
 def outlier_detection(Data, Channel, param):
     # This function serves as a relay for all Outlier Detection methods
     # implemented. It only transfer the inputs to the chosen function and
@@ -7,7 +7,7 @@ def outlier_detection(Data, Channel, param):
     #The whole of INPUT and OUTPUT are explained in the three functions :
     #OutlierDetection_EWMA, Outlier_Detection_NeuralNetworks, Outlier_Detection_online
 
-    if 'OutlierDetectionMethod' in param:
+    if 'OutlierDetectionMethod' not in param:
         raise Exception('Outlier detection: No method selected (param.OutlierDetectionMethod does not exist')
     
     if param['OutlierDetectionMethod'] is 'EWMA':

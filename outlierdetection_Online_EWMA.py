@@ -79,8 +79,8 @@ def Outlier_Detection_Online_EWMA(newData, param):
     AcceptedData = np.full((n_dat,),np.nan)
 
     # smoothed values
-    z          = np.zeros(1,3)  
-    z_previous = np.zeros(1,3)
+    z          = np.zeros([3,1])  
+    z_previous = np.zeros([3,1])
 
     # mean absolute deviations
     MAD = np.full((n_dat,),np.nan)
@@ -281,7 +281,7 @@ def Outlier_Detection_Online_EWMA(newData, param):
                         z = calc_z(RawData[f], alpha_z, z_previous)
 
                         # Calculation of the MAD
-                        MAD[f-1] = abs(alpha_MAD * (back_AcceptedData(f) - back_forecast)) +(1 - alpha_MAD) * MAD[f]    
+                        MAD[f-1] = abs(alpha_MAD * (back_AcceptedData[f] - back_forecast)) +(1 - alpha_MAD) * MAD[f]    
                         MAD[f-1] = max([MAD[f-1],min_MAD])
 
                         # Calculation of the  forecast error standard deviation value 
@@ -334,7 +334,7 @@ def Outlier_Detection_Online_EWMA(newData, param):
                         # outlier(k) = 0     # Quality indicator- outlier=0
                         outlier[k] = 1     # Quality indicator- outlier=0
 
-                        MAD[k+1] = MAD(k)  # Last MAD kept
+                        MAD[k+1] = MAD[k]  # Last MAD kept
                         MAD[k+1] = max([MAD[k+1],min_MAD])
                         
                         s[k+1] = s[k]      # Last forecast error standard deviation value kept
@@ -372,10 +372,12 @@ def Outlier_Detection_Online_EWMA(newData, param):
                 #After the backward application of the outlier detection method, only the first half of the data between where the forward and
                 #backward applications are reinitialize is kept .  After the forward application of the outlier detection method, only the second half of the data between where the forward and
                 #backward applications are reinitialize is kept. In this way, the prediction interval is adapted to the data serie before the application pf the outlier detection method. 
-                AcceptedData[i-nb_reject+1:i-(nb_backward/2)] = back_AcceptedData[i-nb_reject+1:i-(nb_backward/2)]
-                UpperLimit[i-nb_reject+1:i-(nb_backward/2)]   = back_UpperLimit[i-nb_reject+1:i-(nb_backward/2)]
-                LowerLimit[i-nb_reject+1:i-(nb_backward/2)]   = back_LowerLimit[i-nb_reject+1:i-(nb_backward/2)]
-                outlier[i-nb_reject+1:i-(nb_backward/2)]      = back_outlier[i-nb_reject+1:i-(nb_backward/2)]
+                strt=i-nb_reject+1
+                mid = int(i-np.floor(nb_backward/2))
+                AcceptedData[strt:mid] = back_AcceptedData[strt:mid]
+                UpperLimit[strt:mid]   = back_UpperLimit[strt:mid]
+                LowerLimit[strt:mid]   = back_LowerLimit[strt:mid]
+                outlier[strt:mid]      = back_outlier[strt:mid]
             
         
 

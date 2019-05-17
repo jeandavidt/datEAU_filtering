@@ -18,7 +18,8 @@ import outlierdetection_Online_EWMA
 from PlottingTools import plotRaw_D
 from DefaultSettings import DefaultParam
 from DataCoherence import Data_Coherence
-print(OutlierDetection.a)
+
+import ModelCalibration
 # -------------------------------------------------------------------------
 # -------------------------------Sensor------------------------------------
 # -------------------------------------------------------------------------
@@ -109,8 +110,14 @@ answer = None
     	print("Please enter y or n.")
 '''
 ############################## Outlier detection ##########################
+paramX['OutlierDetectionMethod'] = "Online_EWMA"
 
-Sensor, paramX = OutlierDetection.outlier_detection(CalibX, channel, paramX)
+import importlib
+import ModelCalibration
+importlib.reload(ModelCalibration)
+importlib.reload(outlierdetection_Online_EWMA)
+
+(CalDat, secDat), paramX = OutlierDetection.outlier_detection(CalibX, channel, paramX)
 
 # Plot the outliers detected
 '''Plot_Outliers(Sensor, channel)

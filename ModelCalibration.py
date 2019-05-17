@@ -26,7 +26,7 @@ def ModelCalib(data, param):
     return param
 
 def lambda_determination(data, param):
-    from scipy.optimize import minimize 
+    from scipy.optimize import minimize, Bounds 
     import numpy as np
     # To do : add comments on the optimisation procedure! 
 
@@ -44,22 +44,23 @@ def lambda_determination(data, param):
     # in some particular cases, it might be necessary to return to the original
     # method (i.e. optimal lambda_z not between 0 and 1).
 
-    alpha_0 = 1
+    lambda_0 = np.array([1])
+    bnds_lambda = Bounds(0.01,1)
 
-    result = minimize(objFun_alpha_z, alpha_0, args=(db), bounds=(0.01,1))
+    result = minimize(objFun_alpha_z, lambda_0, db,  bounds=bnds_lambda)
     log_lambda_z = result.x[0]
     # put error handling code here in case the optimization fails
     lambda_z   = np.exp(-(log_lambda_z**2))
 
-
-    result = minimize(objFun_alpha_MAD, alpha_0, args=(lambda_z, db))
+    
+    result = minimize(objFun_alpha_MAD, lambda_0, args=(lambda_z, db), bounds=bnds_lambda)
     log_lambda_MAD=result.x[0]
     # put error handling code here in case the optimization fails
     lambda_MAD = np.exp(-(log_lambda_MAD**2))
 
-    MAD_ini = param['MAD_ini']
+    MAD_ini = np.array(param['MAD_ini'])
     result = minimize(objFun_alpha_MADini, MAD_ini,args=(lambda_MAD,lambda_z,db,'err'))
-    MAD_ini = result.x
+    MAD_ini = result.x[0]
 
     min_MAD = objFun_alpha_MADini(MAD_ini,lambda_MAD,lambda_z,db,'min_MAD')
 
@@ -137,7 +138,7 @@ def objFun_alpha_z(log_alpha_z,db):
     import numpy as np
     alpha_z   = np.exp(-(log_alpha_z**2))
 
-    z           = np.zeros(len(db),3)  # Smoothed values
+    z           = np.zeros([len(db),3])  # Smoothed values
     a           = np.zeros(len(db),)      # Model parameter values 
     b           = np.zeros(len(db),)      # Model parameter values
     c           = np.zeros(len(db),)      # Model parameter values 
@@ -154,7 +155,7 @@ def objFun_alpha_z(log_alpha_z,db):
         z[i,2] = alpha_z * z[i,1] + (1-alpha_z) * z[i-1,2]
 
     a[1:] = 3 * z[1:,0] - 3 * z[1:,1] + z[1:,2]
-    b[1:] = (alpha_z / (2 * (1 - alpha_z)^2)) * ((6 - 5 * alpha_z) * z[1:,0] - 2 * (5 - 4 * alpha_z) * z[1:,1] + (4 - 3 * alpha_z) * z[1:,2])
+    b[1:] = (alpha_z / (2 * (1 - alpha_z)**2)) * ((6 - 5 * alpha_z) * z[1:,0] - 2 * (5 - 4 * alpha_z) * z[1:,1] + (4 - 3 * alpha_z) * z[1:,2])
     c[1:] = (alpha_z / (1 - alpha_z))**2 * (z[1:,0] - 2 * z[1:,1] + z[1:,2])
 
     forecast[2:] = a[1:-1] + b[1:-1] + 0.5 * c[1:-1]
@@ -169,7 +170,7 @@ def objFun_alpha_MAD(log_alpha_MAD, alpha_z, db):
     import numpy as np
     alpha_MAD = np.exp(-(log_alpha_MAD**2))
 
-    z            = np.zeros(len(db),3)  # Smoothed values
+    z            = np.zeros([len(db),3])  # Smoothed values
     a            = np.zeros(len(db))      # Model parameter values 
     b            = np.zeros(len(db))      # Model parameter values
     c            = np.zeros(len(db))      # Model parameter values 
@@ -203,7 +204,7 @@ def objFun_alpha_MAD(log_alpha_MAD, alpha_z, db):
     square_err = err**2
 
     #Calculation of the forecast MAD
-    for i in range(2,len(db)):
+    for i in range(2,len(db)-1):
 
         MAD[i]=abs(alpha_MAD*err[i])+(1-alpha_MAD)*MAD[i-1] #Calculation of the MAD
         forecast_MAD[i+1]=MAD[i]#Calculation of the forecast MAD
@@ -217,7 +218,7 @@ def objFun_alpha_MAD(log_alpha_MAD, alpha_z, db):
 
 def objFun_alpha_MADini(MADini, alpha_MAD,alpha_z, db, obj):
     import numpy as np
-    z            = np.zeros(len(db),3)  # Smoothed values
+    z            = np.zeros([len(db),3])  # Smoothed values
     a            = np.zeros(len(db))      # Model parameter values 
     b            = np.zeros(len(db))      # Model parameter values
     c            = np.zeros(len(db))      # Model parameter values 
@@ -243,7 +244,7 @@ def objFun_alpha_MADini(MADini, alpha_MAD,alpha_z, db, obj):
         
     a[1:] = 3 * z[1:,0] - 3 * z[1:,1] + z[1:,2]
     b[1:] = (alpha_z / (2 * (1 - alpha_z)**2)) * ((6 - 5 * alpha_z) * z[1:,0] - 2 * (5 - 4 * alpha_z) * z[1:,1] + (4 - 3 * alpha_z) * z[1:,2])
-    c[1:] = (alpha_z / (1 - alpha_z))**2 * (z[1:0] - 2 * z[1:,1] + z[1:,2])
+    c[1:] = (alpha_z / (1 - alpha_z))**2 * (z[1:,0] - 2 * z[1:,1] + z[1:,2])
 
     forecast[2:] = a[1:-1] + b[1:-1] + 0.5 * c[1:-1]
 
