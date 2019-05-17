@@ -91,7 +91,7 @@ paramX['nb_reject']= 100
 Tini = '15 January 2018'
 Tfin = '15 February 2018'
 
-CalibX = raw_data.loc[Tini:Tfin, [channel]].copy()
+CalibX = raw_data.loc[Tini:Tfin,:].copy()
 #Plot calibration data 
 title = 'Calibration subset'
 plotRaw_D(CalibX, [channel],title)
@@ -115,12 +115,11 @@ paramX['OutlierDetectionMethod'] = "Online_EWMA"
 import importlib
 import ModelCalibration
 importlib.reload(ModelCalibration)
+importlib.reload(OutlierDetection)
 importlib.reload(outlierdetection_Online_EWMA)
-import time
-a=time.time()
+
 out_dat, paramX = OutlierDetection.outlier_detection(raw_data, CalibX, channel, paramX)
-b=time.time()
-print(b-a)
+
 # Plot the outliers detected
 Plot_Outliers(Sensor, channel)
 

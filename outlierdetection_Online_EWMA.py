@@ -1,6 +1,6 @@
 def calc_z(datapoint, alpha, z_prev):
     z=[0,0,0] 
-    z[0] = alpha * datapoint + (1 - alpha) * z_prev[0]
+    z[0] = (alpha * datapoint) + ((1 - alpha) * z_prev[0])
     z[1] = alpha * z[0] + (1 - alpha) * z_prev[1]
     z[2] = alpha * z[1] + (1 - alpha) * z_prev[2]
     return z

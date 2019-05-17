@@ -17,7 +17,7 @@ def outlier_detection(Data, calibperiod, Channel, param):
         raise Exception('Not implemented yet')
         #Data, param = Outlier_Detection_NeuralNetworks(Data, calibperiod, Channel, param)
     elif param['OutlierDetectionMethod'] is'Online_EWMA':
-        Data, param = Outlier_Detection_online(Data, calibperiod Channel, param)
+        Data, param = Outlier_Detection_online(Data, calibperiod, Channel, param)
     else:
         raise Exception('Outlier detection: unknown method')
     return Data, param
@@ -41,12 +41,12 @@ def Outlier_Detection_online(Data, calibperiod, Channel, param):
     #The Output are explained in each function below: 
 
     ################Automatic calibration of some parameters.#################
-    param = ModelCalib(calibperiod,param)
+    param = ModelCalib(calibperiod.loc[:,[Channel]],param)
 
 
     ########################Find the outliers################################## 
     
-    Data = Outlier_Detection_Online_EWMA(Data, param )
+    Data = Outlier_Detection_Online_EWMA(Data.loc[:,[Channel]], param )
 
     return Data, param 
 
