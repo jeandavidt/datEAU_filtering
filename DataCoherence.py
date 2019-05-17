@@ -81,7 +81,6 @@ def Data_Coherence(Data, param):
         flag[4] = definition_4
     
     if not flag:
-        flag.append[0] = definition_0
-
+        flag[0] = definition_0
 
     return flag 

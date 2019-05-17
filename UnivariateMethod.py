@@ -13,12 +13,12 @@ from pandas.plotting import register_matplotlib_converters
 
 register_matplotlib_converters()
 
-import OutlierDetection
+import OutlierDetection 
 import outlierdetection_Online_EWMA
 from PlottingTools import plotRaw_D
 from DefaultSettings import DefaultParam
 from DataCoherence import Data_Coherence
-
+print(OutlierDetection.a)
 # -------------------------------------------------------------------------
 # -------------------------------Sensor------------------------------------
 # -------------------------------------------------------------------------

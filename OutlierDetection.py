@@ -1,3 +1,4 @@
+a=7
 def outlier_detection(Data, Channel, param):
     # This function serves as a relay for all Outlier Detection methods
     # implemented. It only transfer the inputs to the chosen function and
