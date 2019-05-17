@@ -49,7 +49,7 @@ def Data_Coherence(Data, param):
     # Check for NaN
     n_nulls = Data.isnull().sum()
     if n_nulls.any():
-        if param.Verbose:
+        if param['Verbose']:
             warnings.warn('DataCoherence warning: NaN values are present in the dataset')
         
         flag[1] = definition_1

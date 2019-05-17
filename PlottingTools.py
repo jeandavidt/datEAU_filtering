@@ -35,16 +35,18 @@ def Plot_Outliers(df,var_name):
     outlier = df.loc[df.outlier,[var_name]]
     ub = df.UpperLimit_outlier
     lb = df.LowerLimit_outlier
-
+    raw=df[var_name]
     
+    ax.plot(outlier,'rx')
     ax.plot(lb,'b')
     ax.plot(ub,'g')
-    ax.plot(outlier,'rx')
+    
     ax.plot(AD,'purple')
+    ax.plot(raw,'k')
     
     plt.xlabel('Time')
     plt.xticks(rotation=45)
     plt.ylabel(var_name)  
     plt.xticks(rotation=45)
-    plt.legend(['LowerLimit', 'UpperLimit', 'Outliers','Accepted Data'])
+    plt.legend(['Outliers','LowerLimit', 'UpperLimit','Accepted Data','Raw'])
     plt.show()

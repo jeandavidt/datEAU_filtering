@@ -42,6 +42,9 @@ path = '../sample_data/influentdata.csv'
 raw_data =pd.read_csv(path, sep=';')
 raw_data.datetime = pd.to_datetime(raw_data.datetime)
 raw_data.set_index('datetime', inplace=True, drop=True)
+
+resamp_data= raw_data.asfreq('2 min')
+data = resamp_data.interpolate(method='linear')
 #Add new data
 #path1 = 'G:\Documents\......\New_data.csv'
 #Sen = DataImport (path1,'datEAUbaseCSVtoMAT','Sen.mat')
@@ -49,14 +52,14 @@ raw_data.set_index('datetime', inplace=True, drop=True)
 #save ('SENSOR.mat')# Save the data. 
  
 parameters_list = []
-for column in raw_data.columns:
+for column in data.columns:
     if (('Unit' not in column) & ('equipment' not in column)):
         parameters_list.append(column)
 print('Parameters are {}'.format(parameters_list))
 
 #Plot raw data 
-title = 'Raw Data'
-PlottingTools.plotRaw_D(raw_data, parameters_list,title)
+title = 'Pre-processed Data'
+PlottingTools.plotRaw_D(data, parameters_list,title)
 
 # -------------------------------------------------------------------------
 # ----------------------------------X--------------------------------------
@@ -65,10 +68,10 @@ PlottingTools.plotRaw_D(raw_data, parameters_list,title)
 #####################Generate default parameters###########################
 # Selection of the period of the data series to be treated
 
-channel = 'COD' # Variable to be filtered
+channel = 'K' # Variable to be filtered
 
-T0 = raw_data.first_valid_index()
-TF = raw_data.last_valid_index()
+T0 = data.first_valid_index()
+TF = data.last_valid_index()
 
 ##########################################################################
 
@@ -78,7 +81,7 @@ TF = raw_data.last_valid_index()
 
 # Load default parameters
 
-paramX = DefaultParam('Online_EWMA')
+paramX = DefaultParam()
 
 # Set parameters: Example
 paramX['nb_reject']= 100  
@@ -91,16 +94,16 @@ paramX['nb_reject']= 100
 Tini = '15 January 2018'
 Tfin = '15 February 2018'
 
-CalibX = raw_data.loc[Tini:Tfin,:].copy()
+CalibX = data.loc[Tini:Tfin,:].copy()
 #Plot calibration data 
 title = 'Calibration subset'
 PlottingTools.plotRaw_D(CalibX, [channel],title)
 
 #################Test the dataset for missing values, NaN, etc.############
-flag = Data_Coherence(raw_data, paramX)
+flag = Data_Coherence(data, paramX)
 print('Raised flag: {}'.format(flag))
 answer = None
-'''while answer not in ("y", "n"):
+while answer not in ("y", "n"):
     answer = input("Continue?")
     if answer == "y":
          pass
@@ -108,18 +111,12 @@ answer = None
          exit()
     else:
     	print("Please enter y or n.")
-'''
+
 ############################## Outlier detection ##########################
 paramX['OutlierDetectionMethod'] = "Online_EWMA"
 
-import importlib
-import ModelCalibration
-importlib.reload(ModelCalibration)
-importlib.reload(OutlierDetection)
-importlib.reload(outlierdetection_Online_EWMA)
-importlib.reload(PlottingTools)
 
-out_dat, paramX = OutlierDetection.outlier_detection(raw_data, CalibX, channel, paramX)
+out_dat, paramX = OutlierDetection.outlier_detection(data, CalibX, channel, paramX)
 
 # Plot the outliers detected
 PlottingTools.Plot_Outliers(out_dat, channel)
