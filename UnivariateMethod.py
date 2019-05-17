@@ -97,7 +97,7 @@ title = 'Calibration subset'
 plotRaw_D(CalibX, [channel],title)
 
 #################Test the dataset for missing values, NaN, etc.############
-flag = Data_Coherence(CalibX, paramX)
+flag = Data_Coherence(raw_data, paramX)
 print('Raised flag: {}'.format(flag))
 answer = None
 '''while answer not in ("y", "n"):
@@ -118,7 +118,7 @@ importlib.reload(ModelCalibration)
 importlib.reload(outlierdetection_Online_EWMA)
 import time
 a=time.time()
-(CalDat, secDat), paramX = OutlierDetection.outlier_detection(CalibX, channel, paramX)
+out_dat, paramX = OutlierDetection.outlier_detection(raw_data, CalibX, channel, paramX)
 b=time.time()
 print(b-a)
 # Plot the outliers detected
