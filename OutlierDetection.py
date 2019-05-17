@@ -1,4 +1,4 @@
-def OutlierDetection(Data, calibperiod, Channel, param):
+def Outlier_Detection(Data, calibperiod, Channel, param):
     # This function serves as a relay for all Outlier Detection methods
     # implemented. It only transfer the inputs to the chosen function and
     # return the outputs provided.

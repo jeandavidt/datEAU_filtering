@@ -13,11 +13,11 @@ from pandas.plotting import register_matplotlib_converters
 
 register_matplotlib_converters()
 
-import OutlierDetection
+from OutlierDetection import Outlier_Detection, Outlier_Detection_online
 import outlierdetection_Online_EWMA
-import plotRaw_D
-import DefaultParam
-import DataCoherence
+from PlottingTools import plotRaw_D
+from DefaultSettings import DefaultParam
+from DataCoherence import Data_Coherence
 
 # -------------------------------------------------------------------------
 # -------------------------------Sensor------------------------------------
@@ -38,8 +38,9 @@ import DataCoherence
 #Import the raw data
 path = '../sample_data/influentdata.csv'
 #SENSOR = DataImport (path,'datEAUbaseCSVtoMAT','SENSOR.mat')
-raw_data =pd.read_csv(path, sep='')
-
+raw_data =pd.read_csv(path, sep=';')
+raw_data.datetime = pd.to_datetime(raw_data.datetime)
+raw_data.set_index('datetime', inplace=True, drop=True)
 #Add new data
 #path1 = 'G:\Documents\......\New_data.csv'
 #Sen = DataImport (path1,'datEAUbaseCSVtoMAT','Sen.mat')
@@ -49,7 +50,7 @@ raw_data =pd.read_csv(path, sep='')
 parameters_list = []
 for column in raw_data.columns:
     if (('Unit' not in column) & ('equipment' not in column)):
-        parameters_list.app(column)
+        parameters_list.append(column)
 print('Parameters are {}'.format(parameters_list))
 
 #Plot raw data 
@@ -92,10 +93,10 @@ Tfin = '15 February 2018'
 CalibX = raw_data.loc[Tini:Tfin, [channel]].copy()
 #Plot calibration data 
 title = 'Calibration subset'
-plotRaw_D(CalibX, channel,title)
+plotRaw_D(CalibX, [channel],title)
 
 #################Test the dataset for missing values, NaN, etc.############
-flag = DataCoherence(CalibX, paramX)
+flag = Data_Coherence(CalibX, paramX)
 print(flag)
 answer = None
 while answer not in ("y", "n"):
@@ -109,7 +110,7 @@ while answer not in ("y", "n"):
 
 ############################## Outlier detection ##########################
 
-Sensor, paramX = OutlierDetection(Sensor, CalibX, channel, paramX)
+Sensor, paramX = Outlier_Detection(Sensor, CalibX, channel, paramX)
 
 # Plot the outliers detected
 '''Plot_Outliers(Sensor, channel)

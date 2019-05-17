@@ -1,4 +1,5 @@
-def DataCoherence(Data, param):
+def Data_Coherence(Data, param):
+    import warnings
     # This function allows to detect most common data problems. It does not
     # alter the database, but returns meaningful errors or warning codes.
     # DATA : The data to filter is a two-columns matrix. The first column
@@ -41,9 +42,9 @@ def DataCoherence(Data, param):
 
     # Check for NaN
     n_nulls = Data.isnull().sum()
-    if n_nulls:
+    if n_nulls.any():
         if param.Verbose:
-            raise Warning('DataCoherence warning: NaN values are present in the dataset')
+            warnings.warn('DataCoherence warning: NaN values are present in the dataset')
         
         flag.append(1)
     
@@ -58,18 +59,18 @@ def DataCoherence(Data, param):
         # Check if the largest variation in the timestep is too important
         if maxDT > nb_reject * minDT:
             if param['Verbose']:
-                raise Warning('DataCoherence warning: Large gap is present in the dataset')
+                warnings.warn('DataCoherence warning: Large gap is present in the dataset')
             
             flag.append(2)
         
         if param['Verbose']:
-            raise Warning('DataCoherence warning: the timestep is not constant')
+            warnings.warn('DataCoherence warning: the timestep is not constant')
         
         flag.append(3)
 
     if minDT < 0:
         if param['Verbose']:
-            raise Warning('DataCoherence warning: Negative time step found.')
+            warnings.warn('DataCoherence warning: Negative time step found.')
             
         flag.append(4)
     
