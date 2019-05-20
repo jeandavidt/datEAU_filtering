@@ -102,7 +102,7 @@ def Outlier_Detection_Online_EWMA(newData, param):
     back_LowerLimit   = np.full((n_dat,),np.nan) # Lower limit values of the prediction interval
     back_UpperLimit   = np.full((n_dat,),np.nan) # Upper limit values of the prediction interval
     back_outlier      = np.full((n_dat,),0.) # Quality indicator => Data rejected=0, Data accepted=1
-    back_forecast     = np.full((n_dat,),np.nan) # Forecast values
+    forecast     = np.full((n_dat,),np.nan) # Forecast values
     out_of_control    = np.full((n_dat,),0.) # If out_of_control(i) = 1, there is an out of control situation.
     reini             = np.full((n_dat,),1.)# It indicates where the reinitialisation occurs
 
@@ -242,15 +242,15 @@ def Outlier_Detection_Online_EWMA(newData, param):
                 z_previous = z
                 z = calc_z(RawData[i+1], alpha_z, z_previous)
 
-                back_forecast = calc_forecast(alpha_z, z)
+                forecast = calc_forecast(alpha_z, z)
                 
                 # Initial MAD value
                 MAD[i] = MAD_ini
                 # Initial forecast error standard deviation value
                 s[i]=1.25*MAD[i]
 
-                back_LowerLimit[i] = back_forecast - K * s[i]   # Lower limit value
-                back_UpperLimit[i] = back_forecast + K * s[i]   # Upper limit value
+                back_LowerLimit[i] = forecast - K * s[i]   # Lower limit value
+                back_UpperLimit[i] = forecast + K * s[i]   # Upper limit value
 
                 # Backward application of the outlier detection method
                 for q in range(nb_reject):
@@ -259,7 +259,7 @@ def Outlier_Detection_Online_EWMA(newData, param):
                     if (RawData[f] > back_UpperLimit[f]) or (RawData[f] < back_LowerLimit[f]): 
                         # The data is out of the prediction interval and marked as "Outlier"
 
-                        back_AcceptedData[f] = back_forecast # Outlier is replaced by the forecast value
+                        back_AcceptedData[f] = forecast # Outlier is replaced by the forecast value
                         # back_outlier(f) = 0    # Quality indicator - outlier=0
                         back_outlier[f] = 1    # Quality indicator - outlier=0
 
@@ -269,8 +269,8 @@ def Outlier_Detection_Online_EWMA(newData, param):
                         s[f-1] = s[f]      # Forecast error standard deviation value kept
 
                         # Last value kept for the next limit
-                        back_LowerLimit[f-1] = back_forecast - K * s[f-1]
-                        back_UpperLimit[f-1] = back_forecast + K * s[f-1]
+                        back_LowerLimit[f-1] = forecast - K * s[f-1]
+                        back_UpperLimit[f-1] = forecast + K * s[f-1]
                     else:
                         #If the data is inside the prediction interval
                         back_AcceptedData[f] = RawData[f]    # Accepted data
@@ -282,7 +282,7 @@ def Outlier_Detection_Online_EWMA(newData, param):
                         z = calc_z(RawData[f], alpha_z, z_previous)
 
                         # Calculation of the MAD
-                        MAD[f-1] = abs(alpha_MAD * (back_AcceptedData[f] - back_forecast)) +(1 - alpha_MAD) * MAD[f]    
+                        MAD[f-1] = abs(alpha_MAD * (back_AcceptedData[f] - forecast)) +(1 - alpha_MAD) * MAD[f]    
                         MAD[f-1] = max([MAD[f-1],min_MAD])
 
                         # Calculation of the  forecast error standard deviation value 
@@ -290,11 +290,11 @@ def Outlier_Detection_Online_EWMA(newData, param):
 
                         # Calculation of the forecast value
                         
-                        back_forecast = calc_forecast(alpha_z, z)
+                        forecast = calc_forecast(alpha_z, z)
 
                         # Calculation of the prediction interval for the next data
-                        back_LowerLimit[f-1] = back_forecast - K * s[f-1]
-                        back_UpperLimit[f-1] = back_forecast + K * s[f-1]
+                        back_LowerLimit[f-1] = forecast - K * s[f-1]
+                        back_UpperLimit[f-1] = forecast + K * s[f-1]
                     
 
 
@@ -319,13 +319,13 @@ def Outlier_Detection_Online_EWMA(newData, param):
                 z = calc_z(prev_raw4, alpha_z, z_previous)
            
                 # Model parameter value
-                back_forecast = calc_forecast(alpha_z, z)
+                forecast = calc_forecast(alpha_z, z)
 
                 MAD[i-nb_backward] = MAD_ini # Initial MAD value
                 s[i-nb_backward] = 1.25 * MAD[i-nb_backward]   # Initial forecast error standard deviation value
 
-                LowerLimit[i-nb_backward] = back_forecast - K * s[i-nb_backward] # Lower limit value
-                UpperLimit[i-nb_backward] = back_forecast + K * s[i-nb_backward] # Upper limit value   
+                LowerLimit[i-nb_backward] = forecast - K * s[i-nb_backward] # Lower limit value
+                UpperLimit[i-nb_backward] = forecast + K * s[i-nb_backward] # Upper limit value   
 
                 # Forward application of the outlier detection method
                 for k in range(i-nb_backward-1,i):
@@ -363,11 +363,11 @@ def Outlier_Detection_Online_EWMA(newData, param):
 
                         # Calculation of the model parameter value
                         
-                        back_forecast = calc_forecast(alpha_z, z)
+                        forecast = calc_forecast(alpha_z, z)
 
                         # Calculation of the prediction interval for the next data
-                        LowerLimit[k+1] = back_forecast - K * s[k+1]
-                        UpperLimit[k+1] = back_forecast + K * s[k+1]
+                        LowerLimit[k+1] = forecast - K * s[k+1]
+                        UpperLimit[k+1] = forecast + K * s[k+1]
                     
 
 
