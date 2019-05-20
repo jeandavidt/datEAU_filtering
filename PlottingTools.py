@@ -17,7 +17,7 @@ def plotRaw_D(Data_df, param_list, title):
     plt.ylim(bottom=0)
     plt.legend(param_list)
     plt.title(title)
-    plt.show()
+    plt.show(block=False)
 
 def Plot_Outliers(df,var_name):
 
@@ -49,4 +49,4 @@ def Plot_Outliers(df,var_name):
     plt.ylabel(var_name)  
     plt.xticks(rotation=45)
     plt.legend(['Outliers','LowerLimit', 'UpperLimit','Accepted Data','Raw'])
-    plt.show()
+    plt.show(block=False)

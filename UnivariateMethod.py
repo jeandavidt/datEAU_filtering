@@ -44,7 +44,7 @@ raw_data.datetime = pd.to_datetime(raw_data.datetime)
 raw_data.set_index('datetime', inplace=True, drop=True)
 
 resamp_data= raw_data.asfreq('2 min')
-data = resamp_data.interpolate(method='linear')
+data = resamp_data.fillna(method='ffill')
 #Add new data
 #path1 = 'G:\Documents\......\New_data.csv'
 #Sen = DataImport (path1,'datEAUbaseCSVtoMAT','Sen.mat')
@@ -68,7 +68,7 @@ PlottingTools.plotRaw_D(data, parameters_list,title)
 #####################Generate default parameters###########################
 # Selection of the period of the data series to be treated
 
-channel = 'K' # Variable to be filtered
+channel = 'COD' # Variable to be filtered
 
 T0 = data.first_valid_index()
 TF = data.last_valid_index()
@@ -102,7 +102,7 @@ PlottingTools.plotRaw_D(CalibX, [channel],title)
 #################Test the dataset for missing values, NaN, etc.############
 flag = Data_Coherence(data, paramX)
 print('Raised flag: {}'.format(flag))
-answer = None
+'''answer = None
 while answer not in ("y", "n"):
     answer = input("Continue?")
     if answer == "y":
@@ -110,17 +110,18 @@ while answer not in ("y", "n"):
     elif answer == "n":
          exit()
     else:
-    	print("Please enter y or n.")
+    	print("Please enter y or n.")'''
 
 ############################## Outlier detection ##########################
 paramX['OutlierDetectionMethod'] = "Online_EWMA"
 
-
+import importlib
+importlib.reload(outlierdetection_Online_EWMA)
 out_dat, paramX = OutlierDetection.outlier_detection(data, CalibX, channel, paramX)
 
 # Plot the outliers detected
 PlottingTools.Plot_Outliers(out_dat, channel)
-
+plt.show()
 '''
 ###########################################################################
 
