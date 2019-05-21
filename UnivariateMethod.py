@@ -21,10 +21,15 @@ from DataCoherence import Data_Coherence
 import ModelCalibration
 import Smoother
 import FaultDetection
+import TreatedData
+
+import pickle
+
 import importlib
 importlib.reload(Smoother)
 
 import time
+'''
 # -------------------------------------------------------------------------
 # -------------------------------Sensor------------------------------------
 # -------------------------------------------------------------------------
@@ -114,7 +119,7 @@ Times['parameters set'] = time.time()
 #################Test the dataset for missing values, NaN, etc.############
 flag = Data_Coherence(data, paramX)
 print(flag)
-'''answer = None
+answer = None
 while answer not in ("y", "n"):
     answer = input("Continue?")
     if answer == "y":
@@ -122,7 +127,7 @@ while answer not in ("y", "n"):
     elif answer == "n":
          exit()
     else:
-    	print("Please enter y or n.")'''
+    	print("Please enter y or n.")
 Times['Data coherence checked'] = time.time()
 ############################## Outlier detection ##########################
 
@@ -156,16 +161,19 @@ fault_detect_time = time.time()
 Times['smoothed data plotted'] = time.time()
 Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values())})
 
+pickle.dump(data, open("smooth.p","wb"))
+pickle.dump(paramX, open("parameters.p","wb")) '''
 
 ##########################################################################
 
 ##############################FAULT DETECTION#############################
-
+channel='COD'
 ##########################################################################
-
+data = pickle.load(open('smooth.p','rb'))
+paramX = pickle.load(open('parameters.p','rb'))
 #Definition range (min and max)for Q_range: 
-paramX['range_min'] = 100     #minimum real expected value of the variable
-paramX['range_max'] = 600     #maximum real expected value of the variable
+paramX['range_min'] = 50     #minimum real expected value of the variable
+paramX['range_max'] = 400     #maximum real expected value of the variable
 
 #Definition limit of scores: 
 paramX['corr_min']= -16  
@@ -184,18 +192,18 @@ data = FaultDetection.D_score(data, paramX, channel)
 
 
 # Plot scores
-plotD_score(Sensor, paramX, channel)
-'''
+PlottingTools.Plot_DScore(data, channel, paramX)
+
 ##########################################################################
 
 ##############################  TREATED DATA   ###########################
 
 #To allow to determinate the treated data and deleted data:
-Sensor(channel).Final_D = TreatedD(Sensor, paramX,channel)
+Final_data = TreatedData.TreatedD(data, paramX,channel)
 
 #plot the raw data and treated data: 
-plotTreatedD( Sensor, channel)
-
+PlottingTools.plotTreatedD(Final_data, channel)
+'''
 # Percentage of outliers and deleted data
 [Sensor(channel).Intervariable] = Interpcalculator (Sensor, channel) 
 
@@ -203,9 +211,4 @@ plotTreatedD( Sensor, channel)
 [Sensor(channel).param] = paramX
 
 # save ('Sensor.mat')# Save the whole data 
-
-Allow to clear the different created variable in the workspace.
-clear flag calibX posSensorX T Tini paramX err i
- 
-
 '''

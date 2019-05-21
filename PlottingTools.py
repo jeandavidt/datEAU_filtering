@@ -118,7 +118,7 @@ def Plot_DScore(df, name, param):
     ax2.set_xticks([])
 
     ax3 = axes_list[3]
-    ax3.plot(df[name+'Smoothed_AD'],linewidth=2)
+    ax3.plot(df[name+'_Smoothed_AD'],linewidth=2)
     ax3.set(ylabel='Range [mg/L]')
     ax3.plot([df.first_valid_index(),df.last_valid_index()],[param['range_max'], param['range_max']],c='r', linewidth=1)
     ax3.plot([df.first_valid_index(),df.last_valid_index()],[param['range_min'], param['range_min']],c='r', linewidth=1)
