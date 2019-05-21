@@ -18,13 +18,17 @@ import outlierdetection_Online_EWMA
 import PlottingTools
 from DefaultSettings import DefaultParam
 from DataCoherence import Data_Coherence
-
 import ModelCalibration
+import Smoother
+import importlib
+importlib.reload(Smoother)
+
+import time
 # -------------------------------------------------------------------------
 # -------------------------------Sensor------------------------------------
 # -------------------------------------------------------------------------
 
-#Gerenate the functions
+#Generate the functions
 #addpath ('DataFiltrationFramework/')
 #SetFiltersPaths
 
@@ -37,6 +41,7 @@ import ModelCalibration
 ##########################################################################
 
 #Import the raw data
+
 path = '../sample_data/influentdata.csv'
 #SENSOR = DataImport (path,'datEAUbaseCSVtoMAT','SENSOR.mat')
 raw_data =pd.read_csv(path, sep=';')
@@ -115,14 +120,12 @@ while answer not in ("y", "n"):
 ############################## Outlier detection ##########################
 paramX['OutlierDetectionMethod'] = "Online_EWMA"
 
-import importlib
-importlib.reload(outlierdetection_Online_EWMA)
-out_dat, paramX = OutlierDetection.outlier_detection(data, CalibX, channel, paramX)
+data, paramX = OutlierDetection.outlier_detection(data, CalibX, channel, paramX)
 
 # Plot the outliers detected
-PlottingTools.Plot_Outliers(out_dat, channel)
-plt.show()
-'''
+PlottingTools.Plot_Outliers(data, channel)
+
+
 ###########################################################################
 
 ###########################  DATA SMOOTHER   ##############################
@@ -132,16 +135,16 @@ plt.show()
 #####################Generate default parameters###########################
 
 # Set parameters
-paramX.h_smoother    = 30
+paramX['h_smoother']    = 10
 
 # Data filtation ==> kernel_smoother fucntion.
 
-[Sensor(channel).Smoothed_AD, err]=kernel_smoother(Sensor, channel, paramX)
+data = Smoother.kernel_smoother(data, channel, paramX)
 
 # Plot filtered data
-plotFiltered_D(Sensor, channel)
-
-##
+PlottingTools.Plot_Filtered(data, channel)
+plt.show()
+'''
 ##########################################################################
 
 ##############################FAULT DETECTION#############################

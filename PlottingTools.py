@@ -50,3 +50,26 @@ def Plot_Outliers(df,var_name):
     plt.xticks(rotation=45)
     plt.legend(['Outliers','LowerLimit', 'UpperLimit','Accepted Data','Raw'])
     plt.show(block=False)
+
+def Plot_Filtered(df, var_name):
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    from pandas.plotting import register_matplotlib_converters
+    register_matplotlib_converters()
+
+    _, ax = plt.subplots(figsize=(12,8))
+
+    ax.plot(df.loc[df.outlier,[var_name]], 'xk', markersize=8)
+    ax.plot(df[var_name+'_Accepted'], 'ok', markersize=4)
+    ax.plot(df.UpperLimit_outlier, 'None',c='red', linestyle='-', linewidth=1)
+    ax.plot(df.LowerLimit_outlier, 'None',c='blue', linestyle='-', linewidth=1)
+    ax.plot(df[var_name+'_Smoothed_AD'], 'None',c='green', linestyle='-', linewidth=1)
+    
+    plt.xlabel('Time')
+    plt.xticks(rotation=45)
+    plt.ylabel(var_name)  
+    plt.legend(['Outliers','Accepted Data', 'Upper Limit', 'Lower Limit','Filtered'])
+
+    plt.show(block = False)
