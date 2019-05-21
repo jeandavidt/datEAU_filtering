@@ -39,6 +39,9 @@ import time
 ########################  TIME SERIES : RAWDATA  #########################
 
 ##########################################################################
+Times={}
+Times['ini'] = time.time()
+
 
 #Import the raw data
 
@@ -47,9 +50,12 @@ path = '../sample_data/influentdata.csv'
 raw_data =pd.read_csv(path, sep=';')
 raw_data.datetime = pd.to_datetime(raw_data.datetime)
 raw_data.set_index('datetime', inplace=True, drop=True)
+Times['import_done'] = time.time()
 
 resamp_data= raw_data.asfreq('2 min')
 data = resamp_data.fillna(method='ffill')
+Times['resample_done'] = time.time()
+
 #Add new data
 #path1 = 'G:\Documents\......\New_data.csv'
 #Sen = DataImport (path1,'datEAUbaseCSVtoMAT','Sen.mat')
@@ -65,7 +71,7 @@ print('Parameters are {}'.format(parameters_list))
 #Plot raw data 
 title = 'Pre-processed Data'
 PlottingTools.plotRaw_D(data, parameters_list,title)
-
+Times['plot raw'] = time.time()
 # -------------------------------------------------------------------------
 # ----------------------------------X--------------------------------------
 # -------------------------------------------------------------------------
@@ -103,10 +109,10 @@ CalibX = data.loc[Tini:Tfin,:].copy()
 #Plot calibration data 
 title = 'Calibration subset'
 PlottingTools.plotRaw_D(CalibX, [channel],title)
-
+Times['parameters set'] = time.time()
 #################Test the dataset for missing values, NaN, etc.############
 flag = Data_Coherence(data, paramX)
-print('Raised flag: {}'.format(flag))
+print(flag)
 '''answer = None
 while answer not in ("y", "n"):
     answer = input("Continue?")
@@ -116,15 +122,16 @@ while answer not in ("y", "n"):
          exit()
     else:
     	print("Please enter y or n.")'''
-
+Times['Data coherence checked'] = time.time()
 ############################## Outlier detection ##########################
+
 paramX['OutlierDetectionMethod'] = "Online_EWMA"
 
 data, paramX = OutlierDetection.outlier_detection(data, CalibX, channel, paramX)
-
+Times['outlier detection done'] = time.time()
 # Plot the outliers detected
 PlottingTools.Plot_Outliers(data, channel)
-
+Times['Outliers plotted'] = time.time()
 
 ###########################################################################
 
@@ -140,10 +147,14 @@ paramX['h_smoother']    = 10
 # Data filtation ==> kernel_smoother fucntion.
 
 data = Smoother.kernel_smoother(data, channel, paramX)
-
+Times['data smoothed'] = time.time()
 # Plot filtered data
 PlottingTools.Plot_Filtered(data, channel)
 plt.show()
+fault_detect_time = time.time()
+Times['smoothed data plotted'] = time.time()
+Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values())})
+
 '''
 ##########################################################################
 

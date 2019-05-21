@@ -66,10 +66,11 @@ def Plot_Filtered(df, var_name):
     ax.plot(df.UpperLimit_outlier, 'None',c='red', linestyle='-', linewidth=1)
     ax.plot(df.LowerLimit_outlier, 'None',c='blue', linestyle='-', linewidth=1)
     ax.plot(df[var_name+'_Smoothed_AD'], 'None',c='green', linestyle='-', linewidth=1)
-    
+    ax.plot(df[var_name+'_smoothed_Pandas'], 'None',c='purple', linestyle='-', linewidth=1)
+    ax.set_facecolor('white')
     plt.xlabel('Time')
     plt.xticks(rotation=45)
     plt.ylabel(var_name)  
-    plt.legend(['Outliers','Accepted Data', 'Upper Limit', 'Lower Limit','Filtered'])
+    plt.legend(['Outliers','Accepted Data', 'Upper Limit', 'Lower Limit','Filtered','Filtered_pandas'])
 
     plt.show(block = False)
