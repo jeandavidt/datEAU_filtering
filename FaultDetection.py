@@ -40,7 +40,7 @@ def D_score(df, param, name):
     #Others data features: the slope, the residual standard
     #deviation and the locally realistic range:
 
-    [Q_slope,Q_std,Q_range]= Quality_D(AD,Smoothed_AD,nb_data,param)
+    [Q_slope,Q_std,Q_range] = Quality_D(AD,Smoothed_AD,nb_data,param)
 
     ##
     # Generation of outputs

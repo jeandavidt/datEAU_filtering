@@ -20,6 +20,7 @@ from DefaultSettings import DefaultParam
 from DataCoherence import Data_Coherence
 import ModelCalibration
 import Smoother
+import FaultDetection
 import importlib
 importlib.reload(Smoother)
 
@@ -163,26 +164,28 @@ Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values(
 ##########################################################################
 
 #Definition range (min and max)for Q_range: 
-paramX.range_min = 2     #minimum real expected value of the variable
-paramX.range_max = 4     #maximum real expected value of the variable
-
-#Calcul Q_corr, Q_std, Q_slope, Q_range: 
-Sensor(channel).Score = D_score(Sensor, paramX, channel)
-'''
+paramX['range_min'] = 100     #minimum real expected value of the variable
+paramX['range_max'] = 600     #maximum real expected value of the variable
 
 #Definition limit of scores: 
-paramX.corr_min= -16  
-paramX.corr_max= -5
+paramX['corr_min']= -16  
+paramX['corr_max']= -5
 
-paramX.slope_min= -0.005   # maximum expected slope based on a good data series
-paramX.slope_max= 0.0058   # minimum expected slope based on good data series
+paramX['slope_min']= -0.005   # maximum expected slope based on a good data series
+paramX['slope_max'] = 0.0058   # minimum expected slope based on good data series
 
-paramX.std_min = -0.1    # Maximum variation between accepted data and smoothed data
-paramX.std_max = 0.1    # Minimum variation between accepted data and smoothed data
+paramX['std_min'] = -0.1    # Maximum variation between accepted data and smoothed data
+paramX['std_max'] = 0.1    # Minimum variation between accepted data and smoothed data
+
+#Calcul Q_corr, Q_std, Q_slope, Q_range: 
+data = FaultDetection.D_score(data, paramX, channel)
+
+
+
 
 # Plot scores
 plotD_score(Sensor, paramX, channel)
-
+'''
 ##########################################################################
 
 ##############################  TREATED DATA   ###########################

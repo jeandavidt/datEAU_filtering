@@ -61,6 +61,7 @@ def  kernel_smoother(df, channel, param):
     df[name+'_Smoothed_AD'] = SmoothedAD
     df[name+'_err'] = err
     
-    df[name+"_smoothed_Pandas"] = df[name+'_Accepted'].rolling(window=h, win_type='gaussian',center=True).mean(std=0.5)
+    #This to see if pandas' rolling window does a similar job as the kernerl smoother above. Turns it needs a standard deviation parameter which I'm not sure how to pick :/ 
+    df[name+"_smoothed_Pandas"] = df[name+'_Accepted'].rolling(window=h, win_type='gaussian',center=True).mean(std=0.1)
 
     return df
