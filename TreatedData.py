@@ -27,6 +27,7 @@ def TreatedD(df, param, name ):
 
     #Initialisation of Inputs: Here, it takes back the different scores and the
     #smoothed data. 
+    Raw = np.array(df[name]).flatten()
     Smoothed_AD = np.array(df[name+"_Smoothed_AD"]).flatten()
     Q_corr = np.array(df[name+"_Qcorr"]).flatten()
     Q_slope = np.array(df[name+"_Qslope"]).flatten()
@@ -67,6 +68,10 @@ def TreatedD(df, param, name ):
     
     
     #Generalization of OUPUTS:
-    Final_D = pd.DataFrame(data={name+'_Treated':Treateddata, name+'_Deleted':Deleteddata})
+    Final_D = pd.DataFrame(data={
+        name+"_raw":Raw,
+        name+'_Treated':Treateddata, 
+        name+'_Deleted':Deleteddata
+        })
   
     return Final_D

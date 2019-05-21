@@ -138,8 +138,8 @@ def plotTreatedD(df, name):
     #This function allows to plot the DataValidated with also the raw data
 
 
-    ax.plot(df[name],'k')
-    ax.plot(df[name+"_Treated"], '-g', 'markersize',6, 'markerfacecolor', 'r')
+    ax.plot(df[name+'_raw'],'k')
+    ax.plot(df[name+"_Treated"], '-g', markersize=6, markerfacecolor='r')
     # plot(Time, DeletedD, 'Or', 'markersize',6, 'markerfacecolor', 'r')
     ax.set(xlabel='Temps')
     plt.xticks(rotation=45)

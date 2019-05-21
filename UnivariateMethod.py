@@ -24,12 +24,8 @@ import FaultDetection
 import TreatedData
 
 import pickle
-
-import importlib
-importlib.reload(Smoother)
-
 import time
-'''
+
 # -------------------------------------------------------------------------
 # -------------------------------Sensor------------------------------------
 # -------------------------------------------------------------------------
@@ -161,35 +157,31 @@ fault_detect_time = time.time()
 Times['smoothed data plotted'] = time.time()
 Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values())})
 
-pickle.dump(data, open("smooth.p","wb"))
-pickle.dump(paramX, open("parameters.p","wb")) '''
+
 
 ##########################################################################
 
 ##############################FAULT DETECTION#############################
-channel='COD'
+
 ##########################################################################
 data = pickle.load(open('smooth.p','rb'))
 paramX = pickle.load(open('parameters.p','rb'))
 #Definition range (min and max)for Q_range: 
 paramX['range_min'] = 50     #minimum real expected value of the variable
-paramX['range_max'] = 400     #maximum real expected value of the variable
+paramX['range_max'] = 550     #maximum real expected value of the variable
 
 #Definition limit of scores: 
-paramX['corr_min']= -16  
-paramX['corr_max']= -5
+paramX['corr_min']= -5  
+paramX['corr_max']= 5
 
-paramX['slope_min']= -0.005   # maximum expected slope based on a good data series
-paramX['slope_max'] = 0.0058   # minimum expected slope based on good data series
+paramX['slope_min']= -1   # maximum expected slope based on a good data series
+paramX['slope_max'] = 1   # minimum expected slope based on good data series
 
 paramX['std_min'] = -0.1    # Maximum variation between accepted data and smoothed data
 paramX['std_max'] = 0.1    # Minimum variation between accepted data and smoothed data
 
 #Calcul Q_corr, Q_std, Q_slope, Q_range: 
 data = FaultDetection.D_score(data, paramX, channel)
-
-
-
 
 # Plot scores
 PlottingTools.Plot_DScore(data, channel, paramX)
@@ -203,6 +195,7 @@ Final_data = TreatedData.TreatedD(data, paramX,channel)
 
 #plot the raw data and treated data: 
 PlottingTools.plotTreatedD(Final_data, channel)
+plt.show()
 '''
 # Percentage of outliers and deleted data
 [Sensor(channel).Intervariable] = Interpcalculator (Sensor, channel) 
