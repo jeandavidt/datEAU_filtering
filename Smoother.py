@@ -60,7 +60,7 @@ def  kernel_smoother(df, channel, param):
 
     df[name+'_Smoothed_AD'] = SmoothedAD
     df[name+'_err'] = err
-
-    df[name+"_smoothed_Pandas"] = df[name+'_Accepted'].rolling(window=h, win_type='gaussian',center=True).mean(std='None')
+    
+    df[name+"_smoothed_Pandas"] = df[name+'_Accepted'].rolling(window=h, win_type='gaussian',center=True).mean(std=0.5)
 
     return df

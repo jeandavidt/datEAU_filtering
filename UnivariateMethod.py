@@ -155,7 +155,7 @@ fault_detect_time = time.time()
 Times['smoothed data plotted'] = time.time()
 Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values())})
 
-'''
+
 ##########################################################################
 
 ##############################FAULT DETECTION#############################
@@ -168,7 +168,7 @@ paramX.range_max = 4     #maximum real expected value of the variable
 
 #Calcul Q_corr, Q_std, Q_slope, Q_range: 
 Sensor(channel).Score = D_score(Sensor, paramX, channel)
-
+'''
 
 #Definition limit of scores: 
 paramX.corr_min= -16  
