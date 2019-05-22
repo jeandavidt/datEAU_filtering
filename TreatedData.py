@@ -28,6 +28,7 @@ def TreatedD(df, param, name ):
     #Initialisation of Inputs: Here, it takes back the different scores and the
     #smoothed data. 
     Raw = np.array(df[name]).flatten()
+    outlier = np.array(df[name+"_outlier"]).flatten()
     Smoothed_AD = np.array(df[name+"_Smoothed_AD"]).flatten()
     Q_corr = np.array(df[name+"_Qcorr"]).flatten()
     Q_slope = np.array(df[name+"_Qslope"]).flatten()
@@ -70,8 +71,51 @@ def TreatedD(df, param, name ):
     #Generalization of OUPUTS:
     Final_D = pd.DataFrame(data={
         name+"_raw":Raw,
+        name+'_outlier': outlier,
         name+'_Treated':Treateddata, 
         name+'_Deleted':Deleteddata
         })
   
     return Final_D
+
+def InterpCalculator(final_df, name):
+    import numpy as np
+    import pandas as pd
+    #This function allows to calculate different variable to interprate the
+    #data filtration. 
+
+    #Input: 
+    # Data: Raw data 
+    # Outlier: the outlier obtained
+    # DataValidated: data 
+
+    #Output:
+    # PercenOutlier: Outlier percentage
+    #LosingData: number of data lose. 
+
+    #Initialization of INPUTS:
+    DATA = np.array(final_df[name+'_raw']).flatten()
+    Outlier = np.array(final_df[name+'_outlier']).flatten()
+    Deleteddata = np.array(final_df[name+'_Deleted']).flatten()
+
+    Datatot = len(DATA)
+
+    #Percentage Outliers:
+    Out = Outlier[Outlier==1]
+    Outtot = len(Out)
+    PercenOutlier = ( Outtot/ Datatot) * 100
+
+    #Percentage data losing
+    Deleted = len(Deleteddata[Deleteddata>0])
+
+    PerceletedData = (100-((Datatot - Deleted)/ Datatot) * 100)
+
+    #Generalization Outputs: 
+    Intervariable={}
+    Intervariable[name+'_PercenOutlier'] = PercenOutlier
+    Intervariable[name+'_PercenLosingData'] = PerceletedData
+
+    
+
+
+    return Intervariable

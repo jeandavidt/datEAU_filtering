@@ -32,9 +32,9 @@ def Plot_Outliers(df,var_name):
     _, ax = plt.subplots(figsize=(12,8))
 
     AD = df[var_name+'_Accepted']
-    outlier = df.loc[df.outlier,[var_name]]
-    ub = df.UpperLimit_outlier
-    lb = df.LowerLimit_outlier
+    outlier = df.loc[df[var_name+'_outlier'],[var_name]]
+    ub = df[var_name+'_UpperLimit_outlier']
+    lb = df[var_name+'_LowerLimit_outlier']
     raw=df[var_name]
     
     ax.plot(outlier,'rx')
@@ -61,10 +61,10 @@ def Plot_Filtered(df, var_name):
 
     _, ax = plt.subplots(figsize=(12,8))
 
-    ax.plot(df.loc[df.outlier,[var_name]], 'xk', markersize=8)
+    ax.plot(df.loc[df[var_name+'_outlier'],[var_name]], 'xk', markersize=8)
     ax.plot(df[var_name+'_Accepted'], 'ok', markersize=4)
-    ax.plot(df.UpperLimit_outlier, 'None',c='red', linestyle='-', linewidth=1)
-    ax.plot(df.LowerLimit_outlier, 'None',c='blue', linestyle='-', linewidth=1)
+    ax.plot(df[var_name+'_UpperLimit_outlier'], 'None',c='red', linestyle='-', linewidth=1)
+    ax.plot(df[var_name+'_LowerLimit_outlier'], 'None',c='blue', linestyle='-', linewidth=1)
     ax.plot(df[var_name+'_Smoothed_AD'], 'None',c='green', linestyle='-', linewidth=1)
     ax.plot(df[var_name+'_smoothed_Pandas'], 'None',c='purple', linestyle='-', linewidth=1)
     ax.set_facecolor('white')

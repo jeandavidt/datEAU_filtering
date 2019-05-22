@@ -6,63 +6,58 @@
 #step for an example of parameter X of a Sensor. 
 
 ################ Importing the required libraries #########################
-import pandas as pd
-import numpy as np
+import time
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from pandas.plotting import register_matplotlib_converters
+
+import FaultDetection
+import ModelCalibration
+import OutlierDetection
+import outlierdetection_Online_EWMA
+import PlottingTools
+import Smoother
+import TreatedData
+from DataCoherence import Data_Coherence
+from DefaultSettings import DefaultParam
 
 register_matplotlib_converters()
 
-import OutlierDetection 
-import outlierdetection_Online_EWMA
-import PlottingTools
-from DefaultSettings import DefaultParam
-from DataCoherence import Data_Coherence
-import ModelCalibration
-import Smoother
-import FaultDetection
-import TreatedData
-
-import pickle
-import time
-
-# -------------------------------------------------------------------------
-# -------------------------------Sensor------------------------------------
-# -------------------------------------------------------------------------
-
-#Generate the functions
-#addpath ('DataFiltrationFramework/')
-#SetFiltersPaths
 
 
-##
 ##########################################################################
 
-########################  TIME SERIES : RAWDATA  #########################
+########################  TIME SERIES : RAW DATA  #########################
 
 ##########################################################################
+#The Times dictionnary keeps track of the time as the method unfolds to see
+#which parts of the script take the longest to execute
 Times={}
 Times['ini'] = time.time()
-
 
 #Import the raw data
 
 path = '../sample_data/influentdata.csv'
-#SENSOR = DataImport (path,'datEAUbaseCSVtoMAT','SENSOR.mat')
 raw_data =pd.read_csv(path, sep=';')
 raw_data.datetime = pd.to_datetime(raw_data.datetime)
 raw_data.set_index('datetime', inplace=True, drop=True)
 Times['import_done'] = time.time()
 
+#Add new data
+#path1 = 'G:\Documents\......\New_data.csv'
+#other_data = pd.read_csv(path1,sep=';')
+#other_data.datetime = pd.to_datetime(other_data.datetime)
+#other_data.set_index('datetime', inplace=True, drop=True)
+#data = pd.concat([raw_data,other_data],axis=1) 
+ 
+
 resamp_data= raw_data.asfreq('2 min')
 data = resamp_data.fillna(method='ffill')
 Times['resample_done'] = time.time()
 
-#Add new data
-#path1 = 'G:\Documents\......\New_data.csv'
-#Sen = DataImport (path1,'datEAUbaseCSVtoMAT','Sen.mat')
-#SENSOR = Concatenate (SENSOR, Sen) 
-#save ('SENSOR.mat')# Save the data. 
+
  
 parameters_list = []
 for column in data.columns:
@@ -155,17 +150,15 @@ PlottingTools.Plot_Filtered(data, channel)
 plt.show()
 fault_detect_time = time.time()
 Times['smoothed data plotted'] = time.time()
-Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values())})
-
-
 
 ##########################################################################
 
 ##############################FAULT DETECTION#############################
 
 ##########################################################################
-data = pickle.load(open('smooth.p','rb'))
-paramX = pickle.load(open('parameters.p','rb'))
+#data = pickle.load(open('smooth.p','rb'))
+#paramX = pickle.load(open('parameters.p','rb'))
+
 #Definition range (min and max)for Q_range: 
 paramX['range_min'] = 50     #minimum real expected value of the variable
 paramX['range_max'] = 550     #maximum real expected value of the variable
@@ -182,26 +175,27 @@ paramX['std_max'] = 0.1    # Minimum variation between accepted data and smoothe
 
 #Calcul Q_corr, Q_std, Q_slope, Q_range: 
 data = FaultDetection.D_score(data, paramX, channel)
+Times['Faults detected'] = time.time()
 
 # Plot scores
 PlottingTools.Plot_DScore(data, channel, paramX)
-
+Times['Detected faults plottted'] = time.time()
 ##########################################################################
 
 ##############################  TREATED DATA   ###########################
 
 #To allow to determinate the treated data and deleted data:
 Final_data = TreatedData.TreatedD(data, paramX,channel)
-
+Times['Final data generated'] = time.time()
 #plot the raw data and treated data: 
 PlottingTools.plotTreatedD(Final_data, channel)
 plt.show()
-'''
-# Percentage of outliers and deleted data
-[Sensor(channel).Intervariable] = Interpcalculator (Sensor, channel) 
+Times['Final data plotted'] = time.time()
 
-#Save the param in the struct:
-[Sensor(channel).param] = paramX
+Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values())})
+
+# Percentage of outliers and deleted data
+Intervariable = Interpcalculator(Final_data, channel) 
+
 
 # save ('Sensor.mat')# Save the whole data 
-'''
