@@ -195,7 +195,7 @@ Times['Final data plotted'] = time.time()
 Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values())})
 
 # Percentage of outliers and deleted data
-Intervariable = Interpcalculator(Final_data, channel) 
+Intervariable = TreatedData.InterpCalculator(Final_data, channel) 
 
 
 # save ('Sensor.mat')# Save the whole data 
