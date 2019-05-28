@@ -1,26 +1,33 @@
+### ATTENTION: This script only works on Windows with
+### a VPN connection opened to the DatEAUbase Server
+import getpass
 import pandas as pd
 import pyodbc
 import time
 import numpy as np
-
 from matplotlib import pyplot as plt
+
 def create_connection():
-username=raw_input("Enter username")
-password = raw_input("Enter password")
-config = dict(server=   '10.10.10.10', # change this to your SQL Server hostname or IP address
-              port=      1433,                    # change this to your SQL Server port number [1433 is the default]
-              database= 'dateaubase',
-              username= username,
-              password= password)
-conn_str = ('SERVER={server},{port};'   +
-            'DATABASE={database};'      +
-            'UID={username};'           +
-            'PWD={password}')
-conn = pyodbc.connect(
-    r'DRIVER={ODBC Driver 13 for SQL Server};' +
-    conn_str.format(**config)
-    )
-cursor = conn.cursor()
+    import getpass
+    username=input("Enter username")
+    password =getpass.getpass(prompt="Enter password")
+    config = dict(server=   '10.10.10.10', # change this to your SQL Server hostname or IP address
+                port=      1433,                    # change this to your SQL Server port number [1433 is the default]
+                database= 'dateaubase',
+                username= username,
+                password= password)
+    conn_str = ('SERVER={server},{port};'   +
+                'DATABASE={database};'      +
+                'UID={username};'           +
+                'PWD={password}')
+    conn = pyodbc.connect(
+        r'DRIVER={ODBC Driver 13 for SQL Server};' +
+        conn_str.format(**config)
+        )
+    cursor = conn.cursor()
+    return cursor
+
+cursor = create_connection()
 
 def date_to_epoch(date):
     naive_datetime = pd.to_datetime(date)
