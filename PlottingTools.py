@@ -1,4 +1,4 @@
-def plotRaw_D(Data_df, param_list, title):
+def plotRaw_D(Data):
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt

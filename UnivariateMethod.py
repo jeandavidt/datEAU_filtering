@@ -58,7 +58,7 @@ resamp_data= raw_data.asfreq('2 min')
 data = resamp_data.fillna(method='ffill')
 Times['resample_done'] = time.time()
 
-
+Sensors.parse_dataframe(data)
  
 parameters_list = []
 for column in data.columns:
