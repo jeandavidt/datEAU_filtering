@@ -38,7 +38,7 @@ def epoch_to_pandas_datetime(epoch):
     return pd.Timestamp(*local_time[:6])
 
 
-def build_query(start, end, location, parameter, equipment):
+def build_query(start, end, project, location, equipment, parameter):
     return '''SELECT dbo.value.Timestamp,
 dbo.value.Value as measurement,
 dbo.parameter.Parameter as par,
@@ -59,27 +59,27 @@ AND dbo.value.Timestamp < {}
 AND dbo.sampling_points.Sampling_location = \'{}\'
 AND dbo.parameter.Parameter = \'{}\'
 AND dbo.equipment.Equipment_identifier = \'{}\'
+AND dbo.project.Project_name = \'{}\'
 order by dbo.value.Value_ID;
-'''.format(start, end, location, parameter,equipment)
+'''.format(start, end, location, parameter,equipment, project)
 
-def clean_up_pulled_data(df,param):
+def clean_up_pulled_data(df,project, location, equipment, parameter):
     df['datetime'] = [epoch_to_pandas_datetime(x) for x in df.Timestamp]
-    df.drop(['Timestamp','Project_name','par'],axis=1, inplace=True)
     df.sort_values('datetime',axis=0, inplace=True)
-
-    if df.Unit[0] == 'kg/m3':
+    parameter = parameter.replace('-','_')
+    Unit = df.Unit[0]
+    if Unit == 'kg/m3':
         df.measurement *= 1000
         df.Unit='g/m3'
-    elif df.Unit[0] == 'S/m':
+    elif Unit == 'S/m':
         df.measurement *=10**4
         df.Unit = 'uS/cm'
-    elif df.Unit[0] == 'ppm':
+    elif Unit == 'ppm':
         df.Unit = 'g/m3'
+    Unit = df.Unit[0]
+    df.drop(['Timestamp','Project_name','par','Unit','equipment','Sampling_location'],axis=1, inplace=True)
     df.rename(columns={
-        'measurement':'{} Value'.format(param),
-        'Unit':'{} Unit'.format(param),
-        'equipment': '{} Equipment'.format(param),
-        'Sampling_location': '{} Location'.format(param),
+        'measurement':'{}-{}-{}-{}-{}'.format(project, location, equipment, parameter, Unit),
     }, inplace=True)
     df.set_index('datetime', inplace=True, drop=True)
     df = df[~df.index.duplicated(keep='first')]
@@ -89,6 +89,7 @@ def clean_up_pulled_data(df,param):
 Start = date_to_epoch('2017-09-01 12:00:00')
 End = date_to_epoch('2018-09-01 12:00:00')
 Location = 'Primary settling tank effluent'
+Project = 'pilEAUte'
 
 param_list = ['COD','CODf','NH4-N','K']
 equip_list = ['Spectro_010','Spectro_010','Ammo_005','Ammo_005']
@@ -98,43 +99,56 @@ for i in range(len(param_list)):
     extract_list[i] = {
         'Start':Start,
         'End':End,
+        'Project':Project,
         'Location':Location,
         'Parameter':param_list[i],
         'Equipment':equip_list[i]
     }
-for i in range(len(extract_list)):
-    query =build_query(extract_list[i]['Start'],
-                           extract_list[i]['End'],
-                           extract_list[i]['Location'],
-                           extract_list[i]['Parameter'],
-                           extract_list[i]['Equipment'])
-    if i==0:
-        df = pd.read_sql(query,conn)
-        clean_up_pulled_data(df,extract_list[i]['Parameter'])
-    else:
-        temp_df = pd.read_sql(query,conn)
-        clean_up_pulled_data(temp_df,extract_list[i]['Parameter'])
-        df = pd.concat([df,temp_df], axis=1)
-        df = df[~df.index.duplicated(keep='first')]
-        
+
+def extract_data(connexion, extraction_list):
+    for i in range(len(extract_list)):
+        query =build_query(extract_list[i]['Start'],
+                               extract_list[i]['End'],
+                               extract_list[i]['Project'],
+                               extract_list[i]['Location'],
+                               extract_list[i]['Equipment'],
+                               extract_list[i]['Parameter'])
+        if i==0:
+            df = pd.read_sql(query,conn)
+            clean_up_pulled_data(df,
+                                 extract_list[i]['Project'],
+                                 extract_list[i]['Location'],
+                                 extract_list[i]['Equipment'],
+                                 extract_list[i]['Parameter'])
+        else:
+            temp_df = pd.read_sql(query,conn)
+            clean_up_pulled_data(temp_df,
+                                 extract_list[i]['Project'],
+                                 extract_list[i]['Location'],
+                                 extract_list[i]['Equipment'],
+                                 extract_list[i]['Parameter'])
+            df = pd.concat([df,temp_df], axis=1)
+            df = df[~df.index.duplicated(keep='first')]
+    return df
 
 def plot_pulled_data(df):
     from pandas.plotting import register_matplotlib_converters
     register_matplotlib_converters()
     sensors=[]
+    units = []
     plt.figure(figsize=(12,8))
     for column in df.columns:
-        if "Value" in column:
-            sensors.append(column.split(' ')[0])
-    for sensor in sensors:
-        plt.plot(df[sensor+' Value'],alpha=0.8)
-    plt.legend(sensors)
+        sensors.append(column.split('-')[-2])
+        units.append(column.split('-')[-1])
+        plt.plot(df[column],alpha=0.8)
+    sensors=[sensor.replace('_','-')for sensor in sensors]
+    plt.legend([sensors[i]+' ('+units[i]+')' for i in range(len(sensors))])
     plt.xticks(rotation=45)
     
     plt.show()
 
 plot_pulled_data(df)
 
-name = 'influent2'
+name = 'influent3'
 path = r"C:\Users\Jean-David Therrien\Desktop\\"
-result.to_csv(path+name+'.csv',sep=';')
+#result.to_csv(path+name+'.csv',sep=';')
