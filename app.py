@@ -18,7 +18,7 @@ app.layout = html.Div([
     html.Div(
         id='header',
         children=[
-            html.H1(dcc.Markdown('dat*EAU* filtering')),
+            html.H1(dcc.Markdown('dat*EAU* filtration')),
             html.Ol(id='navigation', children=[
                 html.Li( html.A(children=dcc.Markdown('Import data'), href='/index.html')),
                 html.Li( dcc.Markdown('Univariate fault detection')),

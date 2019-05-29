@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 from pandas.plotting import register_matplotlib_converters
 
+import Sensors
 import FaultDetection
 import ModelCalibration
 import OutlierDetection
@@ -61,7 +62,7 @@ Times['resample_done'] = time.time()
  
 parameters_list = []
 for column in data.columns:
-    if (('Unit' not in column) & ('equipment' not in column)):
+    if 'Value' in column:
         parameters_list.append(column)
 print('Parameters are {}'.format(parameters_list))
 
