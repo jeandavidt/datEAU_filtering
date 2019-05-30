@@ -1,4 +1,4 @@
-def plotRaw_D(Data):
+def plotRaw_D(df):
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
@@ -8,16 +8,50 @@ def plotRaw_D(Data):
     register_matplotlib_converters()
 
     _, ax = plt.subplots(figsize=(12,8))
-    for parameter in param_list:
-        ax.plot(Data_df.loc[:,parameter])  
-
-    #day_month_year_Fmt = mdates.DateFormatter('#d #B #Y')
-    #ax.xaxis.set_major_formatter(day_month_year_Fmt)
+   
+    sensors=[]
+    units = []
+    
+    for column in df.columns:
+        sensors.append(column.split('-')[-2])
+        units.append(column.split('-')[-1])
+        ax.plot(df[column],alpha=0.8)
+    sensors=[sensor.replace('_','-')for sensor in sensors]
+    plt.legend([sensors[i]+' ('+units[i]+')' for i in range(len(sensors))])
     plt.xticks(rotation=45)
     plt.ylim(bottom=0)
-    plt.legend(param_list)
-    plt.title(title)
+    plt.title("Raw data")
     plt.show(block=False)
+   
+def plotlyRaw_D(df):
+    import plotly
+    import plotly.graph_objs as go
+    import pandas as pd
+    import numpy as np
+     
+    traces=[]
+    for column in df.columns:
+        equipment = column.split('-')[-3]
+        parameter=column.split('-')[-2]
+        unit = column.split('-')[-1]
+        
+        trace = go.Scattergl(
+            x=df.index,
+            y=df[column],
+            name=" ".join([equipment, parameter, unit]),
+            mode='lines+markers',
+            marker=dict(
+                opacity=0
+            ))
+        traces.append(trace)
+    layout=go.Layout(dict(
+        title='Raw data',
+        yaxis=dict(title='Value'),
+        xaxis=dict(title='Date and Time')
+        )
+    )
+    figure=go.Figure(data=traces,layout=layout)
+    return figure
 
 def Plot_Outliers(df,var_name):
 

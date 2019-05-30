@@ -40,7 +40,7 @@ Times['ini'] = time.time()
 
 #Import the raw data
 
-path = '../sample_data/influentdata.csv'
+path = '../sample_data/influent3.csv'
 raw_data =pd.read_csv(path, sep=';')
 raw_data.datetime = pd.to_datetime(raw_data.datetime)
 raw_data.set_index('datetime', inplace=True, drop=True)
@@ -58,17 +58,12 @@ resamp_data= raw_data.asfreq('2 min')
 data = resamp_data.fillna(method='ffill')
 Times['resample_done'] = time.time()
 
-Sensors.parse_dataframe(data)
+sensors = Sensors.parse_dataframe(data)
  
-parameters_list = []
-for column in data.columns:
-    if 'Value' in column:
-        parameters_list.append(column)
-print('Parameters are {}'.format(parameters_list))
 
 #Plot raw data 
 title = 'Pre-processed Data'
-PlottingTools.plotRaw_D(data, parameters_list,title)
+PlottingTools.plotlyRaw_D(data)
 Times['plot raw'] = time.time()
 # -------------------------------------------------------------------------
 # ----------------------------------X--------------------------------------
@@ -76,11 +71,11 @@ Times['plot raw'] = time.time()
 
 #####################Generate default parameters###########################
 # Selection of the period of the data series to be treated
+sensor = sensors[0]
+channel = sensor.channel['COD'] # Variable to be filtered
 
-channel = 'COD' # Variable to be filtered
-
-T0 = data.first_valid_index()
-TF = data.last_valid_index()
+T0 = channel.start
+TF = channel.end
 
 ##########################################################################
 
@@ -90,10 +85,10 @@ TF = data.last_valid_index()
 
 # Load default parameters
 
-paramX = DefaultParam()
+#paramX = DefaultParam()
 
 # Set parameters: Example
-paramX['nb_reject']= 100  
+channel.params['nb_reject']= 100  
 
 ################ Select a subset of the data for calibration ###############
 
@@ -103,7 +98,7 @@ paramX['nb_reject']= 100
 Tini = '15 January 2018'
 Tfin = '15 February 2018'
 
-CalibX = data.loc[Tini:Tfin,:].copy()
+channel.CalibX = data.loc[Tini:Tfin,:].copy()
 #Plot calibration data 
 title = 'Calibration subset'
 PlottingTools.plotRaw_D(CalibX, [channel],title)
