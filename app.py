@@ -25,15 +25,16 @@ app = dash.Dash(__name__)
 app.config['suppress_callback_exceptions']=True
 
 app.layout = html.Div([
+    dcc.Store(id='session-store', storage_type='session'),
     html.H1(dcc.Markdown('dat*EAU* filtration'), id='header'),
     dcc.Tabs([
         dcc.Tab(label='Data Import', value='import'),
         dcc.Tab(label='Univariate filter', value='univar'),
         dcc.Tab(label='Multivariate filter', value='multivar')
-    ],id="tabs", value='import'),
+        ],id="tabs", value='import'),
     html.Div(id='output-data-upload',style={'display':'none'}),
     html.Div(id='tabs-content')
-], id='applayout')
+    ], id='applayout')
 
 @app.callback(
     Output('tabs-content', 'children'),
@@ -146,16 +147,25 @@ def show_series_list(data, n_clicks):
 )
 def check_if_ready_to_save(series,start,end):
     if (series is not None) and (start is not None) and (end is not None):
-        return[
-            html.Button(id='save-button',children='Save data for analysis')
-        ]
+        return[html.Button(id='save-button',children='Save data for analysis')]
     else:
-        return [
+        return [html.Div('You must select at least one time series, a start date and an end date to continue')]
+@app.callback(Output('session-store', 'data'),
+              [Input('save-button', 'n_clicks')],
+              [State('output-data-upload','children'),
+              State('series-selection','value'),
+              State('import-dates','start_date'),
+              State('import-dates','end_date')])
+def store_raw(click, data, options, start, end):
+    if not click:
+        raise PreventUpdate
+    start=pd.to_datetime(start)
+    end = pd.to_datetime(end)
+    df = pd.read_json(data, orient='split')
+    df.index = pd.to_datetime(df.index)
+    filtered = df.loc[start:end, options]
+    return filtered.to_json(date_format='iso',orient='split')
 
-            html.Div('You must select at least one time series, a start date and an end date to continue')
-        ]
-
-
-
+#df.to_json(date_format='iso',orient='split')
 if __name__ == '__main__':
     app.run_server(debug=True)
