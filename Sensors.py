@@ -106,7 +106,8 @@ def decode_object(o):
         return o
 
 
-import json
+
+'''import json
 import pandas as pd
 import numpy as np
 import Sensors
@@ -135,4 +136,4 @@ same.discard('\n')
 
 with open('some_output_file.txt', 'w') as file_out:
     for line in same:
-        file_out.write(line)
+        file_out.write(line)'''
