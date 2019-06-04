@@ -59,7 +59,7 @@ data = resamp_data.fillna(method='ffill')
 Times['resample_done'] = time.time()
 
 sensors = Sensors.parse_dataframe(data)
- 
+
 
 #Plot raw data 
 title = 'Pre-processed Data'

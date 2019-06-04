@@ -8,6 +8,7 @@ import plotly.graph_objs as go
 import base64
 import datetime
 import json
+import pickle
 import os
 import pandas as pd
 import time
@@ -24,25 +25,17 @@ import PlottingTools
 app = dash.Dash(__name__)
 app.config['suppress_callback_exceptions']=True
 
+########################################################################
+                            # APP LAYOUT #
+########################################################################
+
 app.layout = html.Div([
-    dcc.Store(id='session-store', storage_type='session'),
+    dcc.Store(id='session-store'),
+    dcc.Store(id='sensors-store'),
     html.H1(dcc.Markdown('dat*EAU* filtration'), id='header'),
     dcc.Tabs([
-        dcc.Tab(label='Data Import', value='import'),
-        dcc.Tab(label='Univariate filter', value='univar'),
-        dcc.Tab(label='Multivariate filter', value='multivar')
-        ],id="tabs", value='import'),
-    html.Div(id='output-data-upload',style={'display':'none'}),
-    html.Div(id='tabs-content')
-    ], id='applayout')
-
-@app.callback(
-    Output('tabs-content', 'children'),
-    [Input('tabs', 'value')]
-    )
-def render_content(tab):
-    if tab == 'import':
-        return html.Div([
+        dcc.Tab(label='Data Import', value='import', children=[
+            html.Div([
             html.H3('Import data'),
             dcc.Upload(
                 id='upload-data',
@@ -58,14 +51,57 @@ def render_content(tab):
             html.Div(id='upload-dropdown'),
             html.Div(id="button-location")
             ], id='tab1_content')
-    elif tab == 'univar':
-        return html.Div([
-            html.H3('Tab content 2')
+        ]),
+        dcc.Tab(label='Univariate filter', value='univar', children=[
+            html.Div([
+            html.H3('Univariate fault detection'),
+            dcc.Dropdown(
+                id='select-series',
+                multi=False, 
+                placeholder='Pick a series to analyze here.',
+                options=[]),
+                html.Br(),
+            html.Div(id='uni-up', children=[
+                html.Div(id='uni-up-left', children=[
+                    html.Button(id='check-integrity-button',children='Check integrity'),
+                    html.Div(id='show_faults'),
+                ], style={'width':'15%','display':'inline-block','float':'left'}),
+                html.Div(id='uni-up-center',children=[
+                    dcc.Graph(id='initial_uni_graph'),
+                ], style={'width':'60%','display':'inline-block',}),
+                html.Div(id='uni-up-right', children=[
+                    dcc.DatePickerRange(id='calib-range'),
+                    html.Button(id='calibrate-button', children='Calibrate filter'),
+                ], style={'width':'25%','display':'inline-block','float':'right'}),
+            ],),
+            html.Hr(),
+            html.Div(id='uni-down', children=[
+                html.Br(),
+                html.Div(id='uni-low-left', children=[
+                    html.H6('Parameters list'),
+                    html.Br(),
+                    html.Div(id='parameters-list'),
+                ], style={'width':'20%','display':'inline-block','float':'left'}),
+                html.Div(id='uni-down-center',children=[
+                    dcc.Graph(id='faults-uni-graph'),
+                ], style={'width':'60%','display':'inline-block',}),
+                html.Div(id='uni-down-right',children=[
+                    html.Button(id='detect_faults-uni',children='Detect Faults'),
+                    html.Button(id='Accept-filter', children='Accept Filter results'),
+                ], style={'width':'20%','display':'inline-block','float':'right'}),
+            ])
         ])
-    elif tab == 'multivar':
-        return html.Div([
-            html.H3('Tab content 3')
-        ])
+        ]),
+        dcc.Tab(label='Multivariate filter', value='multivar')
+        ],id="tabs", value='import'),
+    html.Div(id='output-data-upload',style={'display':'none'}),
+    html.Div(id='tabs-content')
+    ], id='applayout')
+
+########################################################################
+                            # IMPORT TAB #
+########################################################################
+
 
 def parse_contents(contents, filename):
     _, content_string = contents.split(',')
@@ -126,7 +162,7 @@ def add_interval(selection):
     [State('upload-button','n_clicks')])
 def show_series_list(data, n_clicks):
     if n_clicks == 0:
-            return 
+            raise PreventUpdate 
     else:
         df = pd.read_json(data, orient='split')
         columns = df.columns
@@ -150,22 +186,44 @@ def check_if_ready_to_save(series,start,end):
         return[html.Button(id='save-button',children='Save data for analysis')]
     else:
         return [html.Div('You must select at least one time series, a start date and an end date to continue')]
+
 @app.callback(Output('session-store', 'data'),
               [Input('save-button', 'n_clicks')],
               [State('output-data-upload','children'),
               State('series-selection','value'),
               State('import-dates','start_date'),
               State('import-dates','end_date')])
-def store_raw(click, data, options, start, end):
+def store_raw(click, data, series, start, end):
     if not click:
         raise PreventUpdate
-    start=pd.to_datetime(start)
-    end = pd.to_datetime(end)
+    start= pd.to_datetime(start)
+    end= pd.to_datetime(end)
     df = pd.read_json(data, orient='split')
     df.index = pd.to_datetime(df.index)
-    filtered = df.loc[start:end, options]
-    return filtered.to_json(date_format='iso',orient='split')
+    filtered = df.loc[start:end, series]
+    to_save = filtered.to_json(date_format='iso',orient='split')
+    return to_save
+########################################################################
+                            # UNIVARIATE TAB #
+########################################################################
 
-#df.to_json(date_format='iso',orient='split')
+@app.callback([
+    Output('select-series', 'options'),
+    Output('sensors-store', 'data')],
+    [Input('session-store', 'data')])
+def parse_data_for_analysis(data):
+    if not data:
+        raise PreventUpdate
+    else:
+        df = pd.read_json(data, orient='split')
+        columns = df.columns
+        labels = [column.split('-')[-2]+' '+ column.split('-')[-1] for column in columns]
+        options =[{'label':labels[i], 'value':columns[i]} for i in range(len(columns))]
+
+        sensors = Sensors.parse_dataframe(df)
+        
+        return [sensors, options]
+
+
 if __name__ == '__main__':
     app.run_server(debug=True)
