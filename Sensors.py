@@ -72,7 +72,7 @@ def parse_dataframe(df):
 
 class CustomEncoder(json.JSONEncoder):
     def default(self, o):
-        if (isinstance(o, Sensors.Sensor) or isinstance(o, Sensors.Channel)):
+        if (isinstance(o, Sensor) or isinstance(o, Channel)):
             return {'__{}__'.format(o.__class__.__name__): o.__dict__}
         elif isinstance(o, pd.Timestamp):
             return {'__Timestamp__': str(o)}
@@ -81,7 +81,7 @@ class CustomEncoder(json.JSONEncoder):
 
 def decode_object(o):
     if '__Channel__' in o:   
-        a = Sensors.Channel(
+        a = Channel(
             o['__Channel__']['project'], 
             o['__Channel__']['location'], 
             o['__Channel__']['equipment'], 
@@ -92,7 +92,7 @@ def decode_object(o):
         return a
 
     elif '__Sensor__' in o:
-        a = Sensors.Sensor(
+        a = Sensor(
             o['__Sensor__']['project'],
             o['__Sensor__']['location'],
             o['__Sensor__']['equipment'],

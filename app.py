@@ -12,11 +12,9 @@ import pickle
 import os
 import pandas as pd
 import time
-import uuid
+
 import io
-
 import pandas as pd
-
 import Sensors
 import PlottingTools
 
@@ -221,8 +219,8 @@ def parse_data_for_analysis(data):
         options =[{'label':labels[i], 'value':columns[i]} for i in range(len(columns))]
 
         sensors = Sensors.parse_dataframe(df)
-        
-        return [sensors, options]
+        serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
+        return [options,serialized]
 
 
 if __name__ == '__main__':
