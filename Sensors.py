@@ -71,6 +71,8 @@ def parse_dataframe(df):
 
 
 class CustomEncoder(json.JSONEncoder):
+    import Sensors
+    import pandas as pd
     def default(self, o):
         if (isinstance(o, Sensor) or isinstance(o, Channel)):
             return {'__{}__'.format(o.__class__.__name__): o.__dict__}
@@ -80,8 +82,9 @@ class CustomEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, o)
 
 def decode_object(o):
+    import Sensors
     if '__Channel__' in o:   
-        a = Channel(
+        a = Sensors.Channel(
             o['__Channel__']['project'], 
             o['__Channel__']['location'], 
             o['__Channel__']['equipment'], 
@@ -92,7 +95,7 @@ def decode_object(o):
         return a
 
     elif '__Sensor__' in o:
-        a = Sensor(
+        a = Sensors.Sensor(
             o['__Sensor__']['project'],
             o['__Sensor__']['location'],
             o['__Sensor__']['equipment'],
@@ -106,8 +109,8 @@ def decode_object(o):
         return o
 
 
-
-'''import json
+'''
+import json
 import pandas as pd
 import numpy as np
 import Sensors

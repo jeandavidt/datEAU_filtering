@@ -222,6 +222,28 @@ def parse_data_for_analysis(data):
         serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
         return [options,serialized]
 
+@app.callback(
+    Output('initial_uni_graph', 'figure'),
+    [Input('select-series', 'value')],
+    [State('sensors-store', 'data')])
+    
+def update_initial_uni_fig(value, data):
+    if not value:
+        raise PreventUpdate
+    else:
+        sensors = json.loads(data, object_hook=Sensors.decode_object)
+        
+        for sensor in sensors:
+            project, location, equipment,parameter, _ = value.split('-')
+            if (sensor.project == project and sensor.location == location and sensor.equipment == equipment):
+                sens=sensor
+
+        df = pd.read_json(sens.channels[parameter].data, orient='split')
+
+        figure = PlottingTools.plotlyUnivar(df)
+        figure.update(dict(layout=dict(clickmode='event+select')))
+        
+        return figure
 
 if __name__ == '__main__':
     app.run_server(debug=True)

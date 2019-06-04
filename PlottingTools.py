@@ -53,6 +53,33 @@ def plotlyRaw_D(df):
     figure=go.Figure(data=traces,layout=layout)
     return figure
 
+def plotlyUnivar(df):
+    import plotly
+    import plotly.graph_objs as go
+    import pandas as pd
+    import numpy as np
+     
+    traces=[]
+    for column in df.columns:
+                
+        trace = go.Scattergl(
+            x=df.index,
+            y=df[column],
+            name=column,
+            mode='lines+markers',
+            marker=dict(
+                opacity=0
+            ))
+        traces.append(trace)
+    layout=go.Layout(dict(
+        title='Raw data',
+        yaxis=dict(title='Value'),
+        xaxis=dict(title='Date and Time')
+        )
+    )
+    figure=go.Figure(data=traces,layout=layout)
+    return figure
+
 def Plot_Outliers(df,var_name):
 
     import pandas as pd
