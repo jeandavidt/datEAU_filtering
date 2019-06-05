@@ -13,20 +13,22 @@ class Channel:
         self.unit = unit
         column_name = '-'.join([project, location, equipment,parameter, unit])
         if frame is None:
-            self.data = frame
+            self.raw_data = None
         elif isinstance(frame, pd.DataFrame):
-            self.data = pd.DataFrame(data={'raw':frame[column_name]})
-            self.start=self.data.first_valid_index()
-            self.end=self.data.last_valid_index()
-            self.data=self.data.to_json(date_format='iso',orient='split')
+            self.raw_data = pd.DataFrame(data={'raw':frame[column_name]})
+            self.start=self.raw_data.first_valid_index()
+            self.end=self.raw_data.last_valid_index()
+            
         elif isinstance(frame, str):
-            self.data = pd.read_json(frame, orient='split')
-            if 'raw' not in self.data.columns:
-                self.data = pd.DataFrame(data={'raw':self.data[column_name]})
-            self.start=self.data.first_valid_index()
-            self.end=self.data.last_valid_index()
-            self.data=self.data.to_json(date_format='iso',orient='split')
+            self.raw_data = pd.read_json(frame, orient='split')
+            if 'raw' not in self.raw_data.columns:
+                self.raw_data = pd.DataFrame(data={'raw':self.raw_data[column_name]})
+            self.start=self.raw_data.first_valid_index()
+            self.end=self.raw_data.last_valid_index()
+            
+        self.processed_data = None
         self.params = DefaultSettings.DefaultParam()
+        self.info={'most_recent_series':'raw'}
 
 class Sensor:
     def __init__(self,project, location, equipment, frame=None):
@@ -35,9 +37,9 @@ class Sensor:
         self.equipment=equipment
         self.channels={}
         if frame is None:
-            self.frame=frame
-        elif isinstance(frame, pd.DataFrame):
-            self.frame=frame.to_json(date_format='iso',orient='split')
+            self.frame=None
+        elif isinstance(frame, str):
+            self.frame=pd.read_json(frame,orient='split')
         else:
             self.frame=frame
         

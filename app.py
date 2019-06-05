@@ -61,15 +61,15 @@ app.layout = html.Div([
                 html.Br(),
             html.Div(id='uni-up', children=[
                 html.Div(id='uni-up-left', children=[
-                    html.Button(id='check-integrity-button',children='Check integrity'),
+                    html.Button(id='check-coherence',children='Check data coherence'),
                     html.Div(id='show_faults'),
                 ], style={'width':'15%','display':'inline-block','float':'left'}),
                 html.Div(id='uni-up-center',children=[
                     dcc.Graph(id='initial_uni_graph'),
                 ], style={'width':'60%','display':'inline-block',}),
                 html.Div(id='uni-up-right', children=[
-                    dcc.DatePickerRange(id='calib-range'),
-                    html.Button(id='calibrate-button', children='Calibrate filter'),
+                    dcc.DatePickerRange(id='fit-range'),
+                    html.Button(id='fit-button', children='Fit outlier filter'),
                 ], style={'width':'25%','display':'inline-block','float':'right'}),
             ],),
             html.Hr(),

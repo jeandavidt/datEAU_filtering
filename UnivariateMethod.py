@@ -21,7 +21,7 @@ import outlierdetection_Online_EWMA
 import PlottingTools
 import Smoother
 import TreatedData
-from DataCoherence import Data_Coherence
+import DataCoherence
 from DefaultSettings import DefaultParam
 
 register_matplotlib_converters()
@@ -54,10 +54,10 @@ Times['import_done'] = time.time()
 #data = pd.concat([raw_data,other_data],axis=1) 
  
 
-resamp_data= raw_data.asfreq('2 min')
-data = resamp_data.fillna(method='ffill')
-Times['resample_done'] = time.time()
-
+#resamp_data= raw_data.asfreq('2 min')
+#data = resamp_data.fillna(method='ffill')
+#Times['resample_done'] = time.time()
+data = raw_data
 sensors = Sensors.parse_dataframe(data)
 
 
@@ -72,7 +72,7 @@ Times['plot raw'] = time.time()
 #####################Generate default parameters###########################
 # Selection of the period of the data series to be treated
 sensor = sensors[0]
-channel = sensor.channel['COD'] # Variable to be filtered
+channel = sensor.channels['COD'] # Variable to be filtered
 
 T0 = channel.start
 TF = channel.end
@@ -98,13 +98,20 @@ channel.params['nb_reject']= 100
 Tini = '15 January 2018'
 Tfin = '15 February 2018'
 
-channel.CalibX = data.loc[Tini:Tfin,:].copy()
+channel.CalibX ={'start':Tini, 'end':Tfin}
+start = channel.CalibX['start']
+end = channel.CalibX['end']
 #Plot calibration data 
 title = 'Calibration subset'
-PlottingTools.plotRaw_D(CalibX, [channel],title)
+
+calib_data=channel.raw_data[start:end]
+
+PlottingTools.plotlyUnivar(calib_data)
 Times['parameters set'] = time.time()
+
 #################Test the dataset for missing values, NaN, etc.############
-flag = Data_Coherence(data, paramX)
+
+flag = DataCoherence.data_coherence(channel)
 print(flag)
 answer = None
 while answer not in ("y", "n"):
@@ -116,8 +123,17 @@ while answer not in ("y", "n"):
     else:
     	print("Please enter y or n.")
 Times['Data coherence checked'] = time.time()
+channel = DataCoherence.resample(channel, '2 min')
+flag = DataCoherence.data_coherence(channel)
+print(flag)
+channel = DataCoherence.sort_dat(channel)
+flag = DataCoherence.data_coherence(channel)
+print(flag)
+channel = DataCoherence.fillna(channel)
+flag = DataCoherence.data_coherence(channel)
+print(flag)
 ############################## Outlier detection ##########################
-
+'''
 paramX['OutlierDetectionMethod'] = "Online_EWMA"
 
 data, paramX = OutlierDetection.outlier_detection(data, CalibX, channel, paramX)
@@ -194,4 +210,4 @@ Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values(
 Intervariable = TreatedData.InterpCalculator(Final_data, channel) 
 
 
-# save ('Sensor.mat')# Save the whole data 
+# save ('Sensor.mat')# Save the whole data '''

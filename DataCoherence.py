@@ -1,4 +1,4 @@
-def Data_Coherence(Data, param):
+def data_coherence(channel):
     import warnings
     # This function allows to detect most common data problems. It does not
     # alter the database, but returns meaningful errors or warning codes.
@@ -35,8 +35,16 @@ def Data_Coherence(Data, param):
 
     import pandas as pd
     import numpy as np
+    import json
+    series = channel.info['most_recent_series']
+    if series == 'raw':
+        data = channel.raw_data
+    else:
+        data = pd.DataFrame(channel.processed_data[series])
+    
 
-    nb_reject = param['nb_reject']
+    nb_reject = channel.params['nb_reject']
+    param = channel.params
 
     definition_0 = 'No error was encontered'
     definition_1 = 'NaN were detected in the dates or in the observations. A NAN prevents the outlier filter to work properly, but the filter can recover once more than NB_REJECT real values are present. The weigthed average filter do not filter NAN values (they are rejected from calculation).'
@@ -47,7 +55,7 @@ def Data_Coherence(Data, param):
     flag = {}
 
     # Check for NaN
-    n_nulls = Data.isnull().sum()
+    n_nulls = data.isnull().sum()
     if n_nulls.any():
         if param['Verbose']:
             warnings.warn('DataCoherence warning: NaN values are present in the dataset')
@@ -55,7 +63,7 @@ def Data_Coherence(Data, param):
         flag[1] = definition_1
     
     # Check for variable time step
-    Time = pd.Series(Data.index.astype('int64')/10**9)
+    Time = pd.Series(data.index.astype('int64')/10**9)
     dT = Time.diff().dropna()
     
     maxDT = dT.max()
@@ -81,6 +89,51 @@ def Data_Coherence(Data, param):
         flag[4] = definition_4
     
     if not flag:
+        if param['Verbose']:
+            warnings.warn('DataCoherence warning: No error was encountered.')
         flag[0] = definition_0
 
     return flag 
+
+def sort_dat(channel):
+    import pandas as pd
+    series = channel.info['most_recent_series']
+    if series == 'raw':
+        data = channel.rawdata
+    else:
+        data = pd.DataFrame(channel.processed_data[series])
+
+    sorted_dat = data.loc[~data.index.duplicated(keep='first')]
+    channel.processed_data['sorted']=sorted_dat
+    channel.info['most_recent_series']='sorted'
+    return channel
+
+def resample(channel, timestep):
+    import pandas as pd
+    series = channel.info['most_recent_series']
+    if series == 'raw':
+        data = channel.raw_data
+    else:
+        data = pd.DataFrame(channel.processed_data[series])
+    resampled = data.asfreq(timestep) #write seconds as s, minutes as min
+    resampled.columns=['resampled']
+    
+    channel.processed_data=resampled
+    channel.info['most_recent_series']='resampled'
+    return channel
+
+def fillna(channel):
+    import pandas as pd
+    series = channel.info['most_recent_series']
+    if series == 'raw':
+        data = channel.raw_data
+    else:
+        data = pd.DataFrame(channel.processed_data[series])
+    filled = data.fillna(method='ffill')
+    filled.columns=['filled']
+    if series == 'raw':
+        channel.processed_data=filled
+    else:
+        channel.processed_data['filled']=filled
+    channel.info['most_recent_series']='filled'
+    return channel
