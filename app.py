@@ -102,6 +102,8 @@ app.layout = html.Div([
                         dcc.Input(id='sample-freq',placeholder='frequency (min)',type='number', ),
                         html.Br(),
                         html.Button(id='fillna-button',children=['Fill blank rows']),
+                        html.Br(),
+                        html.Button(id='reset-button',children=['Reset to raw']),
                     ],),
                 ], style={'width':'20%','display':'inline-block','float':'left'}),
                 html.Div(id='uni-up-center',children=[
@@ -110,7 +112,8 @@ app.layout = html.Div([
                 html.Div(id='uni-up-right', children=[
                     'Use the Box Select tool to choose a range of data with which to fit the outlier detection model.',
                     html.Br(),
-                    dcc.DatePickerRange(id='fit-range'),
+                    dcc.DatePickerSingle(id='fit-start'),
+                    dcc.DatePickerSingle(id='fit-end'),
                     html.Br(),
                     html.Button(id='fit-button', children='Fit outlier filter'),
                 ], style={'width':'25%','display':'inline-block','float':'right'}),
@@ -321,40 +324,57 @@ def create_sensors(original_data, modif_data):
 Input('resample-button','n_clicks_timestamp'),
 Input('sort-button','n_clicks_timestamp'),
 Input('fit-button','n_clicks_timestamp'),
-Input('save-params-button','n_clicks_timestamp')],
+Input('save-params-button','n_clicks_timestamp'),
+Input('reset-button','n_clicks_timestamp'),
+Input('fit-end','date')],
 [State('sensors-store','data'),
 State('select-series', 'value'),
 State('sample-freq','value'),
-State('parameters-list-table','data')])
-def modify_sensors(fillna,resamp,srt,fit,param_button, sensor_data,channel_info,frequency,param_data):
-    triggers = [fillna, resamp, srt,fit, param_button]
+State('parameters-list-table','data'),
+State('fit-start','date'),
+])
+def modify_sensors(fillna,resamp,srt,fit,param_button,reset,calib_end, sensor_data,channel_info,frequency,param_data, calib_start):
+    triggers = [fillna, resamp, srt,fit, param_button, reset]
     if all(x is None for x in [triggers]):
         raise PreventUpdate
     if not sensor_data:
         raise PreventUpdate
     else:
+        
         sensors, sensor_index, channel = get_sensors_and_channel(sensor_data, channel_info)
         triggers = np.array(triggers, dtype=np.float64)
         trigger = np.nanmax(triggers)
+        
         if trigger == fillna:
-            updated_channel = DataCoherence.fillna(channel)
+            channel = DataCoherence.fillna(channel)
         elif trigger == resamp:
             if frequency is None:
                 raise PreventUpdate
             freq = str(frequency)+' min'
-            updated_channel = DataCoherence.resample(channel,freq)
+            channel = DataCoherence.resample(channel,freq)
         elif trigger == srt:
-            updated_channel = DataCoherence.sort_dat(channel)
+            channel = DataCoherence.sort_dat(channel)
         elif trigger == fit:
             raise PreventUpdate
         elif trigger == param_button:
             new_params = {}
             for row in param_data:
                 new_params[row['Parameter']]=row['Value']
-            updated_channel = channel
-            updated_channel.params = new_params
+            channel.params = new_params
+        if calib_start and calib_end:
+            if channel.calib is not None:
+                channel_start = channel.calib['start']
+                channel_end = channel.calib['end']
+                if channel_start == calib_start and channel_end == calib_end:
+                    raise PreventUpdate 
+                else:
+                     channel.calib['start']=calib_start
+                     channel.calib['end']=calib_end
+            else:
+                channel.calib={'start':calib_start,'end':calib_end }
+        
         sensor = sensors[sensor_index]
-        sensor.channels[channel.parameter] = updated_channel
+        sensor.channels[channel.parameter] = channel
         return json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
 
 @app.callback(
@@ -467,16 +487,15 @@ def flag4(flag):
 ######################## UNIVARIATE FILTER CALIBRATION ####################
 
 @app.callback(
-    [Output('fit-range','start_date'),
-    Output('fit_range','end_date')],
+    [Output('fit-start','date'),
+    Output('fit-end','date')],
     [Input('initial_uni_graph','selectedData')])
 def add_interval_fit(selection):
     if selection is None:
         raise PreventUpdate
     else:
         start = selection['range']['x'][0]
-        end = selection['range']['x'][-1]
-        
+        end = selection['range']['x'][1]
         return [start, end]
 
 ###########################################################################

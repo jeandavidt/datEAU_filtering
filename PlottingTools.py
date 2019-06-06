@@ -86,6 +86,25 @@ def plotlyUnivar(channel):
                 )
                 traces.append(trace)
 
+    if channel.calib is not None:
+        calib_start = pd.to_datetime(channel.calib['start'])
+        calib_end = pd.to_datetime(channel.calib['end'])
+        most_recent = channel.info['most_recent_series']
+        if most_recent =='raw':
+            df = channel.raw_data
+        else:
+            df = channel.processed_data
+        trace = go.Scattergl(
+                x=df[calib_start:calib_end].index,
+                y=df[calib_start:calib_end][most_recent],
+                name='Calibration series',
+                mode='lines+markers',
+                marker=dict(
+                    opacity=0
+                ),
+            )
+        traces.append(trace)
+
     layout=go.Layout(dict(
         title='Data preparation',
         yaxis=dict(title='Value'),

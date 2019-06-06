@@ -98,15 +98,15 @@ channel.params['nb_reject']= 100
 Tini = '15 January 2018'
 Tfin = '15 February 2018'
 
-channel.CalibX ={'start':Tini, 'end':Tfin}
-start = channel.CalibX['start']
-end = channel.CalibX['end']
+channel.calib ={'start':Tini, 'end':Tfin}
+start = channel.calib['start']
+end = channel.calib['end']
 #Plot calibration data 
 title = 'Calibration subset'
 
 calib_data=channel.raw_data[start:end]
 
-PlottingTools.plotlyUnivar(calib_data)
+PlottingTools.plotlyUnivar(channel)
 Times['parameters set'] = time.time()
 
 #################Test the dataset for missing values, NaN, etc.############
@@ -135,10 +135,10 @@ flag = DataCoherence.data_coherence(channel)
 ############################## Outlier detection ##########################
 
 channel.params['OutlierDetectionMethod'] = "Online_EWMA"
-
-channel = OutlierDetection.outlier_detection(channel)
 '''
-data, paramX = OutlierDetection.outlier_detection(data, CalibX, channel, paramX)
+channel = OutlierDetection.outlier_detection(channel)
+
+data, paramX = OutlierDetection.outlier_detection(data, calib, channel, paramX)
 Times['outlier detection done'] = time.time()
 # Plot the outliers detected
 PlottingTools.Plot_Outliers(data, channel)
