@@ -33,6 +33,7 @@ class Channel:
         self.params = DefaultSettings.DefaultParam()
         self.info={'most_recent_series':'raw'}
         self.calib=None
+        self.filtered=None
 
 class Sensor:
     def __init__(self,project, location, equipment, frame=None):

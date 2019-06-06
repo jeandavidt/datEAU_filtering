@@ -355,12 +355,16 @@ def modify_sensors(fillna,resamp,srt,fit,param_button,reset,calib_end, sensor_da
         elif trigger == srt:
             channel = DataCoherence.sort_dat(channel)
         elif trigger == fit:
-            raise PreventUpdate
+            channel = OutlierDetection.outlier_detection(channel)
         elif trigger == param_button:
             new_params = {}
             for row in param_data:
                 new_params[row['Parameter']]=row['Value']
             channel.params = new_params
+        elif trigger == reset:
+            channel.info={'most_recent_series':'raw'}
+            channel.processed_data=None
+        
         if calib_start and calib_end:
             if channel.calib is not None:
                 channel_start = channel.calib['start']
@@ -515,7 +519,26 @@ def fill_params_table(channel_info, data):
         data=pd.DataFrame(data={'Parameter':parameters,'Value':values})
         data=data.to_dict('records')
         return data
-
-        
+###########################################################################
+######################## PLOT FILTERED DATA ###############################
+@app.callback(
+    Output('faults-uni-graph','figure'),
+    [Input('select-series', 'value'),
+    Input('sensors-store', 'data')]
+)
+def update_second_univariate_figure(value, data):
+    if not value:
+        raise PreventUpdate
+    else:
+        channel = get_channel(data, value)
+        if channel.filtered is None:
+            raise PreventUpdate
+        else:
+            filtration_method = channel.params['OutlierDetectionMethod']
+            figure = PlottingTools.Plotly_Outliers(channel, filtration_method)
+            figure.update(dict(
+                layout=dict(clickmode='event+select')
+            ))
+            return figure
 if __name__ == '__main__':
     app.run_server(debug=True)

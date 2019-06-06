@@ -147,6 +147,48 @@ def Plot_Outliers(df,var_name):
     plt.legend(['Outliers','LowerLimit', 'UpperLimit','Accepted Data','Raw'])
     plt.show(block=False)
 
+def Plotly_Outliers(channel, filtration_method):
+    import pandas as pd
+    import numpy as np
+    import plotly
+    import plotly.graph_objs as go
+
+    df = channel.filtered['filtration_method']
+
+    AD = df['Accepted']
+    outlier = df['outlier']
+    ub = df['UpperLimit_outlier']
+    lb = df['LowerLimit_outlier']
+    raw = channel.raw_data
+    to_plot = {'Accepted':AD, 'Outliers':outlier,'Upper Bound': ub,'Lower Bound': lb,'Raw': raw}
+    traces=[]
+    for name, series in to_plot.items():
+        
+        trace = go.Scattergl(
+                x=series.index,
+                y=series,
+                name=name,
+                mode='lines+markers',
+                marker=dict(
+                    opacity=0
+                ),
+            )
+        '''if name == 'raw':
+            trace['mode'] = 'markers'
+            trace['marker']['opacity']=1
+            trace['marker']['color']='black'''
+        
+        traces.append(trace)
+
+    layout=go.Layout(dict(
+        title='Outlier Detection',
+        yaxis=dict(title='Value'),
+        xaxis=dict(title='Date and Time')
+        )  
+    )
+    figure=go.Figure(data=traces,layout=layout)
+    return figure
+
 def Plot_Filtered(df, var_name):
     import pandas as pd
     import numpy as np

@@ -111,7 +111,7 @@ Times['parameters set'] = time.time()
 
 #################Test the dataset for missing values, NaN, etc.############
 
-flag = DataCoherence.data_coherence(channel)
+'''flag = DataCoherence.data_coherence(channel)
 
 answer = None
 while answer not in ("y", "n"):
@@ -130,15 +130,14 @@ channel = DataCoherence.sort_dat(channel)
 flag = DataCoherence.data_coherence(channel)
 
 channel = DataCoherence.fillna(channel)
-flag = DataCoherence.data_coherence(channel)
+flag = DataCoherence.data_coherence(channel)'''
 
 ############################## Outlier detection ##########################
 
 channel.params['OutlierDetectionMethod'] = "Online_EWMA"
-'''
-channel = OutlierDetection.outlier_detection(channel)
 
-data, paramX = OutlierDetection.outlier_detection(data, calib, channel, paramX)
+channel = OutlierDetection.outlier_detection(channel)
+'''
 Times['outlier detection done'] = time.time()
 # Plot the outliers detected
 PlottingTools.Plot_Outliers(data, channel)

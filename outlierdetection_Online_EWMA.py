@@ -52,7 +52,7 @@ def Outlier_Detection_Online_EWMA(newData, param):
     #A first-order smoothing model is used to predict the forecast mean absolute deviation at
     #time t+1. 
 
-    name = newData.columns[0]
+    #name = newData.columns[0]
     n_dat = len(newData)
     RawData = np.array(newData).flatten()
     #i_0 = 0
@@ -394,16 +394,16 @@ def Outlier_Detection_Online_EWMA(newData, param):
 
     # Generation of outputs
     Sec_data = {
-        name+'_forecast':forecast,
-        name+'_UpperLimit_outlier':UpperLimit,
-        name+'_LowerLimit_outlier':LowerLimit,
-        name+'_outlier': [x==1 for x in outlier],
-        name+'_out_of_control_outlier': out_of_control,
-        name+'_reini_outlier':reini
+        'forecast':forecast,
+        'UpperLimit_outlier':UpperLimit,
+        'LowerLimit_outlier':LowerLimit,
+        'outlier': [x==1 for x in outlier],
+        'out_of_control_outlier': out_of_control,
+        'reini_outlier':reini
     }
     Sec_Results = pd.DataFrame(index = newData.index, data =Sec_data)
 
-    newData[name+'_Accepted'] = AcceptedData
+    newData['Accepted'] = AcceptedData
     newData = pd.concat([newData, Sec_Results],axis=1)
 
     return newData
