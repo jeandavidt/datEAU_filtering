@@ -15,7 +15,10 @@ class Channel:
         if frame is None:
             self.raw_data = None
         elif isinstance(frame, pd.DataFrame):
-            self.raw_data = pd.DataFrame(data={'raw':frame[column_name]})
+            if 'raw' not in frame.columns:
+                self.raw_data = pd.DataFrame(data={'raw':frame[column_name]})
+            else:
+                self.raw_data = frame
             self.start=self.raw_data.first_valid_index()
             self.end=self.raw_data.last_valid_index()
             
@@ -80,11 +83,14 @@ class CustomEncoder(json.JSONEncoder):
             return {'__{}__'.format(o.__class__.__name__): o.__dict__}
         elif isinstance(o, pd.Timestamp):
             return {'__Timestamp__': str(o)}
+        elif isinstance(o, pd.DataFrame):
+            return {'__DataFrame__': o.to_json(date_format='iso', orient='split')}
         else:
             return json.JSONEncoder.default(self, o)
 
 def decode_object(o):
     import Sensors
+    import pandas as pd
     if '__Channel__' in o:   
         a = Sensors.Channel(
             o['__Channel__']['project'], 
@@ -92,7 +98,7 @@ def decode_object(o):
             o['__Channel__']['equipment'], 
             o['__Channel__']['parameter'], 
             o['__Channel__']['unit'],
-            o['__Channel__']['data'])
+            o['__Channel__']['raw_data'])
         a.__dict__.update(o['__Channel__'])
         return a
 
@@ -104,7 +110,9 @@ def decode_object(o):
             o['__Sensor__']['frame'])
         a.__dict__.update(o['__Sensor__'])
         return a
-
+    elif '__DataFrame__' in o:
+        a=pd.read_json(o['__DataFrame__'], orient='split')
+        return(a)
     elif '__Timestamp__' in o:
         return pd.to_datetime (o['__Timestamp__'])
     else:

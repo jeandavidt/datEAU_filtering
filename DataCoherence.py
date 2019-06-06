@@ -99,12 +99,17 @@ def sort_dat(channel):
     import pandas as pd
     series = channel.info['most_recent_series']
     if series == 'raw':
-        data = channel.rawdata
+        data = channel.raw_data
     else:
         data = pd.DataFrame(channel.processed_data[series])
-
-    sorted_dat = data.loc[~data.index.duplicated(keep='first')]
-    channel.processed_data['sorted']=sorted_dat
+    grouped = data.groupby(level=0)
+    sorted_data = grouped.last()
+    sorted_data.columns=['sorted']
+    if series =='raw':
+        channel.processed_data = sorted_data
+    else:
+        channel.processed_data['sorted']=sorted_data
+    
     channel.info['most_recent_series']='sorted'
     return channel
 
@@ -115,7 +120,7 @@ def resample(channel, timestep):
         data = channel.raw_data
     else:
         data = pd.DataFrame(channel.processed_data[series])
-    resampled = data.asfreq(timestep) #write seconds as s, minutes as min
+    resampled = data.asfreq(timestep) #write seconds as 'x s', minutes as 'x min'
     resampled.columns=['resampled']
     
     channel.processed_data=resampled

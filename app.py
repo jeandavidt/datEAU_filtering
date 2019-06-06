@@ -10,13 +10,16 @@ import datetime
 import json
 import pickle
 import os
-import pandas as pd
+
 import time
 
 import io
 import pandas as pd
+import numpy as np
 import Sensors
 import PlottingTools
+import DataCoherence
+import OutlierDetection
 
 #external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -30,6 +33,8 @@ app.config['suppress_callback_exceptions']=True
 app.layout = html.Div([
     dcc.Store(id='session-store'),
     dcc.Store(id='sensors-store'),
+    dcc.Store(id='modif-store'),
+    dcc.Store(id='coherence-store'),
     html.H1(dcc.Markdown('dat*EAU* filtration'), id='header'),
     dcc.Tabs([
         dcc.Tab(label='Data Import', value='import', children=[
@@ -62,11 +67,45 @@ app.layout = html.Div([
             html.Div(id='uni-up', children=[
                 html.Div(id='uni-up-left', children=[
                     html.Button(id='check-coherence',children='Check data coherence'),
-                    html.Div(id='show_faults'),
-                ], style={'width':'15%','display':'inline-block','float':'left'}),
+                    
+                    html.Div(id='faults',children=[
+                        html.Table([
+                            html.Tr([
+                                html.Th('Status'),
+                                html.Th('Message')
+                            ]),
+                            html.Tr([
+                                html.Td(id='err0-status'),
+                                html.Td(id='err0-msg',children=[html.Br()])
+                            ]),
+                            html.Tr([
+                                html.Td(id='err1-status'),
+                                html.Td(id='err1-msg',children=[html.Br()])
+                            ]),
+                            html.Tr([
+                                html.Td(id='err2-status'),
+                                html.Td(id='err2-msg',children=[html.Br()])
+                            ]),
+                            html.Tr([
+                                html.Td(id='err3-status'),
+                                html.Td(id='err3-msg',children=[html.Br()])
+                            ]),
+                            html.Tr([
+                                html.Td(id='err4-status'),
+                                html.Td(id='err4-msg',children=[html.Br()])
+                            ])
+                        ], style={}),
+                        html.Button(id='sort-button',children=['Sort indices'],style={'verticalAlign':'middle'}),
+                        html.Br(),
+                        html.Button(id='resample-button',children=['Resample'],style={'verticalAlign':'middle'}),
+                        dcc.Input(id='sample-freq',placeholder='frequency (min)',type='number', style={'verticalAlign':'middle'}),
+                        html.Br(),
+                        html.Button(id='fillna-button',children=['Fill blank rows'],style={'verticalAlign':'middle'}),
+                    ]),
+                ], style={'width':'20%','display':'inline-block','float':'left'}),
                 html.Div(id='uni-up-center',children=[
                     dcc.Graph(id='initial_uni_graph'),
-                ], style={'width':'60%','display':'inline-block',}),
+                ], style={'width':'55%','display':'inline-block',}),
                 html.Div(id='uni-up-right', children=[
                     dcc.DatePickerRange(id='fit-range'),
                     html.Button(id='fit-button', children='Fit outlier filter'),
@@ -79,6 +118,7 @@ app.layout = html.Div([
                     html.H6('Parameters list'),
                     html.Br(),
                     html.Div(id='parameters-list'),
+                    html.Button(id='save-params-button'),
                 ], style={'width':'20%','display':'inline-block','float':'left'}),
                 html.Div(id='uni-down-center',children=[
                     dcc.Graph(id='faults-uni-graph'),
@@ -88,7 +128,7 @@ app.layout = html.Div([
                     html.Button(id='Accept-filter', children='Accept Filter results'),
                 ], style={'width':'20%','display':'inline-block','float':'right'}),
             ])
-        ])
+        ]),
         ]),
         dcc.Tab(label='Multivariate filter', value='multivar')
         ],id="tabs", value='import'),
@@ -96,11 +136,10 @@ app.layout = html.Div([
     html.Div(id='tabs-content')
     ], id='applayout')
 
-########################################################################
-                            # IMPORT TAB #
-########################################################################
 
-
+########################################################################
+                            # HELPER FUNCTIONS #
+########################################################################
 def parse_contents(contents, filename):
     _, content_string = contents.split(',')
     decoded = base64.b64decode(content_string)
@@ -122,6 +161,24 @@ def parse_contents(contents, filename):
         ])
     return df.to_json(date_format='iso',orient='split')
 
+def get_channel(data, channel_props):
+    sensors = json.loads(data, object_hook=Sensors.decode_object)
+    for sensor in sensors:
+        project, location, equipment, parameter, _ = channel_props.split('-')
+        if (sensor.project == project and sensor.location == location and sensor.equipment == equipment):
+            return sensor.channels[parameter]
+
+def get_sensors_and_channel(serialized_data, channel_props):
+        sensors = json.loads(serialized_data, object_hook=Sensors.decode_object)
+        for sensor in sensors:
+            project, location, equipment, _, _ = channel_props.split('-')
+            if (sensor.project == project and sensor.location == location and sensor.equipment == equipment):
+                sensor_index=sensors.index(sensor)
+                channel = get_channel(serialized_data, channel_props)
+        return sensors, sensor_index, channel
+########################################################################
+                            # IMPORT TAB #
+########################################################################
 @app.callback(Output('output-data-upload', 'children'),
               [Input('upload-data', 'contents')],
               [State('upload-data', 'filename')])
@@ -160,7 +217,7 @@ def add_interval(selection):
     [State('upload-button','n_clicks')])
 def show_series_list(data, n_clicks):
     if n_clicks == 0:
-            raise PreventUpdate 
+        raise PreventUpdate 
     else:
         df = pd.read_json(data, orient='split')
         columns = df.columns
@@ -177,8 +234,7 @@ def show_series_list(data, n_clicks):
     [Output('button-location','children')],
     [Input('series-selection','value')],
     [State('import-dates','start_date'),
-    State('import-dates','end_date')]
-)
+    State('import-dates','end_date')])
 def check_if_ready_to_save(series,start,end):
     if (series is not None) and (start is not None) and (end is not None):
         return[html.Button(id='save-button',children='Save data for analysis')]
@@ -204,12 +260,10 @@ def store_raw(click, data, series, start, end):
 ########################################################################
                             # UNIVARIATE TAB #
 ########################################################################
-
-@app.callback([
+@app.callback(
     Output('select-series', 'options'),
-    Output('sensors-store', 'data')],
     [Input('session-store', 'data')])
-def parse_data_for_analysis(data):
+def show_univar_list(data):
     if not data:
         raise PreventUpdate
     else:
@@ -217,33 +271,181 @@ def parse_data_for_analysis(data):
         columns = df.columns
         labels = [column.split('-')[-2]+' '+ column.split('-')[-1] for column in columns]
         options =[{'label':labels[i], 'value':columns[i]} for i in range(len(columns))]
+        return options
 
+@app.callback(
+    Output('sensors-store', 'data'),
+    [Input('session-store','data'),
+    Input('modif-store','data')])
+def create_sensors(original_data, modif_data):
+    if not original_data:
+        raise PreventUpdate
+    if modif_data == original_data:
+        raise PreventUpdate
+    if not modif_data:
+        df = pd.read_json(original_data, orient='split')
         sensors = Sensors.parse_dataframe(df)
         serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
-        return [options,serialized]
+        return serialized
+    else:
+        return modif_data
+            
+@app.callback(Output('modif-store','data'),
+[Input('fillna-button','n_clicks_timestamp'),
+Input('resample-button','n_clicks_timestamp'),
+Input('sort-button','n_clicks_timestamp'),
+Input('fit-button','n_clicks_timestamp')],
+[State('sensors-store','data'),
+State('select-series', 'value'),
+State('sample-freq','value')])
+def modify_sensors(fillna,resamp,srt,fit, sensor_data,channel_info,frequency):
+    triggers = [fillna, resamp, srt,fit]
+    if all(x is None for x in [triggers]):
+        raise PreventUpdate
+    if not sensor_data:
+        raise PreventUpdate
+    else:
+        sensors, sensor_index, channel = get_sensors_and_channel(sensor_data, channel_info)
+        triggers = np.array(triggers, dtype=np.float64)
+        trigger = np.nanmax(triggers)
+        if trigger == fillna:
+            updated_channel = DataCoherence.fillna(channel)
+        elif trigger == resamp:
+            if frequency is None:
+                raise PreventUpdate
+            freq = str(frequency)+' min'
+            updated_channel = DataCoherence.resample(channel,freq)
+        elif trigger == srt:
+            updated_channel = DataCoherence.sort_dat(channel)
+        elif trigger == fit:
+            raise PreventUpdate
+        sensor = sensors[sensor_index]
+        sensor.channels[channel.parameter] = updated_channel
+        return json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
+
+
+
+            
 
 @app.callback(
     Output('initial_uni_graph', 'figure'),
-    [Input('select-series', 'value')],
-    [State('sensors-store', 'data')])
-    
+    [Input('select-series', 'value'),
+    Input('sensors-store', 'data')])
 def update_initial_uni_fig(value, data):
     if not value:
         raise PreventUpdate
     else:
-        sensors = json.loads(data, object_hook=Sensors.decode_object)
-        
-        for sensor in sensors:
-            project, location, equipment,parameter, _ = value.split('-')
-            if (sensor.project == project and sensor.location == location and sensor.equipment == equipment):
-                sens=sensor
-
-        df = pd.read_json(sens.channels[parameter].data, orient='split')
-
-        figure = PlottingTools.plotlyUnivar(df)
+        channel = get_channel(data, value)
+        figure = PlottingTools.plotlyUnivar(channel)
         figure.update(dict(layout=dict(clickmode='event+select')))
-        
         return figure
+
+@app.callback(
+    Output('coherence-store','data'),
+    [Input('check-coherence','n_clicks')],
+    [State('sensors-store', 'data'),
+    State('select-series', 'value')])
+def run_data_coherence_check(click, data, channel_info):
+    if not click:
+        raise PreventUpdate
+    else:
+        channel = get_channel(data, channel_info)
+        channel.params['Verbose']=False
+        flag = DataCoherence.data_coherence(channel)
+        return json.dumps(flag)
+
+######################## DATA COHERENCE ERROR MESSAGES ####################
+
+@app.callback(
+    [Output('err0-msg','children'),
+    Output('err0-status','children')],
+    [Input('coherence-store','data')])
+def flag_0(flag):
+    if not flag:
+        raise PreventUpdate
+    else:
+        flag=json.loads(flag)
+        if '0' in flag.keys():
+            return['Ready to move on!',
+            html.Img(src=app.get_asset_url('check.png'),width='24')]
+        else:
+            return['You should probaly work on the data some more.',
+            html.Img(src=app.get_asset_url('cross.png'),width='24')]
+@app.callback(
+    [Output('err1-msg','children'),
+    Output('err1-status','children')],
+    [Input('coherence-store','data')])
+def flag1(flag):
+    if not flag:
+        raise PreventUpdate
+    else:
+        flag=json.loads(flag)
+        if '1' in flag.keys():
+            return[flag['1'],
+            html.Img(src=app.get_asset_url('cross.png'),width='24')]
+        else:
+            return[html.P('There is no gap in the data'),
+            html.Img(src=app.get_asset_url('check.png'),width='24')]
+@app.callback(
+    [Output('err2-msg','children'),
+    Output('err2-status','children')],
+    [Input('coherence-store','data')])
+def flag2(flag):
+    if not flag:
+        raise PreventUpdate
+    else:
+        flag=json.loads(flag)
+        if '2' in flag.keys():
+            return[flag['2'],
+            html.Img(src=app.get_asset_url('cross.png'),width='24')]
+        else:
+            return[html.P('The time step is constant.'),
+            html.Img(src=app.get_asset_url('check.png'),width='24')]
+@app.callback(
+    [Output('err3-msg','children'),
+    Output('err3-status','children')],
+    [Input('coherence-store','data')])
+def flag3(flag):
+    if not flag:
+        raise PreventUpdate
+    else:
+        flag=json.loads(flag)
+        if 3 in flag.keys():
+            return[flag[3],
+            html.Img(src=app.get_asset_url('cross.png'),width='24')]
+        else:
+            return[html.P('There is no large gap in the data.'),
+            html.Img(src=app.get_asset_url('check.png'),width='24')]
+@app.callback(
+    [Output('err4-msg','children'),
+    Output('err4-status','children')],
+    [Input('coherence-store','data')])
+def flag4(flag):
+    if not flag:
+        raise PreventUpdate
+    else:
+        flag=json.loads(flag)
+        if '4' in flag.keys():
+            return[flag['4'],
+            html.Img(src=app.get_asset_url('cross.png'),width='24')]
+        else:
+            return[html.P('The data is in chronological order.'),
+            html.Img(src=app.get_asset_url('check.png'),width='24')]
+
+@app.callback(
+    [Output('fit-range','start_date'),
+    Output('fit_range','end_date')],
+    [Input('initial_uni_graph','selectedData')])
+def add_interval_fit(selection):
+    if selection is None:
+        raise PreventUpdate
+    else:
+        start = selection['range']['x'][0]
+        end = selection['range']['x'][-1]
+        print(start)
+        print(end)
+        return [start, end]
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)

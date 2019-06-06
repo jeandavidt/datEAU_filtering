@@ -53,30 +53,46 @@ def plotlyRaw_D(df):
     figure=go.Figure(data=traces,layout=layout)
     return figure
 
-def plotlyUnivar(df):
+def plotlyUnivar(channel):
     import plotly
     import plotly.graph_objs as go
     import pandas as pd
     import numpy as np
      
     traces=[]
-    for column in df.columns:
-                
-        trace = go.Scattergl(
-            x=df.index,
-            y=df[column],
-            name=column,
+    raw = channel.raw_data
+    
+    trace = go.Scattergl(
+            x=raw.index,
+            y=raw['raw'],
+            name='Raw data',
             mode='lines+markers',
             marker=dict(
                 opacity=0
             ))
-        traces.append(trace)
+    traces.append(trace)
+
+    if channel.processed_data is not None:
+        for col in channel.processed_data.columns:
+            if col in ['filled', 'sorted','resampled']:
+                trace = go.Scattergl(
+                    x=channel.processed_data.index,
+                    y=channel.processed_data[col],
+                    name=col,
+                    mode='lines+markers',
+                    marker=dict(
+                        opacity=0
+                    ),
+                )
+                traces.append(trace)
+
     layout=go.Layout(dict(
-        title='Raw data',
+        title='Data preparation',
         yaxis=dict(title='Value'),
         xaxis=dict(title='Date and Time')
-        )
+        )  
     )
+
     figure=go.Figure(data=traces,layout=layout)
     return figure
 
