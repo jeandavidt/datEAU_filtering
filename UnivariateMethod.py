@@ -135,7 +135,8 @@ flag = DataCoherence.data_coherence(channel)
 ############################## Outlier detection ##########################
 
 channel.params['OutlierDetectionMethod'] = "Online_EWMA"
-channel.processed_data, channel.params = OutlierDetection.outlier_detection(channel)
+
+channel = OutlierDetection.outlier_detection(channel)
 '''
 data, paramX = OutlierDetection.outlier_detection(data, CalibX, channel, paramX)
 Times['outlier detection done'] = time.time()

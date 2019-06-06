@@ -35,6 +35,7 @@ app.layout = html.Div([
     dcc.Store(id='sensors-store'),
     dcc.Store(id='modif-store'),
     dcc.Store(id='coherence-store'),
+    dcc.Store(id='new-params-store'),
     html.H1(dcc.Markdown('dat*EAU* filtration'), id='header'),
     dcc.Tabs([
         dcc.Tab(label='Data Import', value='import', children=[
@@ -76,49 +77,74 @@ app.layout = html.Div([
                             ]),
                             html.Tr([
                                 html.Td(id='err0-status'),
-                                html.Td(id='err0-msg',children=[html.Br()])
+                                html.Td(id='err0-msg',children=[])
                             ]),
                             html.Tr([
                                 html.Td(id='err1-status'),
-                                html.Td(id='err1-msg',children=[html.Br()])
+                                html.Td(id='err1-msg',children=[])
                             ]),
                             html.Tr([
                                 html.Td(id='err2-status'),
-                                html.Td(id='err2-msg',children=[html.Br()])
+                                html.Td(id='err2-msg',children=[])
                             ]),
                             html.Tr([
                                 html.Td(id='err3-status'),
-                                html.Td(id='err3-msg',children=[html.Br()])
+                                html.Td(id='err3-msg',children=[])
                             ]),
                             html.Tr([
                                 html.Td(id='err4-status'),
-                                html.Td(id='err4-msg',children=[html.Br()])
+                                html.Td(id='err4-msg',children=[])
                             ])
                         ], style={}),
-                        html.Button(id='sort-button',children=['Sort indices'],style={'verticalAlign':'middle'}),
+                        html.Button(id='sort-button',children=['Sort indices'],),
                         html.Br(),
-                        html.Button(id='resample-button',children=['Resample'],style={'verticalAlign':'middle'}),
-                        dcc.Input(id='sample-freq',placeholder='frequency (min)',type='number', style={'verticalAlign':'middle'}),
+                        html.Button(id='resample-button',children=['Resample'],),
+                        dcc.Input(id='sample-freq',placeholder='frequency (min)',type='number', ),
                         html.Br(),
-                        html.Button(id='fillna-button',children=['Fill blank rows'],style={'verticalAlign':'middle'}),
-                    ]),
+                        html.Button(id='fillna-button',children=['Fill blank rows']),
+                    ],),
                 ], style={'width':'20%','display':'inline-block','float':'left'}),
                 html.Div(id='uni-up-center',children=[
                     dcc.Graph(id='initial_uni_graph'),
                 ], style={'width':'55%','display':'inline-block',}),
                 html.Div(id='uni-up-right', children=[
+                    'Use the Box Select tool to choose a range of data with which to fit the outlier detection model.',
+                    html.Br(),
                     dcc.DatePickerRange(id='fit-range'),
+                    html.Br(),
                     html.Button(id='fit-button', children='Fit outlier filter'),
                 ], style={'width':'25%','display':'inline-block','float':'right'}),
-            ],),
+            ]),
             html.Hr(),
             html.Div(id='uni-down', children=[
                 html.Br(),
                 html.Div(id='uni-low-left', children=[
                     html.H6('Parameters list'),
+                    dash_table.DataTable(
+                        id='parameters-list-table',
+                        columns = [{'name':'Parameter','id':'Parameter'},{'name':'Value','id':'Value'},{'name':'','id':'blank'}],
+                        n_fixed_rows=1,
+                        style_table={
+                            'maxHeight': '300',
+                            'overflowY': 'scroll'
+                        },
+                        style_cell_conditional=[
+                            {'if': {'column_id': 'Parameter'},
+                            'minWidth': '20%','maxWidth':'40%', 'textAlign':'left'},
+                            {'if': {'column_id': 'Value'},
+                            'minWidth': '10%','maxWidth':'20%', 'textAlign':'right'},
+                            {'if': {'column_id': 'blank'},
+                            'minWidth': '30%=','maxWidth':'50%', 'textAlign':'left'}
+                        ],
+                        style_header={
+                            'backgroundColor': 'white',
+                            'fontWeight': 'bold'
+                        },
+                        editable=True,
+                        style_as_list_view=True,
+                    ),
                     html.Br(),
-                    html.Div(id='parameters-list'),
-                    html.Button(id='save-params-button'),
+                    html.Button(id='save-params-button',children=['Save Parameters']),
                 ], style={'width':'20%','display':'inline-block','float':'left'}),
                 html.Div(id='uni-down-center',children=[
                     dcc.Graph(id='faults-uni-graph'),
@@ -294,12 +320,14 @@ def create_sensors(original_data, modif_data):
 [Input('fillna-button','n_clicks_timestamp'),
 Input('resample-button','n_clicks_timestamp'),
 Input('sort-button','n_clicks_timestamp'),
-Input('fit-button','n_clicks_timestamp')],
+Input('fit-button','n_clicks_timestamp'),
+Input('save-params-button','n_clicks_timestamp')],
 [State('sensors-store','data'),
 State('select-series', 'value'),
-State('sample-freq','value')])
-def modify_sensors(fillna,resamp,srt,fit, sensor_data,channel_info,frequency):
-    triggers = [fillna, resamp, srt,fit]
+State('sample-freq','value'),
+State('parameters-list-table','data')])
+def modify_sensors(fillna,resamp,srt,fit,param_button, sensor_data,channel_info,frequency,param_data):
+    triggers = [fillna, resamp, srt,fit, param_button]
     if all(x is None for x in [triggers]):
         raise PreventUpdate
     if not sensor_data:
@@ -319,19 +347,21 @@ def modify_sensors(fillna,resamp,srt,fit, sensor_data,channel_info,frequency):
             updated_channel = DataCoherence.sort_dat(channel)
         elif trigger == fit:
             raise PreventUpdate
+        elif trigger == param_button:
+            new_params = {}
+            for row in param_data:
+                new_params[row['Parameter']]=row['Value']
+            updated_channel = channel
+            updated_channel.params = new_params
         sensor = sensors[sensor_index]
         sensor.channels[channel.parameter] = updated_channel
         return json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
-
-
-
-            
 
 @app.callback(
     Output('initial_uni_graph', 'figure'),
     [Input('select-series', 'value'),
     Input('sensors-store', 'data')])
-def update_initial_uni_fig(value, data):
+def update_top_univariate_figure(value, data):
     if not value:
         raise PreventUpdate
     else:
@@ -339,6 +369,9 @@ def update_initial_uni_fig(value, data):
         figure = PlottingTools.plotlyUnivar(channel)
         figure.update(dict(layout=dict(clickmode='event+select')))
         return figure
+
+###########################################################################
+######################## DATA COHERENCE ERROR MESSAGES ####################
 
 @app.callback(
     Output('coherence-store','data'),
@@ -353,8 +386,6 @@ def run_data_coherence_check(click, data, channel_info):
         channel.params['Verbose']=False
         flag = DataCoherence.data_coherence(channel)
         return json.dumps(flag)
-
-######################## DATA COHERENCE ERROR MESSAGES ####################
 
 @app.callback(
     [Output('err0-msg','children'),
@@ -432,6 +463,9 @@ def flag4(flag):
             return[html.P('The data is in chronological order.'),
             html.Img(src=app.get_asset_url('check.png'),width='24')]
 
+###########################################################################
+######################## UNIVARIATE FILTER CALIBRATION ####################
+
 @app.callback(
     [Output('fit-range','start_date'),
     Output('fit_range','end_date')],
@@ -442,10 +476,27 @@ def add_interval_fit(selection):
     else:
         start = selection['range']['x'][0]
         end = selection['range']['x'][-1]
-        print(start)
-        print(end)
+        
         return [start, end]
 
+###########################################################################
+######################## POPULATE PARAMETERS TABLE ########################
+@app.callback(
+    Output('parameters-list-table','data'),
+    [Input('select-series', 'value'),
+    Input('sensors-store','data')])
+def fill_params_table(channel_info, data):
+    if channel_info is None:
+        raise PreventUpdate
+    else:
+        channel = get_channel(data, channel_info)
+        params = channel.params    
+        parameters = list(params.keys())
+        values = list(params.values())
+        data=pd.DataFrame(data={'Parameter':parameters,'Value':values})
+        data=data.to_dict('records')
+        return data
 
+        
 if __name__ == '__main__':
     app.run_server(debug=True)
