@@ -85,10 +85,10 @@ TF = channel.end
 
 # Load default parameters
 
-#paramX = DefaultParam()
+#channel.params = DefaultParam()
 
 # Set parameters: Example
-channel.params['nb_reject']= 100  
+channel.params['outlier_detection']['nb_reject']= 100  
 
 ################ Select a subset of the data for calibration ###############
 
@@ -134,15 +134,15 @@ flag = DataCoherence.data_coherence(channel)'''
 
 ############################## Outlier detection ##########################
 
-channel.params['OutlierDetectionMethod'] = "Online_EWMA"
+channel.params['outlier_detection']['method'] = "Online_EWMA"
 
 channel = OutlierDetection.outlier_detection(channel)
-'''
+
 Times['outlier detection done'] = time.time()
 # Plot the outliers detected
 PlottingTools.Plot_Outliers(data, channel)
 Times['Outliers plotted'] = time.time()
-
+'''
 ###########################################################################
 
 ###########################  DATA SMOOTHER   ##############################
@@ -152,11 +152,11 @@ Times['Outliers plotted'] = time.time()
 #####################Generate default parameters###########################
 
 # Set parameters
-paramX['h_smoother']    = 10
+channel.params['data_smoother']['h_smoother']    = 10
 
-# Data filtation ==> kernel_smoother fucntion.
+# Data filtration ==> kernel_smoother fucntion.
 
-data = Smoother.kernel_smoother(data, channel, paramX)
+data = Smoother.kernel_smoother(data, channel, channel.params)
 Times['data smoothed'] = time.time()
 # Plot filtered data
 PlottingTools.Plot_Filtered(data, channel)
@@ -170,35 +170,45 @@ Times['smoothed data plotted'] = time.time()
 
 ##########################################################################
 #data = pickle.load(open('smooth.p','rb'))
-#paramX = pickle.load(open('parameters.p','rb'))
+#channel.params = pickle.load(open('parameters.p','rb'))
 
 #Definition range (min and max)for Q_range: 
-paramX['range_min'] = 50     #minimum real expected value of the variable
-paramX['range_max'] = 550     #maximum real expected value of the variable
+#minimum real expected value of the variable
+channel.params['fault_detection_uni']['range_min'] = 50     
+
+#maximum real expected value of the variable
+channel.params['fault_detection_uni']['range_max'] = 550     
 
 #Definition limit of scores: 
-paramX['corr_min']= -5  
-paramX['corr_max']= 5
+channel.params['fault_detection_uni']['corr_min']= -5  
+channel.params['fault_detection_uni']['corr_max']= 5
 
-paramX['slope_min']= -1   # maximum expected slope based on a good data series
-paramX['slope_max'] = 1   # minimum expected slope based on good data series
+# minimum expected slope based on good data series
+channel.params['fault_detection_uni']['slope_min']= -1   
 
-paramX['std_min'] = -0.1    # Maximum variation between accepted data and smoothed data
-paramX['std_max'] = 0.1    # Minimum variation between accepted data and smoothed data
+# maximum expected slope based on a good data series
+channel.params['fault_detection_uni']['slope_max'] = 1   
+
+# Minimum variation between accepted data and smoothed data
+channel.params['fault_detection_uni']['std_min'] = -0.1 
+
+# Maximum variation between accepted data and smoothed data   
+channel.params['fault_detection_uni']['std_max'] = 0.1    
 
 #Calcul Q_corr, Q_std, Q_slope, Q_range: 
-data = FaultDetection.D_score(data, paramX, channel)
+###data = FaultDetection.D_score(data, channel.params, channel)
+channel = FaultDetection.D_score(channel)
 Times['Faults detected'] = time.time()
 
 # Plot scores
-PlottingTools.Plot_DScore(data, channel, paramX)
+PlottingTools.Plot_DScore(data, channel, channel.params)
 Times['Detected faults plottted'] = time.time()
 ##########################################################################
 
 ##############################  TREATED DATA   ###########################
 
 #To allow to determinate the treated data and deleted data:
-Final_data = TreatedData.TreatedD(data, paramX,channel)
+Final_data = TreatedData.TreatedD(data, channel.params,channel)
 Times['Final data generated'] = time.time()
 #plot the raw data and treated data: 
 PlottingTools.plotTreatedD(Final_data, channel)

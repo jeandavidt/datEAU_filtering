@@ -68,8 +68,8 @@ def single_sample_runs_test(AcceptedData,SMOOTHED_ACCEPTEDDATA,nb_data,param):
     # Q_corr: check the indepence of the residuals on different intervals. Evaluates whether residuals are randomly distributed. The calcul is carried out by the function single_sample_runs_test. 
 
 
-    h_smoother = param['h_smoother']
-    moving_window = param['moving_window'] # Definition of the work window
+    h_smoother = param['data_smoother']['h_smoother']
+    moving_window = param['fault_detection_uni']['moving_window'] # Definition of the work window
 
     #Number of intervals in the data serie: The function floor carries an
     #around 
@@ -134,7 +134,7 @@ def Quality_D(AcceptedData, SMOOTHED_ACCEPTEDDATA,nb_data,param):
 
 
     #Moving window: 
-    moving_window = param['moving_window']
+    moving_window = param['fault_detection_uni']['moving_window']
 
 
     #Creation of the matrixes
@@ -147,7 +147,7 @@ def Quality_D(AcceptedData, SMOOTHED_ACCEPTEDDATA,nb_data,param):
 
     for i in range(moving_window-1, nb_data-1):#i=moving_window:nb_data-1
         
-        Q_slope[i]=((SMOOTHED_ACCEPTEDDATA[i]-SMOOTHED_ACCEPTEDDATA[i-1])/(param['reading_interval']))
+        Q_slope[i]=((SMOOTHED_ACCEPTEDDATA[i]-SMOOTHED_ACCEPTEDDATA[i-1])/(param['fault_detection_uni']['reading_interval']))
         
         
 
@@ -161,7 +161,7 @@ def Quality_D(AcceptedData, SMOOTHED_ACCEPTEDDATA,nb_data,param):
 
     for i in range(moving_window-1, nb_data-1):#i=moving_window:nb_data-1 
         
-        if (SMOOTHED_ACCEPTEDDATA[i]>param['range_max']) or (SMOOTHED_ACCEPTEDDATA[i]<param['range_min']):   #Check of the locally realistic range. If Q_range=0, the data is outside the locally realistic range
+        if (SMOOTHED_ACCEPTEDDATA[i]>param['fault_detection_uni']['range_max']) or (SMOOTHED_ACCEPTEDDATA[i]<param['fault_detection_uni']['range_min']):   #Check of the locally realistic range. If Q_range=0, the data is outside the locally realistic range
             Q_range[i]= 0
         
         

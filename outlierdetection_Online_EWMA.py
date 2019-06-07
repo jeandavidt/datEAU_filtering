@@ -60,16 +60,16 @@ def Outlier_Detection_Online_EWMA(newData, param):
 
     #DATA : Time serie with the time and its corresponding value
     #ALPHA_Z and ALPHA_MAD : Smoothing parameters
-    K = param['nb_s'] # /**/!!!!! : Number of standard deviation unit used for the calculation of the prediction interval
+    K = param['outlier_detection']['nb_s'] # /**/!!!!! : Number of standard deviation unit used for the calculation of the prediction interval
 
-    MAD_ini = param['MAD_ini'] # Initial mean absolute deviation used to start or reinitiate the outlier detection method
-    nb_reject = param['nb_reject'] # Number of consecutive rejected data needed to reinitiate
+    MAD_ini = param['outlier_detection']['MAD_ini'] # Initial mean absolute deviation used to start or reinitiate the outlier detection method
+    nb_reject = param['outlier_detection']['nb_reject'] # Number of consecutive rejected data needed to reinitiate
     #the outlier detection method.  When nb_reject data are rejected, this is called an out-of-control.
-    nb_backward = param['nb_backward'] # Number of data before the last rejected data(the last of nb_reject data) where the outlier detection method 
+    nb_backward = param['outlier_detection']['nb_backward'] # Number of data before the last rejected data(the last of nb_reject data) where the outlier detection method 
     #is reinitialization for a forward application.
-    alpha_z    = param['lambda_z']
-    alpha_MAD  = param['lambda_MAD']
-    min_MAD    = param['min_MAD']
+    alpha_z    = param['outlier_detection']['lambda_z']
+    alpha_MAD  = param['outlier_detection']['lambda_MAD']
+    min_MAD    = param['outlier_detection']['min_MAD']
 
     # Creation of the matrices
 

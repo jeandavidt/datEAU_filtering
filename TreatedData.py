@@ -36,12 +36,12 @@ def TreatedD(df, param, name ):
     Q_range = np.array(df[name+"_Qrange"]).flatten()
 
     # Test correlation limits:
-    Val_corr_min = Q_corr > param['corr_min']
-    Val_corr_max = Q_corr < param['corr_max']
-    Val_slope_min = Q_slope > param['slope_min']
-    Val_slope_max = Q_slope < param['slope_max']
-    Val_std_min = Q_std > param['std_min']
-    Val_std_max = Q_std < param['std_max']
+    Val_corr_min = Q_corr > param['fault_detection_uni']['corr_min']
+    Val_corr_max = Q_corr < param['fault_detection_uni']['corr_max']
+    Val_slope_min = Q_slope > param['fault_detection_uni']['slope_min']
+    Val_slope_max = Q_slope < param['fault_detection_uni']['slope_max']
+    Val_std_min = Q_std > param['fault_detection_uni']['std_min']
+    Val_std_max = Q_std < param['fault_detection_uni']['std_max']
 
 
     # Aggregate values that comply both with minimum correlation and maximum correlation.

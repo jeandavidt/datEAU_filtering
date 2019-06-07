@@ -43,7 +43,7 @@ def data_coherence(channel):
         data = pd.DataFrame(channel.processed_data[series])
     
 
-    nb_reject = channel.params['nb_reject']
+    nb_reject = channel.params['outlier_detection']['nb_reject']
     param = channel.params
 
     definition_0 = 'No error was encontered'
@@ -57,7 +57,7 @@ def data_coherence(channel):
     # Check for NaN
     n_nulls = data.isnull().sum()
     if n_nulls.any():
-        if param['Verbose']:
+        if param['general']['Verbose']:
             warnings.warn('DataCoherence warning: NaN values are present in the dataset')
         
         flag[1] = definition_1
@@ -69,27 +69,27 @@ def data_coherence(channel):
     maxDT = dT.max()
     minDT = dT.min()
     medDT = np.median(dT)
-    if ((maxDT > (1 + param['DT_RelRol']) * medDT) or (minDT < (1 - param['DT_RelRol']) * medDT)):
+    if ((maxDT > (1 + param['data_coherence']['DT_RelRol']) * medDT) or (minDT < (1 - param['data_coherence']['DT_RelRol']) * medDT)):
         # Check if the largest variation in the timestep is too important
         if maxDT > nb_reject * minDT:
-            if param['Verbose']:
+            if param['general']['Verbose']:
                 warnings.warn('DataCoherence warning: Large gap is present in the dataset')
             
             flag[2] = definition_2
         
-        if param['Verbose']:
+        if param['general']['Verbose']:
             warnings.warn('DataCoherence warning: the timestep is not constant')
         
         flag[3] = definition_3
 
     if minDT < 0:
-        if param['Verbose']:
+        if param['general']['Verbose']:
             warnings.warn('DataCoherence warning: Negative time step found.')
             
         flag[4] = definition_4
     
     if not flag:
-        if param['Verbose']:
+        if param['general']['Verbose']:
             warnings.warn('DataCoherence warning: No error was encountered.')
         flag[0] = definition_0
 

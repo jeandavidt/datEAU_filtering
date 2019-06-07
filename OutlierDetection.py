@@ -16,16 +16,16 @@ def outlier_detection(channel):
     else:
         data = pd.DataFrame(channel.processed_data['most_recent'])
 
-    if 'OutlierDetectionMethod' not in params:
-        raise Exception('Outlier detection: No method selected (params.OutlierDetectionMethod does not exist')
+    if 'method' not in params['outlier_detection']:
+        raise Exception('Outlier detection: No method selected (params["outlier_detection"]["method"] does not exist')
     
-    if params['OutlierDetectionMethod'] is 'EWMA':
+    if params['outlier_detection']['method'] == 'EWMA':
         raise Exception('Not implemented yet')
         #data, params = OutlierDetection_EWMA(data, calibperiod, channel, params)
-    elif params['OutlierDetectionMethod'] is 'NeuralNetwork':
+    elif params['outlier_detection']['method'] == 'NeuralNetwork':
         raise Exception('Not implemented yet')
         #data, params = Outlier_Detection_NeuralNetworks(data, calibperiod, channel, params)
-    elif params['OutlierDetectionMethod'] is'Online_EWMA':
+    elif params['outlier_detection']['method'] == 'Online_EWMA':
         channel.filtered['Online_EWMA'], channel.params = Outlier_Detection_online(data, calibperiod, params)
     else:
         raise Exception('Outlier detection: unknown method')

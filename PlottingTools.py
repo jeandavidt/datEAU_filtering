@@ -234,8 +234,8 @@ def Plot_DScore(df, name, param):
     
     ax0.plot(df[name+'_Qcorr'],linewidth=2)
     ax0.set(ylabel='Runs test value')
-    ax0.plot([df.first_valid_index(),df.last_valid_index()],[param['corr_max'], param['corr_max']],c='r', linewidth=1)
-    ax0.plot([df.first_valid_index(),df.last_valid_index()],[param['corr_min'], param['corr_min']],c='r', linewidth=1)
+    ax0.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['corr_max'], param['fault_detection_uni']['corr_max']],c='r', linewidth=1)
+    ax0.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['corr_min'], param['fault_detection_uni']['corr_min']],c='r', linewidth=1)
     ax0.set_xticks([])
 
     ax1 = axes_list[1]
@@ -243,23 +243,23 @@ def Plot_DScore(df, name, param):
 
     # ylabel(sprintf('#s','Slope (', units, ')'),'fontsize',10)
     ax1.set(ylabel='Slope [mg/L*s]')
-    ax1.plot([df.first_valid_index(),df.last_valid_index()],[param['slope_max'], param['slope_max']],c='r', linewidth=1)
-    ax1.plot([df.first_valid_index(),df.last_valid_index()],[param['slope_min'], param['slope_min']],c='r', linewidth=1)
+    ax1.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['slope_max'], param['fault_detection_uni']['slope_max']],c='r', linewidth=1)
+    ax1.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['slope_min'], param['fault_detection_uni']['slope_min']],c='r', linewidth=1)
     ax1.set_xticks([])
 
     ax2 = axes_list[2]
     ax2.plot(df[name+'_Qstd'],linewidth=2)
     
     ax2.set(ylabel='Std ln[mg/L]')
-    ax2.plot([df.first_valid_index(),df.last_valid_index()],[param['std_max'], param['std_max']],c='r', linewidth=1)
-    ax2.plot([df.first_valid_index(),df.last_valid_index()],[param['std_min'], param['std_min']],c='r', linewidth=1)
+    ax2.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['std_max'], param['fault_detection_uni']['std_max']],c='r', linewidth=1)
+    ax2.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['std_min'], param['fault_detection_uni']['std_min']],c='r', linewidth=1)
     ax2.set_xticks([])
 
     ax3 = axes_list[3]
     ax3.plot(df[name+'_Smoothed_AD'],linewidth=2)
     ax3.set(ylabel='Range [mg/L]')
-    ax3.plot([df.first_valid_index(),df.last_valid_index()],[param['range_max'], param['range_max']],c='r', linewidth=1)
-    ax3.plot([df.first_valid_index(),df.last_valid_index()],[param['range_min'], param['range_min']],c='r', linewidth=1)
+    ax3.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['range_max'], param['fault_detection_uni']['range_max']],c='r', linewidth=1)
+    ax3.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['range_min'], param['fault_detection_uni']['range_min']],c='r', linewidth=1)
     ax3.set_xticks([])
 
     plt.show(block=False)

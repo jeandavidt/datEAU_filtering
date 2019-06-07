@@ -407,7 +407,7 @@ def run_data_coherence_check(click, data, channel_info):
         raise PreventUpdate
     else:
         channel = get_channel(data, channel_info)
-        channel.params['Verbose']=False
+        channel.params['general']['Verbose']=False
         flag = DataCoherence.data_coherence(channel)
         return json.dumps(flag)
 
@@ -534,7 +534,7 @@ def update_second_univariate_figure(value, data):
         if channel.filtered is None:
             raise PreventUpdate
         else:
-            filtration_method = channel.params['OutlierDetectionMethod']
+            filtration_method = channel.params['outlier_detection']['method']
             figure = PlottingTools.Plotly_Outliers(channel, filtration_method)
             figure.update(dict(
                 layout=dict(clickmode='event+select')
