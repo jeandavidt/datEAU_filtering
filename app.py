@@ -90,14 +90,14 @@ app.layout = html.Div([
             html.Div([
                 dcc.Upload(
                     id='upload-data',
-                    children=html.Button('Upload File',id='upload-button',n_clicks=0)
+                    children=html.Button('Upload File',id='upload-button')
                 ),
                 html.Button(id='select-all-series-import',children=['Select all series']),
                 html.Button(id='select-all-dates-import',children=['Select all dates']),
             ],style={'width':'40%','columnCount': 3}),
             
             html.H6(id='import-message'),
-            dcc.Graph(id='import-graph'),
+            html.Div(id='upload-graph-location'),
             html.Div('Use the Box Select tool to choose a range of dates to analyze.'),
             html.Br(),
             dcc.DatePickerRange(id='import-dates'),
@@ -283,66 +283,48 @@ def update_output(contents, filename):
         return data
 
 @app.callback(
-    Output('import-graph-location', 'children'),
-    [Input('output-data-upload', 'children')])
+    Output('upload-graph-location', 'children'),
+    [Input('output-data-upload', 'children')],
+    [State('upload-button','n_clicks')])
 def update_upload_fig(data, n_clicks):
-    if not data:
-        return dcc.Graph(id='import-graph')
+    if not n_clicks:
+        return dcc.Graph(id='upload-graph')
     else:
         df = pd.read_json(data, orient='split')
         figure = PlottingTools.plotlyRaw_D(df)
         figure.update(dict(layout=dict(clickmode='event+select')))
-        return dcc.Graph(id='import-graph',figure=figure)
+        
+        return dcc.Graph(id='upload-graph', figure=figure),
             
 
 @app.callback(
     [Output('import-dates','start_date'),
     Output('import-dates','end_date')],
-    [Input('import-graph','selectedData')],
-    [State('output-data-upload', 'children')])
-def add_interval(selection,data):
-    if not selection:
-        raise PreventUpdate
-    else:
-        ctx = dash.callback_context    
-        trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-        if trigger == 'import-graph':
-            start = selection['range']['x'][0]
-            end = selection['range']['x'][1]
-        elif trigger == 'select-all-import':
-            df = pd.read_json(data, orient='split')
-            start = str(df.first_valid_index())
-            end = str(df.last_valid_index())
-        return start, end
+    [Input('upload-graph','selectedData')])
+def add_interval(selection):
+    start = selection['range']['x'][0]
+    end = selection['range']['x'][1]
+    return start, end
 
 @app.callback(
     [Output('upload-dropdown','children')],
-    [Input('output-data-upload', 'children'),
-    Input('select-all-import', 'n_clicks')],
+    [Input('output-data-upload', 'children')],
     [State('upload-button','n_clicks')])
-def show_series_list(data, select_click,upload_click):
-    if not upload_click:
+def show_series_list(data, n_clicks):
+    if n_clicks == 0:
         raise PreventUpdate 
-    elif not data: 
-        raise PreventUpdate 
+    if not data:
+        raise PreventUpdate
     else:
         df = pd.read_json(data, orient='split')
         columns = df.columns
         labels = [column.split('-')[-2]+' '+ column.split('-')[-1] for column in columns]
         options =[{'label':labels[i], 'value':columns[i]} for i in range(len(columns))]
-        ctx = dash.callback_context    
-        trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-        if trigger == 'select-all-import':
-            vals=[i['value'] for i in options]
-            
-        elif trigger == 'output-data-upload':
-            vals=None
         return [html.Div(id='test',children=[dcc.Dropdown(
             id='series-selection',
             multi=True, 
             placeholder='Select series to analyze here.',
             options=options,
-            value=vals
             ),
             html.Br()])]
 @app.callback(
