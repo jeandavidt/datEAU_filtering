@@ -153,7 +153,7 @@ def Plotly_Outliers(channel, filtration_method):
     import plotly
     import plotly.graph_objs as go
 
-    df = channel.filtered['filtration_method']
+    df = channel.filtered[filtration_method]
 
     AD = df['Accepted']
     outlier = df['outlier']

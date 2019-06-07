@@ -17,6 +17,7 @@ import io
 import pandas as pd
 import numpy as np
 import Sensors
+import DefaultSettings
 import PlottingTools
 import DataCoherence
 import OutlierDetection
@@ -26,6 +27,51 @@ import OutlierDetection
 app = dash.Dash(__name__)
 app.config['suppress_callback_exceptions']=True
 
+########################################################################
+                    # Table Building helper function #
+########################################################################
+def build_param_table(_id):
+    table = dash_table.DataTable(
+        id=_id,
+        columns = [{'name':'Parameter','id':'Parameter'},{'name':'Value','id':'Value'},{'name':'','id':'blank'}],
+        n_fixed_rows=1,
+        style_table={
+            'maxHeight': '300',
+            'overflowY': 'scroll'
+        },
+        style_cell_conditional=[
+            {'if': {'column_id': 'Parameter'},
+            'minWidth': '20%','maxWidth':'25%', 'textAlign':'left'},
+            {'if': {'column_id': 'Value'},
+            'minWidth': '10%','maxWidth':'20%', 'textAlign':'lift'},
+            {'if': {'column_id': 'blank'},
+            'minWidth': '55%=','maxWidth':'70%', 'textAlign':'left'}
+        ],
+        style_header={
+            'backgroundColor': 'white',
+            'fontWeight': 'bold'
+        },
+        editable=True,
+        style_as_list_view=True,
+    )
+    return table
+def small_button(_id,label):
+    button = html.Button(id=_id, children=[label],style={
+        'height': '24px',
+        'padding': '0 10px',
+        'font-size': '9px',
+        'font-weight': '500',
+        'line-height': '24px',
+    })
+    return button
+def small_input(_id,placeholder, input_type):
+    inp = dcc.Input(id=_id, placeholder=placeholder,type=input_type,style={
+        'height': '24px',
+        'padding': '0 10px',
+        'font-size': '9px',
+        'line-height': '26px',
+    })
+    return inp
 ########################################################################
                             # APP LAYOUT #
 ########################################################################
@@ -68,7 +114,6 @@ app.layout = html.Div([
             html.Div(id='uni-up', children=[
                 html.Div(id='uni-up-left', children=[
                     html.Button(id='check-coherence',children='Check data coherence'),
-                    
                     html.Div(id='faults',children=[
                         html.Table([
                             html.Tr([
@@ -86,7 +131,7 @@ app.layout = html.Div([
                             html.Tr([
                                 html.Td(id='err2-status'),
                                 html.Td(id='err2-msg',children=[])
-                            ]),
+                            ],style={'line-height':'24px'}),
                             html.Tr([
                                 html.Td(id='err3-status'),
                                 html.Td(id='err3-msg',children=[])
@@ -95,15 +140,18 @@ app.layout = html.Div([
                                 html.Td(id='err4-status'),
                                 html.Td(id='err4-msg',children=[])
                             ])
-                        ], style={}),
-                        html.Button(id='sort-button',children=['Sort indices'],),
+                        ], style={'font-size': '9px',
+                            'font-weight': '200',
+                            'line-height': '12px'
+                        }),
+                        small_button('sort-button','Sort indices'),
                         html.Br(),
-                        html.Button(id='resample-button',children=['Resample'],),
-                        dcc.Input(id='sample-freq',placeholder='frequency (min)',type='number', ),
+                        small_button('resample-button','Resample'),
+                        small_input('sample-freq','frequency (min)','number'),
                         html.Br(),
-                        html.Button(id='fillna-button',children=['Fill blank rows']),
+                        small_button('fillna-button','Fill blank rows'),
                         html.Br(),
-                        html.Button(id='reset-button',children=['Reset to raw']),
+                        small_button('reset-button','Reset to raw'),
                     ],),
                 ], style={'width':'20%','display':'inline-block','float':'left'}),
                 html.Div(id='uni-up-center',children=[
@@ -122,30 +170,43 @@ app.layout = html.Div([
             html.Div(id='uni-down', children=[
                 html.Br(),
                 html.Div(id='uni-low-left', children=[
-                    html.H6('Parameters list'),
-                    dash_table.DataTable(
-                        id='parameters-list-table',
-                        columns = [{'name':'Parameter','id':'Parameter'},{'name':'Value','id':'Value'},{'name':'','id':'blank'}],
-                        n_fixed_rows=1,
-                        style_table={
-                            'maxHeight': '300',
-                            'overflowY': 'scroll'
-                        },
-                        style_cell_conditional=[
-                            {'if': {'column_id': 'Parameter'},
-                            'minWidth': '20%','maxWidth':'40%', 'textAlign':'left'},
-                            {'if': {'column_id': 'Value'},
-                            'minWidth': '10%','maxWidth':'20%', 'textAlign':'right'},
-                            {'if': {'column_id': 'blank'},
-                            'minWidth': '30%=','maxWidth':'50%', 'textAlign':'left'}
-                        ],
-                        style_header={
-                            'backgroundColor': 'white',
-                            'fontWeight': 'bold'
-                        },
-                        editable=True,
-                        style_as_list_view=True,
-                    ),
+                    html.H6('Channel Parameters'),
+                    dcc.Tabs(
+                        parent_className='custom-tabs',
+                        className='custom-tabs-container',
+                        children=[
+                            dcc.Tab(
+                                className='custom-tab',
+                                selected_className='custom-tab--selected',
+                                id='general-param-tab',label='General',
+                                children=[
+                                    build_param_table('general-param-table')       
+                                ]),
+                            dcc.Tab(
+                                className='custom-tab',
+                                selected_className='custom-tab--selected',
+                                id='outlier-param-tab',
+                                label='Outliers', 
+                                children=[
+                                    build_param_table('outlier-param-table')
+                                ]),
+                            dcc.Tab(
+                                className='custom-tab',
+                                selected_className='custom-tab--selected',
+                                id='data_smoother-param-tab',
+                                label='Smoother', 
+                                children=[
+                                    build_param_table('data_smoother-param-table')
+                                ]),
+                            dcc.Tab(
+                                className='custom-tab',
+                                selected_className='custom-tab--selected',
+                                id='fault_detection_uni-param-tab',
+                                label='Faults', 
+                                children=[
+                                    build_param_table('fault_detection_uni-param-table')
+                                ])
+                    ]),
                     html.Br(),
                     html.Button(id='save-params-button',children=['Save Parameters']),
                 ], style={'width':'20%','display':'inline-block','float':'left'}),
@@ -320,6 +381,7 @@ def create_sensors(original_data, modif_data):
         return modif_data
             
 @app.callback(Output('modif-store','data'),
+
 [Input('fillna-button','n_clicks_timestamp'),
 Input('resample-button','n_clicks_timestamp'),
 Input('sort-button','n_clicks_timestamp'),
@@ -327,50 +389,88 @@ Input('fit-button','n_clicks_timestamp'),
 Input('save-params-button','n_clicks_timestamp'),
 Input('reset-button','n_clicks_timestamp'),
 Input('fit-end','date')],
+
 [State('sensors-store','data'),
 State('select-series', 'value'),
 State('sample-freq','value'),
-State('parameters-list-table','data'),
+State('general-param-table','data'),
+State('outlier-param-table','data'),
+State('data_smoother-param-table','data'),
+State('fault_detection_uni-param-table','data'),
 State('fit-start','date'),
 ])
-def modify_sensors(fillna,resamp,srt,fit,param_button,reset,calib_end, sensor_data,channel_info,frequency,param_data, calib_start):
-    triggers = [fillna, resamp, srt,fit, param_button, reset]
-    if all(x is None for x in [triggers]):
-        raise PreventUpdate
+def modify_sensors(
+    #inputs
+    fillna,resamp,srt,fit,param_button,reset,calib_end,
+    #state variables
+    sensor_data,channel_info,frequency,par_general,par_outlier,par_smooth,par_f_uni,calib_start
+    ):
+    ctx = dash.callback_context
+    
+    
     if not sensor_data:
         raise PreventUpdate
     else:
+        trigger = ctx.triggered[0]['prop_id'].split('.')[0]
         
-        sensors, sensor_index, channel = get_sensors_and_channel(sensor_data, channel_info)
-        triggers = np.array(triggers, dtype=np.float64)
-        trigger = np.nanmax(triggers)
         
-        if trigger == fillna:
+        if trigger == 'fillna-button':
             channel = DataCoherence.fillna(channel)
-        elif trigger == resamp:
+
+        elif trigger == 'resample-button':
             if frequency is None:
                 raise PreventUpdate
             freq = str(frequency)+' min'
             channel = DataCoherence.resample(channel,freq)
-        elif trigger == srt:
+
+        elif trigger == 'sort-button':
             channel = DataCoherence.sort_dat(channel)
-        elif trigger == fit:
+
+        elif trigger == 'fit-button':
+            print('Outlier detection triggered!')
+            a=time.time()
             channel = OutlierDetection.outlier_detection(channel)
-        elif trigger == param_button:
-            new_params = {}
-            for row in param_data:
-                new_params[row['Parameter']]=row['Value']
+            print('outlier detection has finished')
+            delta=time.time()-a
+            print('Outlier detection took '+str(delta)+'s')
+
+        elif trigger == 'save-params-button':
+            new_params = {
+                'outlier_detection':{},
+                'data_smoother':{},
+                'data_coherence':{},
+                'fault_detection_uni':{},
+                'general':{}
+                }
+            outlier_method = channel.params['outlier_detection']['method']
+            default_params = DefaultSettings.DefaultParam(outlier_method)
+            new_params['data_coherence']=default_params['data_coherence']
+
+            for row in par_general:
+                new_params['general'][row['Parameter']]=row['Value']
+            for row in par_outlier:
+                new_params['outlier_detection'][row['Parameter']]=row['Value']
+            for row in par_smooth:
+                new_params['data_smoother'][row['Parameter']]=row['Value']
+            for row in par_f_uni:
+                new_params['fault_detection_uni'][row['Parameter']]=row['Value']
             channel.params = new_params
-        elif trigger == reset:
+
+        elif trigger == 'reset-button':
             channel.info={'most_recent_series':'raw'}
             channel.processed_data=None
-        
+
         if calib_start and calib_end:
+            
             if channel.calib is not None:
                 channel_start = channel.calib['start']
                 channel_end = channel.calib['end']
                 if channel_start == calib_start and channel_end == calib_end:
-                    raise PreventUpdate 
+                    if trigger == 'fit-button':
+                        pass
+                    else:
+                        print('update prevented')
+                        raise PreventUpdate 
                 else:
                      channel.calib['start']=calib_start
                      channel.calib['end']=calib_end
@@ -379,6 +479,7 @@ def modify_sensors(fillna,resamp,srt,fit,param_button,reset,calib_end, sensor_da
         
         sensor = sensors[sensor_index]
         sensor.channels[channel.parameter] = channel
+        print('ready to return')
         return json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
 
 @app.callback(
@@ -422,10 +523,10 @@ def flag_0(flag):
         flag=json.loads(flag)
         if '0' in flag.keys():
             return['Ready to move on!',
-            html.Img(src=app.get_asset_url('check.png'),width='24')]
+            html.Img(src=app.get_asset_url('check.png'),width='18px')]
         else:
             return['You should probaly work on the data some more.',
-            html.Img(src=app.get_asset_url('cross.png'),width='24')]
+            html.Img(src=app.get_asset_url('cross.png'),width='18px')]
 @app.callback(
     [Output('err1-msg','children'),
     Output('err1-status','children')],
@@ -437,10 +538,10 @@ def flag1(flag):
         flag=json.loads(flag)
         if '1' in flag.keys():
             return[flag['1'],
-            html.Img(src=app.get_asset_url('cross.png'),width='24')]
+            html.Img(src=app.get_asset_url('cross.png'),width='18px')]
         else:
             return[html.P('There is no gap in the data'),
-            html.Img(src=app.get_asset_url('check.png'),width='24')]
+            html.Img(src=app.get_asset_url('check.png'),width='18px')]
 @app.callback(
     [Output('err2-msg','children'),
     Output('err2-status','children')],
@@ -452,10 +553,10 @@ def flag2(flag):
         flag=json.loads(flag)
         if '2' in flag.keys():
             return[flag['2'],
-            html.Img(src=app.get_asset_url('cross.png'),width='24')]
+            html.Img(src=app.get_asset_url('cross.png'),width='18px')]
         else:
             return[html.P('The time step is constant.'),
-            html.Img(src=app.get_asset_url('check.png'),width='24')]
+            html.Img(src=app.get_asset_url('check.png'),width='18px')]
 @app.callback(
     [Output('err3-msg','children'),
     Output('err3-status','children')],
@@ -467,10 +568,10 @@ def flag3(flag):
         flag=json.loads(flag)
         if 3 in flag.keys():
             return[flag[3],
-            html.Img(src=app.get_asset_url('cross.png'),width='24')]
+            html.Img(src=app.get_asset_url('cross.png'),width='18')]
         else:
             return[html.P('There is no large gap in the data.'),
-            html.Img(src=app.get_asset_url('check.png'),width='24')]
+            html.Img(src=app.get_asset_url('check.png'),width='18')]
 @app.callback(
     [Output('err4-msg','children'),
     Output('err4-status','children')],
@@ -482,10 +583,10 @@ def flag4(flag):
         flag=json.loads(flag)
         if '4' in flag.keys():
             return[flag['4'],
-            html.Img(src=app.get_asset_url('cross.png'),width='24')]
+            html.Img(src=app.get_asset_url('cross.png'),width='18')]
         else:
             return[html.P('The data is in chronological order.'),
-            html.Img(src=app.get_asset_url('check.png'),width='24')]
+            html.Img(src=app.get_asset_url('check.png'),width='18')]
 
 ###########################################################################
 ######################## UNIVARIATE FILTER CALIBRATION ####################
@@ -498,14 +599,20 @@ def add_interval_fit(selection):
     if selection is None:
         raise PreventUpdate
     else:
-        start = selection['range']['x'][0]
-        end = selection['range']['x'][1]
+        try:
+            start = selection['range']['x'][0]
+            end = selection['range']['x'][1]
+        except KeyError:
+            raise PreventUpdate
         return [start, end]
 
 ###########################################################################
 ######################## POPULATE PARAMETERS TABLE ########################
 @app.callback(
-    Output('parameters-list-table','data'),
+    [Output('general-param-table','data'),
+    Output('outlier-param-table','data'),
+    Output('data_smoother-param-table','data'),
+    Output('fault_detection_uni-param-table','data')],
     [Input('select-series', 'value'),
     Input('sensors-store','data')])
 def fill_params_table(channel_info, data):
@@ -513,20 +620,24 @@ def fill_params_table(channel_info, data):
         raise PreventUpdate
     else:
         channel = get_channel(data, channel_info)
-        params = channel.params    
-        parameters = list(params.keys())
-        values = list(params.values())
-        data=pd.DataFrame(data={'Parameter':parameters,'Value':values})
-        data=data.to_dict('records')
-        return data
+        params = channel.params
+        tables_data=[]
+        for table in ['general','outlier_detection','data_smoother','fault_detection_uni']:
+            table_params = list(params[table].keys())
+            table_params_values = list(params[table].values())
+            table_data = pd.DataFrame(data={'Parameter':table_params,'Value':table_params_values})
+            table_data = table_data.to_dict('records')
+            tables_data.append(table_data)
+        
+        return tables_data
 ###########################################################################
 ######################## PLOT FILTERED DATA ###############################
 @app.callback(
     Output('faults-uni-graph','figure'),
     [Input('select-series', 'value'),
-    Input('sensors-store', 'data')]
-)
+    Input('sensors-store', 'data')])
 def update_second_univariate_figure(value, data):
+    print('Huh?')
     if not value:
         raise PreventUpdate
     else:
@@ -534,11 +645,17 @@ def update_second_univariate_figure(value, data):
         if channel.filtered is None:
             raise PreventUpdate
         else:
+            print('Figure update triggered!')
+            a=time.time()
+
             filtration_method = channel.params['outlier_detection']['method']
             figure = PlottingTools.Plotly_Outliers(channel, filtration_method)
             figure.update(dict(
                 layout=dict(clickmode='event+select')
             ))
+            print('Figure creation has finished')
+            print('figure creation took '+str((time.time()-a))+'s')
             return figure
+
 if __name__ == '__main__':
     app.run_server(debug=True)

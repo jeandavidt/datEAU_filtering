@@ -25,7 +25,7 @@ def DefaultParam(method='Online_EWMA'):
     
 
     # At the moment, defaults parameters are provided for Online_EWMA only
-    if OutlierDetectionMethod is 'Online_EWMA':
+    if OutlierDetectionMethod == 'Online_EWMA':
         param['outlier_detection']['method'] = 'Online_EWMA'
     
         # Multiplicative factor that drives calculation of the prediction interval
@@ -98,14 +98,14 @@ def DefaultParam(method='Online_EWMA'):
 
 
         
-    elif OutlierDetectionMethod is 'NeuralNetwork':
+    elif OutlierDetectionMethod == 'NeuralNetwork':
         raise Exception('NeuralNetwork not implemented yet.')
         #param = SetparamNN
         #param['lambda']  = 0.2
         #param['sigma']   = 3
         #param['OutlierDetectionMethod'] = 'NeuralNetwork' 
 
-    elif OutlierDetectionMethod is 'EWMA':
+    elif OutlierDetectionMethod == 'EWMA':
         raise Exception('EWMA not implemented yet.')
         #param['lambda'] = 0.2
         #param['sigma'] = 3
