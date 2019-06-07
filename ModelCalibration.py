@@ -15,13 +15,13 @@ def ModelCalib(data, param):
     #               second column is the signal to be treated.
     # PARAM :       A structure containing all parameters (general and
     #               advanced) to be set by the user. See "DefaultParam.m"
-    param['lambda_z'], param['lambda_MAD'], param['MAD_ini'], min_MAD = lambda_determination(data, param)     
+    param['outlier_detection']['lambda_z'], param['outlier_detection']['lambda_MAD'], param['outlier_detection']['MAD_ini'], min_MAD = lambda_determination(data, param)     
     #Automatic estimation: 
     # # if param.h_smoother == 0
     # #     param.h_smoother = h_kernel_determination(AcceptedData) 
     # #
-    if param['min_MAD'] == 0:
-        param['min_MAD'] = min_MAD
+    if param['outlier_detection']['min_MAD'] == 0:
+        param['outlier_detection']['min_MAD'] = min_MAD
 
     return param
 
@@ -58,7 +58,7 @@ def lambda_determination(data, param):
     # put error handling code here in case the optimization fails
     lambda_MAD = np.exp(-(log_lambda_MAD**2))
 
-    MAD_ini = np.array(param['MAD_ini'])
+    MAD_ini = np.array(param['outlier_detection']['MAD_ini'])
     result = minimize(objFun_alpha_MADini, MAD_ini,args=(lambda_MAD,lambda_z,db,'err'))
     MAD_ini = result.x[0]
 
