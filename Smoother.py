@@ -22,7 +22,7 @@ def  kernel_smoother(df, channel, param):
     AD = np.array(df[name+'_Accepted']).flatten()
     n_dat = len(AD)
 
-    h = param['h_smoother'] 
+    h = param['data_smoother']['h_smoother'] 
 
 
     # Smoothed values

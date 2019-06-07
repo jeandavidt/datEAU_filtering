@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 from pandas.plotting import register_matplotlib_converters
 
+import Sensors
 import FaultDetection
 import ModelCalibration
 import OutlierDetection
@@ -20,7 +21,7 @@ import outlierdetection_Online_EWMA
 import PlottingTools
 import Smoother
 import TreatedData
-from DataCoherence import Data_Coherence
+import DataCoherence
 from DefaultSettings import DefaultParam
 
 register_matplotlib_converters()
@@ -39,7 +40,7 @@ Times['ini'] = time.time()
 
 #Import the raw data
 
-path = '../sample_data/influentdata.csv'
+path = '../sample_data/influent3.csv'
 raw_data =pd.read_csv(path, sep=';')
 raw_data.datetime = pd.to_datetime(raw_data.datetime)
 raw_data.set_index('datetime', inplace=True, drop=True)
@@ -53,21 +54,16 @@ Times['import_done'] = time.time()
 #data = pd.concat([raw_data,other_data],axis=1) 
  
 
-resamp_data= raw_data.asfreq('2 min')
-data = resamp_data.fillna(method='ffill')
-Times['resample_done'] = time.time()
+#resamp_data= raw_data.asfreq('2 min')
+#data = resamp_data.fillna(method='ffill')
+#Times['resample_done'] = time.time()
+data = raw_data
+sensors = Sensors.parse_dataframe(data)
 
-
- 
-parameters_list = []
-for column in data.columns:
-    if (('Unit' not in column) & ('equipment' not in column)):
-        parameters_list.append(column)
-print('Parameters are {}'.format(parameters_list))
 
 #Plot raw data 
 title = 'Pre-processed Data'
-PlottingTools.plotRaw_D(data, parameters_list,title)
+PlottingTools.plotlyRaw_D(data)
 Times['plot raw'] = time.time()
 # -------------------------------------------------------------------------
 # ----------------------------------X--------------------------------------
@@ -75,11 +71,11 @@ Times['plot raw'] = time.time()
 
 #####################Generate default parameters###########################
 # Selection of the period of the data series to be treated
+sensor = sensors[0]
+channel = sensor.channels['COD'] # Variable to be filtered
 
-channel = 'COD' # Variable to be filtered
-
-T0 = data.first_valid_index()
-TF = data.last_valid_index()
+T0 = channel.start
+TF = channel.end
 
 ##########################################################################
 
@@ -89,10 +85,10 @@ TF = data.last_valid_index()
 
 # Load default parameters
 
-paramX = DefaultParam()
+#channel.params = DefaultParam()
 
 # Set parameters: Example
-paramX['nb_reject']= 100  
+channel.params['outlier_detection']['nb_reject']= 100  
 
 ################ Select a subset of the data for calibration ###############
 
@@ -102,14 +98,21 @@ paramX['nb_reject']= 100
 Tini = '15 January 2018'
 Tfin = '15 February 2018'
 
-CalibX = data.loc[Tini:Tfin,:].copy()
+channel.calib ={'start':Tini, 'end':Tfin}
+start = channel.calib['start']
+end = channel.calib['end']
 #Plot calibration data 
 title = 'Calibration subset'
-PlottingTools.plotRaw_D(CalibX, [channel],title)
+
+calib_data=channel.raw_data[start:end]
+
+PlottingTools.plotlyUnivar(channel)
 Times['parameters set'] = time.time()
+
 #################Test the dataset for missing values, NaN, etc.############
-flag = Data_Coherence(data, paramX)
-print(flag)
+
+flag = DataCoherence.data_coherence(channel)
+
 answer = None
 while answer not in ("y", "n"):
     answer = input("Continue?")
@@ -120,16 +123,28 @@ while answer not in ("y", "n"):
     else:
     	print("Please enter y or n.")
 Times['Data coherence checked'] = time.time()
+channel = DataCoherence.resample(channel, '2 min')
+flag = DataCoherence.data_coherence(channel)
+
+channel = DataCoherence.sort_dat(channel)
+flag = DataCoherence.data_coherence(channel)
+
+channel = DataCoherence.fillna(channel)
+flag = DataCoherence.data_coherence(channel)
+
 ############################## Outlier detection ##########################
+filtration_method = "Online_EWMA"
+channel.params['outlier_detection']['method'] = filtration_method
 
-paramX['OutlierDetectionMethod'] = "Online_EWMA"
+channel = OutlierDetection.outlier_detection(channel)
 
-data, paramX = OutlierDetection.outlier_detection(data, CalibX, channel, paramX)
 Times['outlier detection done'] = time.time()
 # Plot the outliers detected
-PlottingTools.Plot_Outliers(data, channel)
-Times['Outliers plotted'] = time.time()
 
+PlottingTools.Plotly_Outliers(channel, filtration_method)
+#PlottingTools.Plot_Outliers(channel, filtration_method)(data, channel)
+Times['Outliers plotted'] = time.time()
+'''
 ###########################################################################
 
 ###########################  DATA SMOOTHER   ##############################
@@ -139,11 +154,11 @@ Times['Outliers plotted'] = time.time()
 #####################Generate default parameters###########################
 
 # Set parameters
-paramX['h_smoother']    = 10
+channel.params['data_smoother']['h_smoother']    = 10
 
-# Data filtation ==> kernel_smoother fucntion.
+# Data filtration ==> kernel_smoother fucntion.
 
-data = Smoother.kernel_smoother(data, channel, paramX)
+data = Smoother.kernel_smoother(data, channel, channel.params)
 Times['data smoothed'] = time.time()
 # Plot filtered data
 PlottingTools.Plot_Filtered(data, channel)
@@ -157,35 +172,45 @@ Times['smoothed data plotted'] = time.time()
 
 ##########################################################################
 #data = pickle.load(open('smooth.p','rb'))
-#paramX = pickle.load(open('parameters.p','rb'))
+#channel.params = pickle.load(open('parameters.p','rb'))
 
 #Definition range (min and max)for Q_range: 
-paramX['range_min'] = 50     #minimum real expected value of the variable
-paramX['range_max'] = 550     #maximum real expected value of the variable
+#minimum real expected value of the variable
+channel.params['fault_detection_uni']['range_min'] = 50     
+
+#maximum real expected value of the variable
+channel.params['fault_detection_uni']['range_max'] = 550     
 
 #Definition limit of scores: 
-paramX['corr_min']= -5  
-paramX['corr_max']= 5
+channel.params['fault_detection_uni']['corr_min']= -5  
+channel.params['fault_detection_uni']['corr_max']= 5
 
-paramX['slope_min']= -1   # maximum expected slope based on a good data series
-paramX['slope_max'] = 1   # minimum expected slope based on good data series
+# minimum expected slope based on good data series
+channel.params['fault_detection_uni']['slope_min']= -1   
 
-paramX['std_min'] = -0.1    # Maximum variation between accepted data and smoothed data
-paramX['std_max'] = 0.1    # Minimum variation between accepted data and smoothed data
+# maximum expected slope based on a good data series
+channel.params['fault_detection_uni']['slope_max'] = 1   
+
+# Minimum variation between accepted data and smoothed data
+channel.params['fault_detection_uni']['std_min'] = -0.1 
+
+# Maximum variation between accepted data and smoothed data   
+channel.params['fault_detection_uni']['std_max'] = 0.1    
 
 #Calcul Q_corr, Q_std, Q_slope, Q_range: 
-data = FaultDetection.D_score(data, paramX, channel)
+###data = FaultDetection.D_score(data, channel.params, channel)
+channel = FaultDetection.D_score(channel)
 Times['Faults detected'] = time.time()
 
 # Plot scores
-PlottingTools.Plot_DScore(data, channel, paramX)
+PlottingTools.Plot_DScore(data, channel, channel.params)
 Times['Detected faults plottted'] = time.time()
 ##########################################################################
 
 ##############################  TREATED DATA   ###########################
 
 #To allow to determinate the treated data and deleted data:
-Final_data = TreatedData.TreatedD(data, paramX,channel)
+Final_data = TreatedData.TreatedD(data, channel.params,channel)
 Times['Final data generated'] = time.time()
 #plot the raw data and treated data: 
 PlottingTools.plotTreatedD(Final_data, channel)
@@ -198,4 +223,4 @@ Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values(
 Intervariable = TreatedData.InterpCalculator(Final_data, channel) 
 
 
-# save ('Sensor.mat')# Save the whole data 
+# save ('Sensor.mat')# Save the whole data '''

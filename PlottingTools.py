@@ -1,4 +1,4 @@
-def plotRaw_D(Data_df, param_list, title):
+def plotRaw_D(df):
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
@@ -8,16 +8,112 @@ def plotRaw_D(Data_df, param_list, title):
     register_matplotlib_converters()
 
     _, ax = plt.subplots(figsize=(12,8))
-    for parameter in param_list:
-        ax.plot(Data_df.loc[:,parameter])  
-
-    #day_month_year_Fmt = mdates.DateFormatter('#d #B #Y')
-    #ax.xaxis.set_major_formatter(day_month_year_Fmt)
+   
+    sensors=[]
+    units = []
+    
+    for column in df.columns:
+        sensors.append(column.split('-')[-2])
+        units.append(column.split('-')[-1])
+        ax.plot(df[column],alpha=0.8)
+    sensors=[sensor.replace('_','-')for sensor in sensors]
+    plt.legend([sensors[i]+' ('+units[i]+')' for i in range(len(sensors))])
     plt.xticks(rotation=45)
     plt.ylim(bottom=0)
-    plt.legend(param_list)
-    plt.title(title)
+    plt.title("Raw data")
     plt.show(block=False)
+   
+def plotlyRaw_D(df):
+    import plotly
+    import plotly.graph_objs as go
+    import pandas as pd
+    import numpy as np
+     
+    traces=[]
+    for column in df.columns:
+        equipment = column.split('-')[-3]
+        parameter=column.split('-')[-2]
+        unit = column.split('-')[-1]
+        
+        trace = go.Scattergl(
+            x=df.index,
+            y=df[column],
+            name=" ".join([equipment, parameter, unit]),
+            mode='lines+markers',
+            marker=dict(
+                opacity=0
+            ))
+        traces.append(trace)
+    layout=go.Layout(dict(
+        title='Raw data',
+        yaxis=dict(title='Value'),
+        xaxis=dict(title='Date and Time')
+        )
+    )
+    figure=go.Figure(data=traces,layout=layout)
+    return figure
+
+def plotlyUnivar(channel):
+    import plotly
+    import plotly.graph_objs as go
+    import pandas as pd
+    import numpy as np
+     
+    traces=[]
+    raw = channel.raw_data
+    
+    trace = go.Scattergl(
+            x=raw.index,
+            y=raw['raw'],
+            name='Raw data',
+            mode='lines+markers',
+            marker=dict(
+                opacity=0
+            ))
+    traces.append(trace)
+
+    if channel.processed_data is not None:
+        for col in channel.processed_data.columns:
+            if col in ['filled', 'sorted','resampled']:
+                trace = go.Scattergl(
+                    x=channel.processed_data.index,
+                    y=channel.processed_data[col],
+                    name=col,
+                    mode='lines+markers',
+                    marker=dict(
+                        opacity=0
+                    ),
+                )
+                traces.append(trace)
+
+    if channel.calib is not None:
+        calib_start = pd.to_datetime(channel.calib['start'])
+        calib_end = pd.to_datetime(channel.calib['end'])
+        most_recent = channel.info['most_recent_series']
+        if most_recent =='raw':
+            df = channel.raw_data
+        else:
+            df = channel.processed_data
+        trace = go.Scattergl(
+                x=df[calib_start:calib_end].index,
+                y=df[calib_start:calib_end][most_recent],
+                name='Calibration series',
+                mode='lines+markers',
+                marker=dict(
+                    opacity=0
+                ),
+            )
+        traces.append(trace)
+
+    layout=go.Layout(dict(
+        title='Data preparation',
+        yaxis=dict(title='Value'),
+        xaxis=dict(title='Date and Time')
+        )  
+    )
+
+    figure=go.Figure(data=traces,layout=layout)
+    return figure
 
 def Plot_Outliers(df,var_name):
 
@@ -50,6 +146,71 @@ def Plot_Outliers(df,var_name):
     plt.xticks(rotation=45)
     plt.legend(['Outliers','LowerLimit', 'UpperLimit','Accepted Data','Raw'])
     plt.show(block=False)
+
+def Plotly_Outliers(channel, filtration_method):
+    import pandas as pd
+    import numpy as np
+    import plotly
+    import plotly.graph_objs as go
+
+    df = channel.filtered[filtration_method]
+    raw = channel.raw_data['raw']
+    AD = df['Accepted']
+    outlier = raw.loc[df['outlier']]
+    ub = df['UpperLimit_outlier']
+    lb = df['LowerLimit_outlier']
+   
+    to_plot = {'Raw': raw, 'Upper Bound': ub,'Lower Bound': lb,'Accepted':AD,'Outliers':outlier,}
+    #to_plot = {'Outliers':outlier,'Raw': raw}
+    
+    traces=[]
+    
+    for name, series in to_plot.items():
+        
+        trace = go.Scattergl(
+                x=series.index,
+                y=series,
+                name=name)
+        if name =='Accepted':
+            trace['mode']='lines+markers'
+            trace['marker']=dict(opacity=0,color='rgb(255, 127, 14)')#orange
+        elif name == 'Upper Bound':
+            trace['mode']='lines+markers'
+            trace['marker']=dict(opacity=0,color='rgb(214, 39, 40)') #red
+        elif name == 'Lower Bound':
+            trace['mode']='lines+markers'
+            trace['marker']=dict(opacity=0,color='rgb(31, 119, 180)')#blue
+        #plotly.colors.DEFAULT_PLOTLY_COLORS
+        '''['rgb(31, 119, 180)' blue,
+        'rgb(255, 127, 14)' orange,
+        'rgb(44, 160, 44)' green,
+        'rgb(214, 39, 40)' red,
+        'rgb(148, 103, 189)' purple,
+        'rgb(140, 86, 75)'taupe ,
+        'rgb(227, 119, 194)'hot pink,
+        'rgb(127, 127, 127)'middle grey,
+        'rgb(188, 189, 34)' greenish yellow,
+        'rgb(23, 190, 207)azure']'''
+        #green rgb(44, 160, 44)
+        #purple rgb(148, 103, 189)
+        if name == 'Raw':
+            trace['mode'] = 'markers'
+            trace['marker']=dict(opacity=0.2, color='rgb(127, 127, 127)',size=2)
+
+        elif name == 'Outliers':
+            trace['mode'] = 'markers'
+            trace['marker']=dict(opacity=1, color='black',size=8,symbol='x')
+        
+        traces.append(trace)
+    
+    layout=go.Layout(dict(
+        title='Outlier Detection',
+        yaxis=dict(title='Value'),
+        xaxis=dict(title='Date and Time')
+        )  
+    )
+    figure=go.Figure(data=traces,layout=layout)
+    return figure
 
 def Plot_Filtered(df, var_name):
     import pandas as pd
@@ -96,8 +257,8 @@ def Plot_DScore(df, name, param):
     
     ax0.plot(df[name+'_Qcorr'],linewidth=2)
     ax0.set(ylabel='Runs test value')
-    ax0.plot([df.first_valid_index(),df.last_valid_index()],[param['corr_max'], param['corr_max']],c='r', linewidth=1)
-    ax0.plot([df.first_valid_index(),df.last_valid_index()],[param['corr_min'], param['corr_min']],c='r', linewidth=1)
+    ax0.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['corr_max'], param['fault_detection_uni']['corr_max']],c='r', linewidth=1)
+    ax0.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['corr_min'], param['fault_detection_uni']['corr_min']],c='r', linewidth=1)
     ax0.set_xticks([])
 
     ax1 = axes_list[1]
@@ -105,23 +266,23 @@ def Plot_DScore(df, name, param):
 
     # ylabel(sprintf('#s','Slope (', units, ')'),'fontsize',10)
     ax1.set(ylabel='Slope [mg/L*s]')
-    ax1.plot([df.first_valid_index(),df.last_valid_index()],[param['slope_max'], param['slope_max']],c='r', linewidth=1)
-    ax1.plot([df.first_valid_index(),df.last_valid_index()],[param['slope_min'], param['slope_min']],c='r', linewidth=1)
+    ax1.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['slope_max'], param['fault_detection_uni']['slope_max']],c='r', linewidth=1)
+    ax1.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['slope_min'], param['fault_detection_uni']['slope_min']],c='r', linewidth=1)
     ax1.set_xticks([])
 
     ax2 = axes_list[2]
     ax2.plot(df[name+'_Qstd'],linewidth=2)
     
     ax2.set(ylabel='Std ln[mg/L]')
-    ax2.plot([df.first_valid_index(),df.last_valid_index()],[param['std_max'], param['std_max']],c='r', linewidth=1)
-    ax2.plot([df.first_valid_index(),df.last_valid_index()],[param['std_min'], param['std_min']],c='r', linewidth=1)
+    ax2.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['std_max'], param['fault_detection_uni']['std_max']],c='r', linewidth=1)
+    ax2.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['std_min'], param['fault_detection_uni']['std_min']],c='r', linewidth=1)
     ax2.set_xticks([])
 
     ax3 = axes_list[3]
     ax3.plot(df[name+'_Smoothed_AD'],linewidth=2)
     ax3.set(ylabel='Range [mg/L]')
-    ax3.plot([df.first_valid_index(),df.last_valid_index()],[param['range_max'], param['range_max']],c='r', linewidth=1)
-    ax3.plot([df.first_valid_index(),df.last_valid_index()],[param['range_min'], param['range_min']],c='r', linewidth=1)
+    ax3.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['range_max'], param['fault_detection_uni']['range_max']],c='r', linewidth=1)
+    ax3.plot([df.first_valid_index(),df.last_valid_index()],[param['fault_detection_uni']['range_min'], param['fault_detection_uni']['range_min']],c='r', linewidth=1)
     ax3.set_xticks([])
 
     plt.show(block=False)
