@@ -162,6 +162,7 @@ def Plotly_Outliers(channel, filtration_method):
     raw = channel.raw_data
     to_plot = {'Accepted':AD, 'Outliers':outlier,'Upper Bound': ub,'Lower Bound': lb,'Raw': raw}
     traces=[]
+    colors = (color for color in ['blue','green','yellow', 'purple','red'])
     for name, series in to_plot.items():
         
         trace = go.Scattergl(
@@ -170,13 +171,18 @@ def Plotly_Outliers(channel, filtration_method):
                 name=name,
                 mode='lines+markers',
                 marker=dict(
-                    opacity=0
+                    opacity=0,
+                    color=next(colors)
                 ),
             )
-        '''if name == 'raw':
+        if name == 'Raw':
             trace['mode'] = 'markers'
             trace['marker']['opacity']=1
-            trace['marker']['color']='black'''
+            trace['marker']['color']='grey'
+        elif name == 'Outliers':
+            trace['mode'] = 'markers'
+            trace['marker']['opacity']=1
+            trace['marker']['color']='black'
         
         traces.append(trace)
 

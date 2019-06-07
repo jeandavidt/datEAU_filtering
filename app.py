@@ -382,12 +382,12 @@ def create_sensors(original_data, modif_data):
             
 @app.callback(Output('modif-store','data'),
 
-[Input('fillna-button','n_clicks_timestamp'),
-Input('resample-button','n_clicks_timestamp'),
-Input('sort-button','n_clicks_timestamp'),
-Input('fit-button','n_clicks_timestamp'),
-Input('save-params-button','n_clicks_timestamp'),
-Input('reset-button','n_clicks_timestamp'),
+[Input('fillna-button','n_clicks'),
+Input('resample-button','n_clicks'),
+Input('sort-button','n_clicks'),
+Input('fit-button','n_clicks'),
+Input('save-params-button','n_clicks'),
+Input('reset-button','n_clicks'),
 Input('fit-end','date')],
 
 [State('sensors-store','data'),
@@ -406,11 +406,10 @@ def modify_sensors(
     sensor_data,channel_info,frequency,par_general,par_outlier,par_smooth,par_f_uni,calib_start
     ):
     ctx = dash.callback_context
-    
-    
     if not sensor_data:
         raise PreventUpdate
     else:
+        sensors, sensor_index, channel = get_sensors_and_channel(sensor_data, channel_info)
         trigger = ctx.triggered[0]['prop_id'].split('.')[0]
         
         
@@ -637,7 +636,6 @@ def fill_params_table(channel_info, data):
     [Input('select-series', 'value'),
     Input('sensors-store', 'data')])
 def update_second_univariate_figure(value, data):
-    print('Huh?')
     if not value:
         raise PreventUpdate
     else:
