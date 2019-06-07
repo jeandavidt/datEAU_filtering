@@ -308,23 +308,32 @@ def add_interval(selection):
 
 @app.callback(
     [Output('upload-dropdown','children')],
-    [Input('output-data-upload', 'children')],
+    [Input('output-data-upload', 'children'),
+    Input('select-all-series-import','n_clicks')],
     [State('upload-button','n_clicks')])
-def show_series_list(data, n_clicks):
+def show_series_list(data,all_inputs, n_clicks):
     if n_clicks == 0:
         raise PreventUpdate 
     if not data:
         raise PreventUpdate
     else:
+        ctx = dash.callback_context
+        trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+
         df = pd.read_json(data, orient='split')
         columns = df.columns
         labels = [column.split('-')[-2]+' '+ column.split('-')[-1] for column in columns]
         options =[{'label':labels[i], 'value':columns[i]} for i in range(len(columns))]
+        if trigger == 'select-all-series-import':
+            select=[i['value'] for i in options]
+        else:
+            select=None
         return [html.Div(id='test',children=[dcc.Dropdown(
             id='series-selection',
             multi=True, 
             placeholder='Select series to analyze here.',
             options=options,
+            value=select
             ),
             html.Br()])]
 @app.callback(
