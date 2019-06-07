@@ -338,14 +338,12 @@ def show_series_list(data,all_inputs, n_clicks):
             html.Br()])]
 @app.callback(
     [Output('button-location','children')],
-    [Input('series-selection','value')],
-    [State('import-dates','start_date'),
-    State('import-dates','end_date')])
-def check_if_ready_to_save(series,start,end):
-    if (series is not None) and (start is not None) and (end is not None):
+    [Input('series-selection','value')])
+def check_if_ready_to_save(series):
+    if (series is not None):
         return[html.Button(id='save-button',children='Save data for analysis')]
     else:
-        return [html.Div('You must select at least one time series, a start date and an end date to continue')]
+        return [html.Div('You must select at least one time series to continue')]
 
 @app.callback(Output('session-store', 'data'),
               [Input('save-button', 'n_clicks')],
@@ -360,6 +358,8 @@ def store_raw(click, data, series, start, end):
     end= pd.to_datetime(end)
     df = pd.read_json(data, orient='split')
     df.index = pd.to_datetime(df.index)
+    if not start:
+        filtered = df
     filtered = df.loc[start:end, series]
     to_save = filtered.to_json(date_format='iso',orient='split')
     return to_save
