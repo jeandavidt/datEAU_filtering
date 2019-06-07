@@ -93,8 +93,7 @@ app.layout = html.Div([
                     children=html.Button('Upload File',id='upload-button')
                 ),
                 html.Button(id='select-all-series-import',children=['Select all series']),
-                html.Button(id='select-all-dates-import',children=['Select all dates']),
-            ],style={'width':'40%','columnCount': 3}),
+            ],style={'width':'25%','columnCount': 2}),
             
             html.H6(id='import-message'),
             html.Div(id='upload-graph-location'),
@@ -302,6 +301,7 @@ def update_upload_fig(data, n_clicks):
     Output('import-dates','end_date')],
     [Input('upload-graph','selectedData')])
 def add_interval(selection):
+    
     start = selection['range']['x'][0]
     end = selection['range']['x'][1]
     return start, end
