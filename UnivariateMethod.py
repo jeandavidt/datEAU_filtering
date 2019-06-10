@@ -44,6 +44,7 @@ path = '../sample_data/influent3.csv'
 raw_data =pd.read_csv(path, sep=';')
 raw_data.datetime = pd.to_datetime(raw_data.datetime)
 raw_data.set_index('datetime', inplace=True, drop=True)
+
 Times['import_done'] = time.time()
 
 #Add new data
@@ -63,7 +64,7 @@ sensors = Sensors.parse_dataframe(data)
 
 #Plot raw data 
 title = 'Pre-processed Data'
-PlottingTools.plotlyRaw_D(data)
+PlottingTools.plotRaw_D_mpl(data)
 Times['plot raw'] = time.time()
 # -------------------------------------------------------------------------
 # ----------------------------------X--------------------------------------
@@ -106,7 +107,7 @@ title = 'Calibration subset'
 
 calib_data=channel.raw_data[start:end]
 
-PlottingTools.plotlyUnivar(channel)
+PlottingTools.plotUnivar_mpl(channel)
 Times['parameters set'] = time.time()
 
 #################Test the dataset for missing values, NaN, etc.############
@@ -141,10 +142,10 @@ channel = OutlierDetection.outlier_detection(channel)
 Times['outlier detection done'] = time.time()
 # Plot the outliers detected
 
-PlottingTools.Plotly_Outliers(channel, filtration_method)
+PlottingTools.plotOutliers_mpl(channel, filtration_method)
 #PlottingTools.Plot_Outliers(channel, filtration_method)(data, channel)
 Times['Outliers plotted'] = time.time()
-'''
+
 ###########################################################################
 
 ###########################  DATA SMOOTHER   ##############################
@@ -158,11 +159,13 @@ channel.params['data_smoother']['h_smoother']    = 10
 
 # Data filtration ==> kernel_smoother fucntion.
 
-data = Smoother.kernel_smoother(data, channel, channel.params)
+#data = Smoother.kernel_smoother(data, channel, channel.params)
+channel=Smoother.kernel_smoother(channel)
 Times['data smoothed'] = time.time()
+
 # Plot filtered data
-PlottingTools.Plot_Filtered(data, channel)
-plt.show()
+#PlottingTools.plotOutliers_mpl(channel, filtration_method)
+#plt.show()
 fault_detect_time = time.time()
 Times['smoothed data plotted'] = time.time()
 
@@ -199,16 +202,16 @@ channel.params['fault_detection_uni']['std_max'] = 0.1
 
 #Calcul Q_corr, Q_std, Q_slope, Q_range: 
 ###data = FaultDetection.D_score(data, channel.params, channel)
-channel = FaultDetection.D_score(channel)
+channel = FaultDetection.D_score(channel,filtration_method)
 Times['Faults detected'] = time.time()
 
 # Plot scores
-PlottingTools.Plot_DScore(data, channel, channel.params)
+PlottingTools.plotDScore_mpl(channel, filtration_method)
 Times['Detected faults plottted'] = time.time()
 ##########################################################################
 
 ##############################  TREATED DATA   ###########################
-
+'''
 #To allow to determinate the treated data and deleted data:
 Final_data = TreatedData.TreatedD(data, channel.params,channel)
 Times['Final data generated'] = time.time()

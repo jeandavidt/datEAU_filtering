@@ -11,7 +11,7 @@ def calc_forecast(alpha,z):
     c = (alpha/(1-alpha))**2 * (z[0]-2*z[1]+z[2])
     return a + b + 0.5 * c
 
-def Outlier_Detection_Online_EWMA(newData, param):
+def Outlier_Detection_Online_EWMA(data, param):
     import numpy as np
     import pandas as pd
 
@@ -53,8 +53,8 @@ def Outlier_Detection_Online_EWMA(newData, param):
     #time t+1. 
 
     #name = newData.columns[0]
-    n_dat = len(newData)
-    RawData = np.array(newData).flatten()
+    n_dat = len(data)
+    RawData = np.array(data).flatten()
     #i_0 = 0
     #i_F = n-1
 
@@ -401,10 +401,11 @@ def Outlier_Detection_Online_EWMA(newData, param):
         'out_of_control_outlier': out_of_control,
         'reini_outlier':reini
     }
-    Sec_Results = pd.DataFrame(index = newData.index, data =Sec_data)
+    Sec_Results = pd.DataFrame(index = data.index, data =Sec_data)
 
-    newData['Accepted'] = AcceptedData
-    newData = pd.concat([newData, Sec_Results],axis=1)
+    data['Accepted'] = AcceptedData
+
+    newData = data.join(Sec_Results, how='left')
 
     return newData
 

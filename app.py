@@ -21,6 +21,8 @@ import DefaultSettings
 import OutlierDetection
 import PlottingTools
 import Sensors
+import Smoother
+import FaultDetection
 
 #external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -41,11 +43,10 @@ def build_param_table(_id):
         },
         style_cell_conditional=[
             {'if': {'column_id': 'Parameter'},
-            'minWidth': '20%','maxWidth':'25%', 'textAlign':'left'},
+            'minWidth': '50%','maxWidth':'50%', 'textAlign':'left'},
             {'if': {'column_id': 'Value'},
-            'minWidth': '10%','maxWidth':'20%', 'textAlign':'lift'},
-            {'if': {'column_id': 'blank'},
-            'minWidth': '55%=','maxWidth':'70%', 'textAlign':'left'}
+            'minWidth': '50%','maxWidth':'50%', 'textAlign':'left'},
+            
         ],
         style_header={
             'backgroundColor': 'white',
@@ -65,7 +66,7 @@ def small_button(_id,label):
     })
     return button
 def small_input(_id,placeholder, input_type):
-    inp = dcc.Input(id=_id, placeholder=placeholder,type=input_type,style={
+    inp = dcc.Input(id=_id, placeholder=placeholder,type=input_type,value=2, min=1/60,style={
         'height': '24px',
         'padding': '0 10px',
         'font-size': '9px',
@@ -108,13 +109,24 @@ app.layout = html.Div([
         ]),
         dcc.Tab(label='Univariate filter', value='univar', children=[
             html.Div([
-            html.H3('Univariate fault detection'),
-            dcc.Dropdown(
-                id='select-series',
-                multi=False, 
-                placeholder='Pick a series to analyze here.',
-                options=[]),
+                html.H3('Univariate fault detection'),
+                'Pick a series to anlayze.',
                 html.Br(),
+                dcc.Dropdown(
+                    id='select-series',
+                    multi=False, 
+                    placeholder='Pick a series to analyze here.',
+                    options=[]),
+                html.Br(),
+                'Pick an outlier detection method.',
+                html.Br(),
+                dcc.Dropdown(
+                    id='select-method',
+                    multi=False, 
+                    placeholder='Pick a method to detect outliers.',
+                    options=[{'label':'Online EWMA', 'value':'Online_EWMA'}],
+                    value='Online_EWMA'),
+                html.Br()]),
             html.Div(id='uni-up', children=[
                 html.Div(id='uni-up-left', children=[
                     html.Button(id='check-coherence',children='Check data coherence'),
@@ -148,44 +160,41 @@ app.layout = html.Div([
                             'font-weight': '200',
                             'line-height': '12px'
                         }),
-                        small_button('sort-button','Sort indices'),
+                        html.Button(id='sort-button',children=['Sort indices']),
                         html.Br(),
-                        small_button('resample-button','Resample'),
-                        small_input('sample-freq','frequency (min)','number'),
                         html.Br(),
-                        small_button('fillna-button','Fill blank rows'),
+                        html.Button(id='resample-button',children=['Resample']),
+                        '     ',
+                        dcc.Input(
+                            id='sample-freq',
+                            placeholder='frequency (min)',
+                            type='number',
+                            value=2,
+                            min=0.01,
+                            step=1
+                            ),
+                        'min',
                         html.Br(),
-                        small_button('reset-button','Reset to raw'),
+                        html.Br(),
+                        html.Button(id='fillna-button',children=['Fill blank rows']),
+                        html.Br(),
+                        html.Br(),
+                        html.Button(id='reset-button',children=['Reset to raw']),
                     ],),
                 ], style={'width':'20%','display':'inline-block','float':'left'}),
                 html.Div(id='uni-up-center',children=[
                     dcc.Graph(id='initial_uni_graph'),
-                ], style={'width':'55%','display':'inline-block',}),
-                html.Div(id='uni-up-right', children=[
                     'Use the Box Select tool to choose a range of data with which to fit the outlier detection model.',
                     html.Br(),
-                    dcc.DatePickerSingle(id='fit-start'),
-                    dcc.DatePickerSingle(id='fit-end'),
-                    html.Br(),
-                    html.Button(id='fit-button', children='Fit outlier filter'),
-                ], style={'width':'25%','display':'inline-block','float':'right'}),
-            ]),
-            html.Hr(),
-            html.Div(id='uni-down', children=[
-                html.Br(),
-                html.Div(id='uni-low-left', children=[
+                    dcc.DatePickerRange(id='fit-range'),
+                    html.Button(id='fit-button', children='Fit outlier filter')
+                ], style={'width':'55%','display':'inline-block',}),
+                html.Div(id='uni-up-right', children=[
                     html.H6('Channel Parameters'),
                     dcc.Tabs(
                         parent_className='custom-tabs',
                         className='custom-tabs-container',
                         children=[
-                            dcc.Tab(
-                                className='custom-tab',
-                                selected_className='custom-tab--selected',
-                                id='general-param-tab',label='General',
-                                children=[
-                                    build_param_table('general-param-table')       
-                                ]),
                             dcc.Tab(
                                 className='custom-tab',
                                 selected_className='custom-tab--selected',
@@ -213,19 +222,48 @@ app.layout = html.Div([
                     ]),
                     html.Br(),
                     html.Button(id='save-params-button',children=['Save Parameters']),
+                ],style={'width':'25%','display':'inline-block','float':'right'}),
+            ]),
+            html.Hr(),
+            html.Div(id='uni-down', children=[
+                html.Br(),
+                html.Div(id='uni-low-left', children=[
+                    html.Br(),
+                    html.Br(),
+                    html.Button(id='smooth-button', children='Smoothen data'),
+                    html.Br(),
+                    html.Br(),
+                    html.Button(id='detect_faults-uni',children='Detect Faults'),
+                    html.Br(),
+                    html.Br(),
+                    html.Button(id='Accept-filter', children='Accept Filter results')
                 ], style={'width':'20%','display':'inline-block','float':'left'}),
                 html.Div(id='uni-down-center',children=[
-                    dcc.Graph(id='faults-uni-graph'),
-                ], style={'width':'60%','display':'inline-block',}),
-                html.Div(id='uni-down-right',children=[
-                    html.Button(id='detect_faults-uni',children='Detect Faults'),
-                    html.Button(id='Accept-filter', children='Accept Filter results'),
-                ], style={'width':'20%','display':'inline-block','float':'right'}),
-            ])
-        ]),
+                    dcc.Tabs([
+                        dcc.Tab(
+                            id='uniOutlier-graph-tab',
+                            label='Outliers',
+                            children=[dcc.Graph(id='uni-outlier-graph')]),
+                        dcc.Tab(
+                            id='uniFaults-graph-tab',
+                            label='Faults',
+                            children=[dcc.Graph(id='uni-faults-graph')]),
+                    ])
+                    ,
+                ], style={'width':'80%','display':'inline-block',}),
+                ]),
+            html.Hr(),
+            html.Div(id='uni-bottom', children=[
+                html.Br(),
+                html.Div(id='uni-bottom-left', children=[ 
+                
+                ], style={'width':'80%','display':'inline-block','float':'right'}),
+                html.Div(id='uni-bottom-right',children=[
+                ], style={'width':'20%','display':'inline-block',}),
+            ]),
         ]),
         dcc.Tab(label='Multivariate filter', value='multivar')
-        ],id="tabs", value='import'),
+    ],id="tabs", value='import'),
     html.Div(id='output-data-upload',style={'display':'none'}),
     html.Div(id='tabs-content')
     ], id='applayout')
@@ -270,6 +308,25 @@ def get_sensors_and_channel(serialized_data, channel_props):
                 sensor_index=sensors.index(sensor)
                 channel = get_channel(serialized_data, channel_props)
         return sensors, sensor_index, channel
+
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+def parse_parameter(parameter):
+    par = str(parameter)
+    if 'True' in par or 'true' in par:
+        return True
+    elif 'False' in par or 'false' in par:
+        return False
+    elif is_number(par):
+        return float(parameter)
+    else: 
+        return par
+    
 ########################################################################
                             # IMPORT TAB #
 ########################################################################
@@ -290,7 +347,7 @@ def update_upload_fig(data, n_clicks):
         return dcc.Graph(id='upload-graph')
     else:
         df = pd.read_json(data, orient='split')
-        figure = PlottingTools.plotlyRaw_D(df)
+        figure = PlottingTools.plotRaw_D_plotly(df)
         figure.update(dict(layout=dict(clickmode='event+select')))
         
         return dcc.Graph(id='upload-graph', figure=figure),
@@ -404,22 +461,24 @@ Input('sort-button','n_clicks'),
 Input('fit-button','n_clicks'),
 Input('save-params-button','n_clicks'),
 Input('reset-button','n_clicks'),
-Input('fit-end','date')],
+Input('fit-range','end_date'),
+Input('smooth-button','n_clicks'),
+Input('detect_faults-uni','n_clicks'),
+Input('select-method','value')],
 
 [State('sensors-store','data'),
 State('select-series', 'value'),
 State('sample-freq','value'),
-State('general-param-table','data'),
 State('outlier-param-table','data'),
 State('data_smoother-param-table','data'),
 State('fault_detection_uni-param-table','data'),
-State('fit-start','date'),
+State('fit-range','start_date'),
 ])
 def modify_sensors(
     #inputs
-    fillna,resamp,srt,fit,param_button,reset,calib_end,
+    fillna,resamp,srt,fit,param_button,reset,calib_end,smooth,faults,filtration_method,
     #state variables
-    sensor_data,channel_info,frequency,par_general,par_outlier,par_smooth,par_f_uni,calib_start
+    sensor_data,channel_info,frequency,par_outlier,par_smooth,par_f_uni,calib_start,
     ):
     ctx = dash.callback_context
     if not sensor_data:
@@ -455,25 +514,34 @@ def modify_sensors(
                 'data_smoother':{},
                 'data_coherence':{},
                 'fault_detection_uni':{},
-                'general':{}
                 }
-            outlier_method = channel.params['outlier_detection']['method']
+            outlier_method = channel.info['current_filtration_method']
             default_params = DefaultSettings.DefaultParam(outlier_method)
             new_params['data_coherence']=default_params['data_coherence']
 
-            for row in par_general:
-                new_params['general'][row['Parameter']]=row['Value']
             for row in par_outlier:
-                new_params['outlier_detection'][row['Parameter']]=row['Value']
+                valu = parse_parameter(row['value'])
+                new_params['outlier_detection'][row['Parameter']]=valu
             for row in par_smooth:
-                new_params['data_smoother'][row['Parameter']]=row['Value']
+                valu = parse_parameter(row['value'])
+                new_params['data_smoother'][row['Parameter']]=valu
             for row in par_f_uni:
-                new_params['fault_detection_uni'][row['Parameter']]=row['Value']
+                valu = parse_parameter(row['value'])
+                new_params['fault_detection_uni'][row['Parameter']]=valu
             channel.params = new_params
 
         elif trigger == 'reset-button':
             channel.info={'most_recent_series':'raw'}
             channel.processed_data=None
+
+        elif trigger == 'smooth-button':
+            channel = Smoother.kernel_smoother(channel)
+        
+        elif trigger == 'select-method':
+            channel.info['current_filtration_method'] = filtration_method
+
+        elif trigger == 'detect_faults-uni':
+            channel = FaultDetection.D_score(channel)
 
         if calib_start and calib_end:
             
@@ -481,7 +549,7 @@ def modify_sensors(
                 channel_start = channel.calib['start']
                 channel_end = channel.calib['end']
                 if channel_start == calib_start and channel_end == calib_end:
-                    if trigger == 'fit-button':
+                    if trigger == 'fit-button' or trigger == 'smooth-button' or trigger == 'detect_faults_uni':
                         pass
                     else:
                         print('update prevented')
@@ -506,7 +574,7 @@ def update_top_univariate_figure(value, data):
         raise PreventUpdate
     else:
         channel = get_channel(data, value)
-        figure = PlottingTools.plotlyUnivar(channel)
+        figure = PlottingTools.plotUnivar_plotly(channel)
         figure.update(dict(layout=dict(clickmode='event+select')))
         return figure
 
@@ -607,8 +675,8 @@ def flag4(flag):
 ######################## UNIVARIATE FILTER CALIBRATION ####################
 
 @app.callback(
-    [Output('fit-start','date'),
-    Output('fit-end','date')],
+    [Output('fit-range','start_date'),
+    Output('fit-range','end_date')],
     [Input('initial_uni_graph','selectedData')])
 def add_interval_fit(selection):
     if selection is None:
@@ -624,8 +692,7 @@ def add_interval_fit(selection):
 ###########################################################################
 ######################## POPULATE PARAMETERS TABLE ########################
 @app.callback(
-    [Output('general-param-table','data'),
-    Output('outlier-param-table','data'),
+    [Output('outlier-param-table','data'),
     Output('data_smoother-param-table','data'),
     Output('fault_detection_uni-param-table','data')],
     [Input('select-series', 'value'),
@@ -637,10 +704,12 @@ def fill_params_table(channel_info, data):
         channel = get_channel(data, channel_info)
         params = channel.params
         tables_data=[]
-        for table in ['general','outlier_detection','data_smoother','fault_detection_uni']:
+        for table in ['outlier_detection','data_smoother','fault_detection_uni']:
             table_params = list(params[table].keys())
             table_params_values = list(params[table].values())
-            table_data = pd.DataFrame(data={'Parameter':table_params,'Value':table_params_values})
+            strings = [str(x) for x in table_params_values]
+            table_data = pd.DataFrame(data={'Parameter':table_params,'Value':strings})
+            
             table_data = table_data.to_dict('records')
             tables_data.append(table_data)
         
@@ -648,7 +717,7 @@ def fill_params_table(channel_info, data):
 ###########################################################################
 ######################## PLOT FILTERED DATA ###############################
 @app.callback(
-    Output('faults-uni-graph','figure'),
+    Output('uni-outlier-graph','figure'),
     [Input('select-series', 'value'),
     Input('sensors-store', 'data')])
 def update_second_univariate_figure(value, data):
@@ -659,17 +728,38 @@ def update_second_univariate_figure(value, data):
         if channel.filtered is None:
             raise PreventUpdate
         else:
-            print('Figure update triggered!')
+            
             a=time.time()
-
-            filtration_method = channel.params['outlier_detection']['method']
-            figure = PlottingTools.Plotly_Outliers(channel, filtration_method)
+            figure = PlottingTools.plotOutliers_plotly(channel)
             figure.update(dict(
                 layout=dict(clickmode='event+select')
             ))
-            print('Figure creation has finished')
-            print('figure creation took '+str((time.time()-a))+'s')
+            
+            print('Outlier figure creation took '+str((time.time()-a))+'s')
             return figure
 
+
+@app.callback(
+    Output('uni-faults-graph','figure'),
+    [Input('detect_faults-uni','n_clicks')],
+    [State('select-series', 'value'),
+    State('sensors-store', 'data'),
+    State('select-method','value')])
+def update_third_univariate_figure(clicks,series, data,filtration_method):
+    if not series or not filtration_method or not clicks:
+        raise PreventUpdate
+    else:
+        channel = get_channel(data, series)
+        if channel.filtered is None:
+            raise PreventUpdate
+        else:
+            a=time.time()
+
+            figure = PlottingTools.plotDScore_plotly(channel)
+            figure.update(dict(
+                layout=dict(clickmode='event+select')
+            ))
+            print('Fault figure creation took '+str((time.time()-a))+'s')
+            return figure
 if __name__ == '__main__':
     app.run_server(debug=True)

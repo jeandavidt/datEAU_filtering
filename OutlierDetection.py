@@ -27,7 +27,7 @@ def outlier_detection(channel):
         raise Exception('Not implemented yet')
         #data, params = Outlier_Detection_NeuralNetworks(data, calibperiod, channel, params)
     elif params['outlier_detection']['method'] == 'Online_EWMA':
-        
+    
         channel.filtered['Online_EWMA'], channel.params = Outlier_Detection_online(data, calibperiod, params)
     else:
         raise Exception('Outlier detection: unknown method')

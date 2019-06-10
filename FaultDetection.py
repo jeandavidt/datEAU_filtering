@@ -1,4 +1,5 @@
-def D_score(df, param, name):
+#def D_score(df, param, name):
+def D_score(channel):
     import pandas as pd
     import numpy as np
     #This function allows to calculate the data feature. Inside this function,
@@ -23,8 +24,11 @@ def D_score(df, param, name):
     #with a mobile window. 
 
     #Initialization of INUPUTS: 
-    AD = np.array(df[name+'_Accepted']).flatten()
-    Smoothed_AD = np.array(df[name+'_Smoothed_AD']).flatten()
+    filtration_method = channel.info['current_filtration_method']
+    df = channel.filtered[filtration_method]
+    AD = np.array(df['Accepted']).flatten()
+    Smoothed_AD = np.array(df['Smoothed_AD']).flatten()
+    params = channel.params
 
     nb_data=len(AD) #number of data used to calculate the statistics (Runs test and standard deviation). 
     #These statistics are calculated with the two others functions. 
@@ -32,26 +36,28 @@ def D_score(df, param, name):
 
     ##
     #Calcul Q_Corr: Single sample runs test:
-
-    Q_corr = single_sample_runs_test (AD,Smoothed_AD,nb_data,param) #Check the indepence of the residuals
+    #Q_corr = single_sample_runs_test(AD,Smoothed_AD,nb_data,param)
+    Q_corr = single_sample_runs_test(AD,Smoothed_AD,nb_data,params) #Check the indepence of the residuals
 
     ##
 
     #Others data features: the slope, the residual standard
     #deviation and the locally realistic range:
 
-    [Q_slope,Q_std,Q_range] = Quality_D(AD,Smoothed_AD,nb_data,param)
+    [Q_slope,Q_std,Q_range] = Quality_D(AD,Smoothed_AD,nb_data,params)
 
     ##
     # Generation of outputs
 
-    df[name+'_Qcorr'] = Q_corr
-    df[name+'_Qslope'] = Q_slope
-    df[name+'_Qstd'] = Q_std
-    df[name+'_Qrange'] = Q_range
-    return df
+    df['Qcorr'] = Q_corr
+    df['Qslope'] = Q_slope
+    df['Qstd'] = Q_std
+    df['Qrange'] = Q_range
+    channel.filtered[filtration_method] = df
+    
+    return channel
 
-def single_sample_runs_test(AcceptedData,SMOOTHED_ACCEPTEDDATA,nb_data,param):
+def single_sample_runs_test(AcceptedData,SMOOTHED_ACCEPTEDDATA,nb_data,params):
     import numpy as np
     #This functions check the indepence of the residuals on different
     #intervals in observing the residual sign. 
@@ -68,8 +74,8 @@ def single_sample_runs_test(AcceptedData,SMOOTHED_ACCEPTEDDATA,nb_data,param):
     # Q_corr: check the indepence of the residuals on different intervals. Evaluates whether residuals are randomly distributed. The calcul is carried out by the function single_sample_runs_test. 
 
 
-    h_smoother = param['data_smoother']['h_smoother']
-    moving_window = param['fault_detection_uni']['moving_window'] # Definition of the work window
+    h_smoother = params['data_smoother']['h_smoother']
+    moving_window = params['fault_detection_uni']['moving_window'] # Definition of the work window
 
     #Number of intervals in the data serie: The function floor carries an
     #around 
@@ -101,7 +107,7 @@ def single_sample_runs_test(AcceptedData,SMOOTHED_ACCEPTEDDATA,nb_data,param):
         Q_corr[i] = (abs(r) - (moving_window/2)) / np.sqrt(moving_window/2)
     return Q_corr 
 
-def Quality_D(AcceptedData, SMOOTHED_ACCEPTEDDATA,nb_data,param):
+def Quality_D(AcceptedData, SMOOTHED_ACCEPTEDDATA,nb_data,params):
     import numpy as np
 
     #This function calculates the slope, the residuals standard deviation and
@@ -134,7 +140,7 @@ def Quality_D(AcceptedData, SMOOTHED_ACCEPTEDDATA,nb_data,param):
 
 
     #Moving window: 
-    moving_window = param['fault_detection_uni']['moving_window']
+    moving_window = params['fault_detection_uni']['moving_window']
 
 
     #Creation of the matrixes
@@ -147,7 +153,7 @@ def Quality_D(AcceptedData, SMOOTHED_ACCEPTEDDATA,nb_data,param):
 
     for i in range(moving_window-1, nb_data-1):#i=moving_window:nb_data-1
         
-        Q_slope[i]=((SMOOTHED_ACCEPTEDDATA[i]-SMOOTHED_ACCEPTEDDATA[i-1])/(param['fault_detection_uni']['reading_interval']))
+        Q_slope[i]=((SMOOTHED_ACCEPTEDDATA[i]-SMOOTHED_ACCEPTEDDATA[i-1])/(params['fault_detection_uni']['reading_interval']))
         
         
 
@@ -161,7 +167,7 @@ def Quality_D(AcceptedData, SMOOTHED_ACCEPTEDDATA,nb_data,param):
 
     for i in range(moving_window-1, nb_data-1):#i=moving_window:nb_data-1 
         
-        if (SMOOTHED_ACCEPTEDDATA[i]>param['fault_detection_uni']['range_max']) or (SMOOTHED_ACCEPTEDDATA[i]<param['fault_detection_uni']['range_min']):   #Check of the locally realistic range. If Q_range=0, the data is outside the locally realistic range
+        if (SMOOTHED_ACCEPTEDDATA[i]>params['fault_detection_uni']['range_max']) or (SMOOTHED_ACCEPTEDDATA[i]<params['fault_detection_uni']['range_min']):   #Check of the locally realistic range. If Q_range=0, the data is outside the locally realistic range
             Q_range[i]= 0
         
         

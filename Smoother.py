@@ -1,4 +1,4 @@
-def  kernel_smoother(df, channel, param):
+def  kernel_smoother(channel):
     # A kernel smoother with a bandwith H is used to smooth the data serie. The
     # filter does not consider the time step between observations. If the
     # timestep is not constant or close to constant, unrealistic results may
@@ -18,13 +18,14 @@ def  kernel_smoother(df, channel, param):
     import numpy as np
 
     #Initilization of INPUT:
-    name = channel
-    AD = np.array(df[name+'_Accepted']).flatten()
-    n_dat = len(AD)
-
+    
+    
+    param = channel.params
     h = param['data_smoother']['h_smoother'] 
-
-
+    method=param['outlier_detection']['method']
+    df=channel.filtered[method]
+    AD = np.array(df['Accepted']).flatten()
+    n_dat = len(AD)
     # Smoothed values
     SmoothedAD = np.full((n_dat,),np.nan)
 
@@ -58,10 +59,10 @@ def  kernel_smoother(df, channel, param):
     # Calculation of the residuals between the smoothed data and the accepted data
     err = SmoothedAD - AD
 
-    df[name+'_Smoothed_AD'] = SmoothedAD
-    df[name+'_err'] = err
+    df['Smoothed_AD'] = SmoothedAD
+    df['err'] = err
     
-    #This to see if pandas' rolling window does a similar job as the kernerl smoother above. Turns it needs a standard deviation parameter which I'm not sure how to pick :/ 
-    df[name+"_smoothed_Pandas"] = df[name+'_Accepted'].rolling(window=h, win_type='gaussian',center=True).mean(std=0.1)
-
-    return df
+    #This to see if pandas' rolling window does a similar job as the kernerl smoother above. Turns out that it needs a standard deviation parameter which I'm not sure how to pick :/ 
+    #df[name+"_smoothed_Pandas"] = df[name+'_Accepted'].rolling(window=h, win_type='gaussian',center=True).mean(std=0.1)
+    channel.filtered[method]=df
+    return channel
