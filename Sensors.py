@@ -4,62 +4,59 @@ import DefaultSettings
 import json
 
 class Channel:
-    def __init__(self, project, location, equipment,parameter, unit, frame=None):
-        
+    def __init__(self, project, location, equipment, parameter, unit, frame=None):
         self.project = project
         self.location = location
         self.equipment = equipment
         self.parameter = parameter
         self.unit = unit
-        column_name = '-'.join([project, location, equipment,parameter, unit])
+        column_name = '-'.join([project, location, equipment, parameter, unit])
         if frame is None:
             self.raw_data = None
         elif isinstance(frame, pd.DataFrame):
             if 'raw' not in frame.columns:
-                self.raw_data = pd.DataFrame(data={'raw':frame[column_name]})
+                self.raw_data = pd.DataFrame(data={'raw': frame[column_name]})
             else:
                 self.raw_data = frame
-            self.start=self.raw_data.first_valid_index()
-            self.end=self.raw_data.last_valid_index()
-            
+            self.start = self.raw_data.first_valid_index()
+            self.end = self.raw_data.last_valid_index()
+
         elif isinstance(frame, str):
             self.raw_data = pd.read_json(frame, orient='split')
             if 'raw' not in self.raw_data.columns:
-                self.raw_data = pd.DataFrame(data={'raw':self.raw_data[column_name]})
-            self.start=self.raw_data.first_valid_index()
-            self.end=self.raw_data.last_valid_index()
-            
+                self.raw_data = pd.DataFrame(data={'raw': self.raw_data[column_name]})
+            self.start = self.raw_data.first_valid_index()
+            self.end = self.raw_data.last_valid_index()
+
         self.processed_data = None
         self.params = DefaultSettings.DefaultParam()
-        self.info={
-            'most_recent_series':'raw',
-            'current_filtration_method':'Online_EWMA'}
-        self.calib=None
-        self.filtered=None
+        self.info = {
+            'most_recent_series': 'raw',
+            'current_filtration_method': 'Online_EWMA'}
+        self.calib = None
+        self.filtered = None
 
 class Sensor:
-    def __init__(self,project, location, equipment, frame=None):
+    def __init__(self, project, location, equipment, frame=None):
         self.project = project
-        self.location=location
-        self.equipment=equipment
-        self.channels={}
+        self.location = location
+        self.equipment = equipment
+        self.channels = {}
         if frame is None:
-            self.frame=None
+            self.frame = None
         elif isinstance(frame, str):
-            self.frame=pd.read_json(frame,orient='split')
+            self.frame = pd.read_json(frame, orient='split')
         else:
-            self.frame=frame
-        
-    
-    def add_channel(self, project, location, equipment,parameter, unit, frame):
-        self.channels[parameter] = Channel(project, location, equipment,parameter, unit, frame)
-                
+            self.frame = frame
+
+    def add_channel(self, project, location, equipment, parameter, unit, frame):
+        self.channels[parameter] = Channel(project, location, equipment, parameter, unit, frame)
 
 
-def parse_dataframe(df):    
+def parse_dataframe(df):
     sensor_names = []
+    sensors = []
 
-    sensors=[]
     for column in df.columns:
         project, location, equipment, parameter, unit = column.split('-')
 
@@ -70,18 +67,25 @@ def parse_dataframe(df):
 
             for column in df.columns:
                 project, location, equipment, parameter, unit = column.split('-')
-                
-                if ((equipment == new_sensor.equipment ) and (parameter not in new_sensor.channels.keys())):
-                    new_sensor.add_channel(new_sensor.project, new_sensor.location, new_sensor.equipment, parameter, unit, df)
-            
+
+                if ((equipment == new_sensor.equipment) and (parameter not in new_sensor.channels.keys())):
+                    new_sensor.add_channel(
+                        new_sensor.project,
+                        new_sensor.location,
+                        new_sensor.equipment,
+                        parameter,
+                        unit,
+                        df
+                    )
+
             sensors.append(new_sensor)
     return sensors
-
 
 
 class CustomEncoder(json.JSONEncoder):
     import Sensors
     import pandas as pd
+
     def default(self, o):
         if (isinstance(o, Sensor) or isinstance(o, Channel)):
             return {'__{}__'.format(o.__class__.__name__): o.__dict__}
@@ -95,12 +99,12 @@ class CustomEncoder(json.JSONEncoder):
 def decode_object(o):
     import Sensors
     import pandas as pd
-    if '__Channel__' in o:   
+    if '__Channel__' in o:
         a = Sensors.Channel(
-            o['__Channel__']['project'], 
-            o['__Channel__']['location'], 
-            o['__Channel__']['equipment'], 
-            o['__Channel__']['parameter'], 
+            o['__Channel__']['project'],
+            o['__Channel__']['location'],
+            o['__Channel__']['equipment'],
+            o['__Channel__']['parameter'],
             o['__Channel__']['unit'],
             o['__Channel__']['raw_data'])
         a.__dict__.update(o['__Channel__'])
@@ -115,14 +119,14 @@ def decode_object(o):
         a.__dict__.update(o['__Sensor__'])
         return a
     elif '__DataFrame__' in o:
-        a=pd.read_json(o['__DataFrame__'], orient='split')
+        a = pd.read_json(o['__DataFrame__'], orient='split')
         return(a)
     elif '__Timestamp__' in o:
-        return pd.to_datetime (o['__Timestamp__'])
+        return pd.to_datetime(o['__Timestamp__'])
     else:
         return o
 
-
+# Debugging code
 '''
 import json
 import pandas as pd

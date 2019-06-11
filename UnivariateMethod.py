@@ -1,11 +1,11 @@
-################ UNIVARIATE METHOD FOR DATA ###############################
+# ############### UNIVARIATE METHOD FOR DATA ###############################
 # This file is a port-over from Janelcy Alferes' Matlab scripts
 
-# This script contains the different steps to follow to apply the univariate 
-# method for on-line data treatment.  It's a type script with the different 
-#step for an example of parameter X of a Sensor. 
+# This script contains the different steps to follow to apply the univariate
+# method for on-line data treatment.  It's a type script with the different
+# step for an example of parameter X of a Sensor.
 
-################ Importing the required libraries #########################
+# ############### Importing the required libraries #########################
 import time
 
 import matplotlib.pyplot as plt
@@ -26,91 +26,77 @@ from DefaultSettings import DefaultParam
 
 register_matplotlib_converters()
 
-
-
-##########################################################################
-
-########################  TIME SERIES : RAW DATA  #########################
+# #########################################################################
+# #######################  TIME SERIES : RAW DATA  #########################
 
 ##########################################################################
-#The Times dictionnary keeps track of the time as the method unfolds to see
-#which parts of the script take the longest to execute
-Times={}
+# The Times dictionnary keeps track of the time as the method unfolds to see
+# which parts of the script take the longest to execute
+Times = {}
 Times['ini'] = time.time()
 
-#Import the raw data
+# Import the raw data
 
 path = '../sample_data/influent3.csv'
-raw_data =pd.read_csv(path, sep=';')
+raw_data = pd.read_csv(path, sep=';')
 raw_data.datetime = pd.to_datetime(raw_data.datetime)
 raw_data.set_index('datetime', inplace=True, drop=True)
 
 Times['import_done'] = time.time()
 
-#Add new data
-#path1 = 'G:\Documents\......\New_data.csv'
-#other_data = pd.read_csv(path1,sep=';')
-#other_data.datetime = pd.to_datetime(other_data.datetime)
-#other_data.set_index('datetime', inplace=True, drop=True)
-#data = pd.concat([raw_data,other_data],axis=1) 
- 
+# Add new data
+# path1 = 'G:\Documents\......\New_data.csv'
+# other_data = pd.read_csv(path1,sep=';')
+# other_data.datetime = pd.to_datetime(other_data.datetime)
+# other_data.set_index('datetime', inplace=True, drop=True)
+# data = pd.concat([raw_data,other_data],axis=1)
 
-#resamp_data= raw_data.asfreq('2 min')
-#data = resamp_data.fillna(method='ffill')
-#Times['resample_done'] = time.time()
+# resamp_data= raw_data.asfreq('2 min')
+# data = resamp_data.fillna(method='ffill')
+# Times['resample_done'] = time.time()
 data = raw_data
 sensors = Sensors.parse_dataframe(data)
 
-
-#Plot raw data 
+# Plot raw data
 title = 'Pre-processed Data'
 PlottingTools.plotRaw_D_mpl(data)
 Times['plot raw'] = time.time()
 # -------------------------------------------------------------------------
 # ----------------------------------X--------------------------------------
 # -------------------------------------------------------------------------
-
-#####################Generate default parameters###########################
+# ####################Generate default parameters##########################
 # Selection of the period of the data series to be treated
 sensor = sensors[0]
-channel = sensor.channels['COD'] # Variable to be filtered
+channel = sensor.channels['COD']  # Variable to be filtered
 
 T0 = channel.start
 TF = channel.end
 
-##########################################################################
-
-##########################  DATA FILTERING     ###########################
-
-########################## OUTLIERS DETECTION  ###########################
-
+# #########################################################################
+# #########################  DATA FILTERING     ###########################
+# ######################### OUTLIERS DETECTION  ###########################
 # Load default parameters
-
-#channel.params = DefaultParam()
-
+# channel.params = DefaultParam()
 # Set parameters: Example
-channel.params['outlier_detection']['nb_reject']= 100  
-
-################ Select a subset of the data for calibration ###############
-
+channel.params['outlier_detection']['nb_reject'] = 100
+# ############### Select a subset of the data for calibration ###############
 # The susbset should be as large as possible to better represent the system
 # and sensor behavior
 
 Tini = '15 January 2018'
 Tfin = '15 February 2018'
 
-channel.calib ={'start':Tini, 'end':Tfin}
+channel.calib = {'start': Tini, 'end': Tfin}
 start = channel.calib['start']
 end = channel.calib['end']
-#Plot calibration data 
+# Plot calibration data
 title = 'Calibration subset'
 
-calib_data=channel.raw_data[start:end]
+calib_data = channel.raw_data[start:end]
 
 PlottingTools.plotUnivar_mpl(channel)
 Times['parameters set'] = time.time()
-
-#################Test the dataset for missing values, NaN, etc.############
+# ################Test the dataset for missing values, NaN, etc.############
 
 flag = DataCoherence.data_coherence(channel)
 
@@ -118,11 +104,11 @@ answer = None
 while answer not in ("y", "n"):
     answer = input("Continue?")
     if answer == "y":
-         pass
+        pass
     elif answer == "n":
-         exit()
+        exit()
     else:
-    	print("Please enter y or n.")
+        print("Please enter y or n.")
 Times['Data coherence checked'] = time.time()
 channel = DataCoherence.resample(channel, '2 min')
 flag = DataCoherence.data_coherence(channel)
@@ -133,7 +119,7 @@ flag = DataCoherence.data_coherence(channel)
 channel = DataCoherence.fillna(channel)
 flag = DataCoherence.data_coherence(channel)
 
-############################## Outlier detection ##########################
+# ############################ Outlier detection ##########################
 filtration_method = "Online_EWMA"
 channel.params['outlier_detection']['method'] = filtration_method
 
@@ -143,66 +129,64 @@ Times['outlier detection done'] = time.time()
 # Plot the outliers detected
 
 PlottingTools.plotOutliers_mpl(channel, filtration_method)
-#PlottingTools.Plot_Outliers(channel, filtration_method)(data, channel)
+# PlottingTools.Plot_Outliers(channel, filtration_method)(data, channel)
 Times['Outliers plotted'] = time.time()
 
 ###########################################################################
-
-###########################  DATA SMOOTHER   ##############################
+# #########################  DATA SMOOTHER   ##############################
 
 ###########################################################################
-
-#####################Generate default parameters###########################
+# ###################Generate default parameters###########################
 
 # Set parameters
-channel.params['data_smoother']['h_smoother']    = 10
+channel.params['data_smoother']['h_smoother'] = 10
 
 # Data filtration ==> kernel_smoother fucntion.
 
-#data = Smoother.kernel_smoother(data, channel, channel.params)
-channel=Smoother.kernel_smoother(channel)
+# data = Smoother.kernel_smoother(data, channel, channel.params)
+channel = Smoother.kernel_smoother(channel)
 Times['data smoothed'] = time.time()
 
 # Plot filtered data
-#PlottingTools.plotOutliers_mpl(channel, filtration_method)
-#plt.show()
+# PlottingTools.plotOutliers_mpl(channel, filtration_method)
+# plt.show()
 fault_detect_time = time.time()
 Times['smoothed data plotted'] = time.time()
 
 ##########################################################################
 
-##############################FAULT DETECTION#############################
+# ############################FAULT DETECTION#############################
 
 ##########################################################################
-#data = pickle.load(open('smooth.p','rb'))
-#channel.params = pickle.load(open('parameters.p','rb'))
+# data = pickle.load(open('smooth.p','rb'))
+# channel.params = pickle.load(open('parameters.p','rb'))
 
-#Definition range (min and max)for Q_range: 
-#minimum real expected value of the variable
-channel.params['fault_detection_uni']['range_min'] = 50     
+# Definition range (min and max)for Q_range:
+# minimum real expected value of the variable
+channel.params['fault_detection_uni']['range_min'] = 50
 
-#maximum real expected value of the variable
-channel.params['fault_detection_uni']['range_max'] = 550     
+# maximum real expected value of the variable
+channel.params['fault_detection_uni']['range_max'] = 550
 
-#Definition limit of scores: 
-channel.params['fault_detection_uni']['corr_min']= -5  
-channel.params['fault_detection_uni']['corr_max']= 5
+# Definition limit of scores:
+channel.params['fault_detection_uni']['corr_min'] = -5
+channel.params['fault_detection_uni']['corr_max'] = 5
 
 # minimum expected slope based on good data series
-channel.params['fault_detection_uni']['slope_min']= -1   
+channel.params['fault_detection_uni']['slope_min'] = -1
 
 # maximum expected slope based on a good data series
-channel.params['fault_detection_uni']['slope_max'] = 1   
+channel.params['fault_detection_uni']['slope_max'] = 1
 
 # Minimum variation between accepted data and smoothed data
-channel.params['fault_detection_uni']['std_min'] = -0.1 
+channel.params['fault_detection_uni']['std_min'] = -0.1
 
-# Maximum variation between accepted data and smoothed data   
-channel.params['fault_detection_uni']['std_max'] = 0.1    
+# Maximum variation between accepted data and smoothed data
+channel.params['fault_detection_uni']['std_max'] = 0.1
 
-#Calcul Q_corr, Q_std, Q_slope, Q_range: 
-###data = FaultDetection.D_score(data, channel.params, channel)
-channel = FaultDetection.D_score(channel,filtration_method)
+# Calcul Q_corr, Q_std, Q_slope, Q_range:
+# #data = FaultDetection.D_score(data, channel.params, channel)
+channel = FaultDetection.D_score(channel, filtration_method)
 Times['Faults detected'] = time.time()
 
 # Plot scores
@@ -210,12 +194,12 @@ PlottingTools.plotDScore_mpl(channel, filtration_method)
 Times['Detected faults plottted'] = time.time()
 ##########################################################################
 
-##############################  TREATED DATA   ###########################
+# ############################  TREATED DATA   ###########################
 '''
 #To allow to determinate the treated data and deleted data:
 Final_data = TreatedData.TreatedD(data, channel.params,channel)
 Times['Final data generated'] = time.time()
-#plot the raw data and treated data: 
+#plot the raw data and treated data:
 PlottingTools.plotTreatedD(Final_data, channel)
 plt.show()
 Times['Final data plotted'] = time.time()
@@ -223,7 +207,7 @@ Times['Final data plotted'] = time.time()
 Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values())})
 
 # Percentage of outliers and deleted data
-Intervariable = TreatedData.InterpCalculator(Final_data, channel) 
+Intervariable = TreatedData.InterpCalculator(Final_data, channel)
 
 
 # save ('Sensor.mat')# Save the whole data '''

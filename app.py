@@ -415,9 +415,12 @@ def update_upload_fig(data, n_clicks):
         Output('import-dates', 'end_date')],
     [Input('upload-graph', 'selectedData')])
 def add_interval(selection):
-    start = selection['range']['x'][0]
-    end = selection['range']['x'][1]
-    return start, end
+    if 'range' not in selection:
+        raise PreventUpdate
+    else:
+        start = selection['range']['x'][0]
+        end = selection['range']['x'][1]
+        return start, end
 
 
 @app.callback(
@@ -598,13 +601,13 @@ def modify_sensors(
             new_params['data_coherence'] = default_params['data_coherence']
 
             for row in par_outlier:
-                valu = parse_parameter(row['value'])
+                valu = parse_parameter(row['Value'])
                 new_params['outlier_detection'][row['Parameter']] = valu
             for row in par_smooth:
-                valu = parse_parameter(row['value'])
+                valu = parse_parameter(row['Value'])
                 new_params['data_smoother'][row['Parameter']] = valu
             for row in par_f_uni:
-                valu = parse_parameter(row['value'])
+                valu = parse_parameter(row['Value'])
                 new_params['fault_detection_uni'][row['Parameter']] = valu
             channel.params = new_params
 

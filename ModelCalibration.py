@@ -5,7 +5,7 @@ def ModelCalib(data, param):
     # This function takes a data time serie and auto-calibrate the outlier
     # filter. The dataset is assumed to be of good quality (no fault sensor and
     # limited amount of outliers) and without significant gaps (missing time
-    # steps or NaN). 
+    # steps or NaN).
     # This smoother is highly inspired from the textbook Introduction to
     # Statistical Quality Control, 6th edition by Douglas Montgomery, section
     # 10.4.2
@@ -15,10 +15,13 @@ def ModelCalib(data, param):
     #               second column is the signal to be treated.
     # PARAM :       A structure containing all parameters (general and
     #               advanced) to be set by the user. See "DefaultParam.m"
-    param['outlier_detection']['lambda_z'], param['outlier_detection']['lambda_MAD'], param['outlier_detection']['MAD_ini'], min_MAD = lambda_determination(data, param)     
-    #Automatic estimation: 
+    param['outlier_detection']['lambda_z'],\
+        param['outlier_detection']['lambda_MAD'],\
+        param['outlier_detection']['MAD_ini'],\
+        min_MAD = lambda_determination(data, param)
+    # Automatic estimation:
     # # if param.h_smoother == 0
-    # #     param.h_smoother = h_kernel_determination(AcceptedData) 
+    # #     param.h_smoother = h_kernel_determination(AcceptedData)
     # #
     if param['outlier_detection']['min_MAD'] == 0:
         param['outlier_detection']['min_MAD'] = min_MAD
@@ -26,17 +29,18 @@ def ModelCalib(data, param):
     return param
 
 def lambda_determination(data, param):
-    from scipy.optimize import minimize, Bounds 
+    from scipy.optimize import minimize, Bounds
     import numpy as np
-    # To do : add comments on the optimisation procedure! 
 
-    #This function calculates the right value of lamda_z in the model used to
-    #calculate the forecast value of the variable
+    # To do : add comments on the optimisation procedure!
 
-    #The RMSE is calculated on the forecast and the measured value to choose the
-    #optmimum value of the alpha_z 
+    # This function calculates the right value of lamda_z in the model used to
+    # calculate the forecast value of the variable
 
-    #Raw data selection
+    # The RMSE is calculated on the forecast and the measured value to choose the
+    # optmimum value of the alpha_z
+
+    # Raw data selection
     db = np.array(data).flatten()
 
     # The fminsearch provides an unconstrained optimization of lambda_z which
@@ -45,26 +49,22 @@ def lambda_determination(data, param):
     # method (i.e. optimal lambda_z not between 0 and 1).
 
     lambda_0 = np.array([1])
-    bnds_lambda = Bounds(0.01,1)
+    bnds_lambda = Bounds(0.01, 1)
 
-    result = minimize(objFun_alpha_z, lambda_0, db,  bounds=bnds_lambda)
+    result = minimize(objFun_alpha_z, lambda_0, db, bounds=bnds_lambda)
     log_lambda_z = result.x[0]
     # put error handling code here in case the optimization fails
-    lambda_z   = np.exp(-(log_lambda_z**2))
-
-    
+    lambda_z = np.exp(-(log_lambda_z**2))
     result = minimize(objFun_alpha_MAD, lambda_0, args=(lambda_z, db), bounds=bnds_lambda)
-    log_lambda_MAD=result.x[0]
+    log_lambda_MAD = result.x[0]
     # put error handling code here in case the optimization fails
     lambda_MAD = np.exp(-(log_lambda_MAD**2))
 
     MAD_ini = np.array(param['outlier_detection']['MAD_ini'])
-    result = minimize(objFun_alpha_MADini, MAD_ini,args=(lambda_MAD,lambda_z,db,'err'))
+    result = minimize(objFun_alpha_MADini, MAD_ini, args=(lambda_MAD, lambda_z, db, 'err'))
     MAD_ini = result.x[0]
 
-    min_MAD = objFun_alpha_MADini(MAD_ini,lambda_MAD,lambda_z,db,'min_MAD')
-
-
+    min_MAD = objFun_alpha_MADini(MAD_ini, lambda_MAD, lambda_z, db, 'min_MAD')
     # MAD_ini = exp(log_lambda_MAD(2))
 
     # If the fminsearch optimization failed, the following procedure ensures
@@ -77,18 +77,18 @@ def lambda_determination(data, param):
         b=zeros(len(db))
         c=zeros(len(db))
         forecast=zeros(len(db))
-        square_err=zeros(length(db),100) 
+        square_err=zeros(length(db),100)
         RMSE=zeros(100,1)
         RMSE_z=zeros(100,1)
 
         alpha_z_vect = 0.01:0.01:1
         for n=1:100
             #The RMSE is calculated for alpha_z values from 0.01 to 1 with an interval of 0.01
-            alpha_z = alpha_z_vect(n) 
+            alpha_z = alpha_z_vect(n)
 
             #Model initialisation
             #Smoothed value
-            z(1,1)=db(1) 
+            z(1,1)=db(1)
             z(1,2)=db(1)
             z(1,3)=db(1)
 
@@ -108,7 +108,7 @@ def lambda_determination(data, param):
             i = 3:length(db)
 
             #Calculation of the smoothed value
-            z(i,1,n)=alpha_z*db(i)+(1-alpha_z)*z(i-1,1,n) 
+            z(i,1,n)=alpha_z*db(i)+(1-alpha_z)*z(i-1,1,n)
             z(i,2,n)=alpha_z*z(i,1,n)+(1-alpha_z)*z(i-1,2,n)
             z(i,3,n)=alpha_z*z(i,2,n)+(1-alpha_z)*z(i-1,3,n)
 
@@ -125,8 +125,7 @@ def lambda_determination(data, param):
 
             #Calculation of the RMSE
             RMSE_z(n)=sum(square_err(:,n))/length(db)
-        
-        
+
         [~,b]= min(RMSE_z)
         lambda_z = alpha_z_vect(b)
         lambda_MAD = alpha_MAD_determination(data,lambda_z)'''
@@ -134,130 +133,133 @@ def lambda_determination(data, param):
     return lambda_z, lambda_MAD, MAD_ini, min_MAD
 
 
-def objFun_alpha_z(log_alpha_z,db):
+def objFun_alpha_z(log_alpha_z, db):
     import numpy as np
-    alpha_z   = np.exp(-(log_alpha_z**2))
 
-    z           = np.zeros([len(db),3])  # Smoothed values
-    a           = np.zeros(len(db),)      # Model parameter values 
-    b           = np.zeros(len(db),)      # Model parameter values
-    c           = np.zeros(len(db),)      # Model parameter values 
-    forecast    = np.zeros(len(db),)      # Forecast values
+    alpha_z = np.exp(-(log_alpha_z**2))
+    z = np.zeros([len(db), 3])  # Smoothed values
+    a = np.zeros(len(db),)      # Model parameter values
+    b = np.zeros(len(db),)      # Model parameter values
+    c = np.zeros(len(db),)      # Model parameter values
+    forecast = np.zeros(len(db),)      # Forecast values
 
-    #Model initialisation
-    z[1,0] = db[0]
-    z[1,1] = db[0]
-    z[1,2] = db[0]
+    # Model initialisation
+    z[1, 0] = db[0]
+    z[1, 1] = db[0]
+    z[1, 2] = db[0]
 
-    for i in range(1,len(db)):
-        z[i,0] = alpha_z * db[i]  + (1-alpha_z) * z[i-1,0]
-        z[i,1] = alpha_z * z[i,0] + (1-alpha_z) * z[i-1,1]
-        z[i,2] = alpha_z * z[i,1] + (1-alpha_z) * z[i-1,2]
+    for i in range(1, len(db)):
+        z[i, 0] = alpha_z * db[i] + (1 - alpha_z) * z[i - 1, 0]
+        z[i, 1] = alpha_z * z[i, 0] + (1 - alpha_z) * z[i - 1, 1]
+        z[i, 2] = alpha_z * z[i, 1] + (1 - alpha_z) * z[i - 1, 2]
 
-    a[1:] = 3 * z[1:,0] - 3 * z[1:,1] + z[1:,2]
-    b[1:] = (alpha_z / (2 * (1 - alpha_z)**2)) * ((6 - 5 * alpha_z) * z[1:,0] - 2 * (5 - 4 * alpha_z) * z[1:,1] + (4 - 3 * alpha_z) * z[1:,2])
-    c[1:] = (alpha_z / (1 - alpha_z))**2 * (z[1:,0] - 2 * z[1:,1] + z[1:,2])
+    a[1:] = 3 * z[1:, 0] - 3 * z[1:, 1] + z[1:, 2]
+    b[1:] = (alpha_z / (2 * (1 - alpha_z)**2)) *\
+        (
+            (6 - 5 * alpha_z) * z[1:, 0] - 2 * (5 - 4 * alpha_z) * z[1:, 1] + (4 - 3 * alpha_z) * z[1:, 2])
+    c[1:] = (alpha_z / (1 - alpha_z))**2 * (z[1:, 0] - 2 * z[1:, 1] + z[1:, 2])
 
     forecast[2:] = a[1:-1] + b[1:-1] + 0.5 * c[1:-1]
 
-    # square error between the measured  and the forecast values                         
+    # square error between the measured  and the forecast values
     square_err = (db - forecast)**2
 
-    RMSE_z = np.sqrt((square_err/len(db)).sum())    # Calculation of the RMSE
+    RMSE_z = np.sqrt((square_err / len(db)).sum())    # Calculation of the RMSE
     return RMSE_z
 
 def objFun_alpha_MAD(log_alpha_MAD, alpha_z, db):
     import numpy as np
     alpha_MAD = np.exp(-(log_alpha_MAD**2))
 
-    z            = np.zeros([len(db),3])  # Smoothed values
-    a            = np.zeros(len(db))      # Model parameter values 
-    b            = np.zeros(len(db))      # Model parameter values
-    c            = np.zeros(len(db))      # Model parameter values 
-    forecast     = np.zeros(len(db))      # Forecast values
-    MAD          = np.zeros(len(db))
+    z = np.zeros([len(db), 3])  # Smoothed values
+    a = np.zeros(len(db))      # Model parameter values
+    b = np.zeros(len(db))      # Model parameter values
+    c = np.zeros(len(db))      # Model parameter values
+    forecast = np.zeros(len(db))      # Forecast values
+    MAD = np.zeros(len(db))
     forecast_MAD = np.zeros(len(db))
 
+    # Model initialisation
+    z[0, 0] = db[0]
+    z[0, 1] = db[0]
+    z[0, 2] = db[0]
 
-    #Model initialisation
-    z[0,0] = db[0]
-    z[0,1] = db[0]
-    z[0,2] = db[0]
+    z[1:, 0] = alpha_z * db[1:] + (1 - alpha_z) * z[:-1, 0]
+    z[1:, 1] = alpha_z * z[1:, 0] + (1 - alpha_z) * z[:-1, 1]
+    z[1:, 2] = alpha_z * z[1:, 1] + (1 - alpha_z) * z[:-1, 2]
 
-    z[1:,0] = alpha_z * db[1:]  + (1-alpha_z) * z[:-1,0]
-    z[1:,1] = alpha_z * z[1:,0] + (1-alpha_z) * z[:-1,1]
-    z[1:,2] = alpha_z * z[1:,1] + (1-alpha_z) * z[:-1,2]
+    for i in range(1, len(db) - 1):
+        z[i, 0] = alpha_z * db[i] + (1 - alpha_z) * z[i - 1, 0]
+        z[i, 1] = alpha_z * z[i, 0] + (1 - alpha_z) * z[i - 1, 1]
+        z[i, 2] = alpha_z * z[i, 1] + (1 - alpha_z) * z[i - 1, 2]
 
-    for i in range(1,len(db)-1):
-        z[i,0] = alpha_z * db[i]  + (1-alpha_z) * z[i-1,0]
-        z[i,1] = alpha_z * z[i,0] + (1-alpha_z) * z[i-1,1]
-        z[i,2] = alpha_z * z[i,1] + (1-alpha_z) * z[i-1,2]    
-
-    a[1:] = 3 * z[1:,0] - 3 * z[1:,1] + z[1:,2]
-    b[1:] = (alpha_z / (2 * (1 - alpha_z)**2)) * ((6 - 5 * alpha_z) * z[1:,0] - 2 * (5 - 4 * alpha_z) * z[1:,1] + (4 - 3 * alpha_z) * z[1:,2])
-    c[1:] = (alpha_z / (1 - alpha_z))**2 * (z[1:,0] - 2 * z[1:,1] + z[1:,2])
+    a[1:] = 3 * z[1:, 0] - 3 * z[1:, 1] + z[1:, 2]
+    b[1:] = (alpha_z / (2 * (1 - alpha_z)**2)) * \
+        ((6 - 5 * alpha_z) * z[1:, 0] - 2 * (5 - 4 * alpha_z) * z[1:, 1] + (4 - 3 * alpha_z) * z[1:, 2])
+    c[1:] = (alpha_z / (1 - alpha_z))**2 * (z[1:, 0] - 2 * z[1:, 1] + z[1:, 2])
 
     forecast[2:] = a[1:-1] + b[1:-1] + 0.5 * c[1:-1]
 
-    # square error between the measured  and the forecast values    
+    # square error between the measured  and the forecast values
     err = db - forecast
     square_err = err**2
 
-    #Calculation of the forecast MAD
-    for i in range(2,len(db)-1):
+    # Calculation of the forecast MAD
+    for i in range(2, len(db) - 1):
 
-        MAD[i]=abs(alpha_MAD*err[i])+(1-alpha_MAD)*MAD[i-1] #Calculation of the MAD
-        forecast_MAD[i+1]=MAD[i]#Calculation of the forecast MAD
-        square_err[i]=(forecast_MAD[i]-abs(err[i]))**2#Calculation of the square error between the forecast MAD and the absolute deviation between the forecast value and the measured value
+        MAD[i] = abs(alpha_MAD * err[i]) + (1 - alpha_MAD) * MAD[i - 1]  # Calculation of the MAD
+        forecast_MAD[i + 1] = MAD[i]  # Calculation of the forecast MAD
+        square_err[i] = (forecast_MAD[i] - abs(err[i])) ** 2
+        # Calculation of the square error
+        # between the forecast MAD and the absolute deviation between the forecast value and the
+        # measured value
 
-    RMSE_mad = (square_err/len(db)).sum() #Calculation of the RMSE
-
-        
+    RMSE_mad = (square_err / len(db)).sum()  # Calculation of the RMSE
     RMSE = np.sqrt(RMSE_mad)
     return RMSE
 
-def objFun_alpha_MADini(MADini, alpha_MAD,alpha_z, db, obj):
+def objFun_alpha_MADini(MADini, alpha_MAD, alpha_z, db, obj):
     import numpy as np
-    z            = np.zeros([len(db),3])  # Smoothed values
-    a            = np.zeros(len(db))      # Model parameter values 
-    b            = np.zeros(len(db))      # Model parameter values
-    c            = np.zeros(len(db))      # Model parameter values 
-    forecast     = np.zeros(len(db))      # Forecast values
-    MAD          = np.zeros(len(db))
+    z = np.zeros([len(db), 3])  # Smoothed values
+    a = np.zeros(len(db))      # Model parameter values
+    b = np.zeros(len(db))      # Model parameter values
+    c = np.zeros(len(db))      # Model parameter values
+    forecast = np.zeros(len(db))      # Forecast values
+    MAD = np.zeros(len(db))
 
     MAD[0] = MADini
     MAD[1] = MADini
 
-    #Model initialisation
-    z[0,0] = db[0]
-    z[0,1] = db[0]
-    z[0,2] = db[0]
+    # Model initialisation
+    z[0, 0] = db[0]
+    z[0, 1] = db[0]
+    z[0, 2] = db[0]
 
-    z[1:,0] = alpha_z * db[1:]  + (1-alpha_z) * z[:-1,0]
-    z[1:,1] = alpha_z * z[1:,0] + (1-alpha_z) * z[:-1,1]
-    z[1:,2] = alpha_z * z[1:,1] + (1-alpha_z) * z[:-1,2]
+    z[1:, 0] = alpha_z * db[1:] + (1 - alpha_z) * z[:-1, 0]
+    z[1:, 1] = alpha_z * z[1:, 0] + (1 - alpha_z) * z[:-1, 1]
+    z[1:, 2] = alpha_z * z[1:, 1] + (1 - alpha_z) * z[:-1, 2]
 
-    for i in range(1,len(db)-1):
-        z[i,0] = alpha_z * db[i]  + (1-alpha_z) * z[i-1,0]
-        z[i,1] = alpha_z * z[i,0] + (1-alpha_z) * z[i-1,1]
-        z[i,2] = alpha_z * z[i,1] + (1-alpha_z) * z[i-1,2]
-        
-    a[1:] = 3 * z[1:,0] - 3 * z[1:,1] + z[1:,2]
-    b[1:] = (alpha_z / (2 * (1 - alpha_z)**2)) * ((6 - 5 * alpha_z) * z[1:,0] - 2 * (5 - 4 * alpha_z) * z[1:,1] + (4 - 3 * alpha_z) * z[1:,2])
-    c[1:] = (alpha_z / (1 - alpha_z))**2 * (z[1:,0] - 2 * z[1:,1] + z[1:,2])
+    for i in range(1, len(db) - 1):
+        z[i, 0] = alpha_z * db[i] + (1 - alpha_z) * z[i - 1, 0]
+        z[i, 1] = alpha_z * z[i, 0] + (1 - alpha_z) * z[i - 1, 1]
+        z[i, 2] = alpha_z * z[i, 1] + (1 - alpha_z) * z[i - 1, 2]
+
+    a[1:] = 3 * z[1:, 0] - 3 * z[1:, 1] + z[1:, 2]
+    b[1:] = (alpha_z / (2 * (1 - alpha_z)**2)) *\
+        ((6 - 5 * alpha_z) * z[1:, 0] - 2 * (5 - 4 * alpha_z) * z[1:, 1] + (4 - 3 * alpha_z) * z[1:, 2])
+    c[1:] = (alpha_z / (1 - alpha_z))**2 * (z[1:, 0] - 2 * z[1:, 1] + z[1:, 2])
 
     forecast[2:] = a[1:-1] + b[1:-1] + 0.5 * c[1:-1]
 
-    # error between the measured  and the forecast values    
+    # error between the measured  and the forecast values
     err = db - forecast
-
     # Calculation of the forecast MAD
-    for i in range(2,len(db)):
-        MAD[i]=abs(alpha_MAD*err[i])+(1-alpha_MAD)*MAD[i-1] #Calculation of the MAD
-    
+    for i in range(2, len(db)):
+        MAD[i] = abs(alpha_MAD * err[i]) + (1 - alpha_MAD) * MAD[i - 1]  # Calculation of the MAD
+
     err = abs(MADini - np.mean(MAD[2:]))
     min_MAD = np.median(MAD)
-    if obj =='err':
+    if obj == 'err':
         return err
     elif obj == 'min_MAD':
         return min_MAD
