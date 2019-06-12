@@ -227,10 +227,30 @@ button.button-primary:focus,
 input[type="submit"].button-primary:focus,
 input[type="reset"].button-primary:focus,
 input[type="button"].button-primary:focus {
+color: #FFF;
+background-color: #1EAEDB;
+border-color: #1EAEDB; }
+.button.button-alert,
+button.button-alert,
+input[type="submit"].button-alert,
+input[type="reset"].button-alert,
+input[type="button"].button-alert {
   color: #FFF;
-  background-color: #1EAEDB;
-  border-color: #1EAEDB; }
-
+  background-color: #D62728;
+  border-color: #D62728; }
+.button.button-alert:hover,
+button.button-alert:hover,
+input[type="submit"].button-alert:hover,
+input[type="reset"].button-alert:hover,
+input[type="button"].button-alert:hover,
+.button.button-alert:focus,
+button.button-alert:focus,
+input[type="submit"].button-alert:focus,
+input[type="reset"].button-alert:focus,
+input[type="button"].button-alert:focus {
+  color: #FFF;
+  background-color: #C42122;
+  border-color: #C42122; }
 
 /* Forms
 –––––––––––––––––––––––––––––––––––––––––––––––––– */

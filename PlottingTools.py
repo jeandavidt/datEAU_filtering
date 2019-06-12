@@ -129,8 +129,11 @@ def plotUnivar_plotly(channel):
         most_recent = channel.info['most_recent_series']
         if most_recent == 'raw':
             df = channel.raw_data
-        else:
-            df = channel.processed_data
+            if channel.processed_data:
+                df = channel.processed_data
+            else:
+                df = channel.raw_data
+                most_recent = 'raw'
         trace = go.Scattergl(
             x=df[calib_start:calib_end].index,
             y=df[calib_start:calib_end][most_recent],
@@ -208,7 +211,9 @@ def plotOutliers_plotly(channel):
     df = channel.filtered[filtration_method]
     raw = channel.raw_data['raw']
     AD = df['Accepted']
-    outlier = raw.loc[df['outlier']]
+    raw_out = channel.raw_data.join(df['outlier'], how='left').dropna()
+    outlier = raw_out['raw'].loc[raw_out['outlier']]
+    
     ub = df['UpperLimit_outlier']
     lb = df['LowerLimit_outlier']
 
@@ -325,7 +330,6 @@ def plotDScore_mpl(channel):
     ax1 = axes_list[1]
     ax1.plot(df['Qslope'], linewidth=2)
 
-    # ylabel(sprintf('#s','Slope (', units, ')'),'fontsize',10)
     ax1.set(ylabel='Slope [mg/L*s]')
     ax1.plot(
         [df.first_valid_index(), df.last_valid_index()],
@@ -371,7 +375,8 @@ def plotDScore_mpl(channel):
 
     plt.show(block=False)
 
-def plotDScore_plotly(channel):
+
+def plotDScore_plotly(channel, params):
     import pandas as pd
     import numpy as np
     import plotly
@@ -384,19 +389,14 @@ def plotDScore_plotly(channel):
     filtration_method = channel.info['current_filtration_method']
     df = channel.filtered[filtration_method]
 
-    params = channel.params
-
-    corr_max = params['fault_detection_uni']['corr_max']
-    corr_min = params['fault_detection_uni']['corr_min']
-
-    slope_max = params['fault_detection_uni']['slope_max']
-    slope_min = params['fault_detection_uni']['slope_min']
-
-    std_max = params['fault_detection_uni']['std_max']
-    std_min = params['fault_detection_uni']['std_min']
-
-    range_max = params['fault_detection_uni']['range_max']
-    range_min = params['fault_detection_uni']['range_max']
+    corr_min = params['corr'][0]
+    corr_max = params['corr'][1]
+    slope_min = 10 ** params['slope'][0]
+    slope_max = 10 ** params['slope'][1]
+    std_min = params['std'][0]
+    std_max = params['std'][1]
+    range_min = params['range'][0]
+    range_max = params['range'][1]
 
     # DEFINING VARIABLES
 
@@ -424,18 +424,6 @@ def plotDScore_plotly(channel):
         )
     )
 
-    trace1c = go.Scattergl(
-        x=df.index,
-        y=df['Q_corr'],
-        xaxis='x1',
-        yaxis='y1',
-        mode='lines',
-        line=dict(
-            color=('rgb(22, 96, 167)'),
-            width=2,
-        )
-    )
-
     trace2a = go.Scattergl(
         x=[df.first_valid_index(), df.last_valid_index()],
         y=[slope_max, slope_max],
@@ -459,19 +447,6 @@ def plotDScore_plotly(channel):
             width=1,
         )
     )
-
-    trace2c = go.Scattergl(
-        x=df.index,
-        y=df['Qslope'],
-        xaxis='x1',
-        yaxis='y2',
-        mode='lines',
-        line=dict(
-            color=('rgb(22, 96, 167)'),
-            width=2,
-        )
-    )
-    # ax1.set(ylabel='Slope [mg/L*s]')
 
     trace3a = go.Scattergl(
         x=[df.first_valid_index(), df.last_valid_index()],
@@ -497,19 +472,6 @@ def plotDScore_plotly(channel):
         )
     )
 
-    trace3c = go.Scattergl(
-        x=df.index,
-        y=df['Qstd'],
-        xaxis='x1',
-        yaxis='y3',
-        mode='lines',
-        line=dict(
-            color=('rgb(22, 96, 167)'),
-            width=2,
-        )
-    )
-    # ax2.set(ylabel='Std ln[mg/L]')
-
     trace4a = go.Scattergl(
         x=[df.first_valid_index(), df.last_valid_index()],
         y=[range_max, range_max],
@@ -533,41 +495,81 @@ def plotDScore_plotly(channel):
             width=1,
         )
     )
-
-    trace4c = go.Scattergl(
-        x=df.index,
-        y=df['Qstd'],
-
-        mode='lines',
-        line=dict(
-            color=('rgb(22, 96, 167)'),
-            width=2,
-        )
-    )
-    # ax3.set(ylabel='Range [mg/L]')
-
     fig = tools.make_subplots(
         rows=4,
         cols=1,
         specs=[[{}], [{}], [{}]],
         shared_xaxes=True,
         shared_yaxes=False,
-        vertical_spacing=0.1)
+        vertical_spacing=0.1
+    )
     fig.append_trace(trace1a, 1, 1)
     fig.append_trace(trace1b, 1, 1)
-    fig.append_trace(trace1c, 1, 1)
 
     fig.append_trace(trace2a, 2, 1)
     fig.append_trace(trace2b, 2, 1)
-    fig.append_trace(trace2c, 2, 1)
 
     fig.append_trace(trace3a, 3, 1)
     fig.append_trace(trace3b, 3, 1)
-    fig.append_trace(trace3c, 3, 1)
 
     fig.append_trace(trace4a, 4, 1)
     fig.append_trace(trace4b, 4, 1)
-    fig.append_trace(trace4c, 4, 1)
+
+    if 'Q_corr' in df.columns:
+        trace1c = go.Scattergl(
+            x=df.index,
+            y=df['Q_corr'],
+            xaxis='x1',
+            yaxis='y1',
+            mode='lines',
+            line=dict(
+                color=('rgb(22, 96, 167)'),
+                width=2,
+            )
+        )
+        fig.append_trace(trace1c, 1, 1),
+
+    if 'Qslope' in df.columns:
+        trace2c = go.Scattergl(
+            x=df.index,
+            y=df['Qslope'],
+            xaxis='x1',
+            yaxis='y2',
+            mode='lines',
+            line=dict(
+                color=('rgb(22, 96, 167)'),
+                width=2,
+            )
+        )
+        fig.append_trace(trace2c, 2, 1)
+
+    if 'Qstd' in df.columns:
+        trace3c = go.Scattergl(
+            x=df.index,
+            y=df['Qstd'],
+            xaxis='x1',
+            yaxis='y3',
+            mode='lines',
+            line=dict(
+                color=('rgb(22, 96, 167)'),
+                width=2,
+            )
+        )
+        fig.append_trace(trace3c, 3, 1)
+
+    if 'Smoothed_AD' in df.columns:
+        trace4c = go.Scattergl(
+            x=df.index,
+            y=df['Smoothed_AD'],
+            xaxis='x1',
+            yaxis='y4',
+            mode='lines',
+            line=dict(
+                color=('rgb(22, 96, 167)'),
+                width=2,
+            )
+        )
+        fig.append_trace(trace4c, 4, 1)
 
     return fig
 
@@ -589,3 +591,104 @@ def plotTreatedD(df, name):
     ax.set(ylabel=name)
     plt.legend(['Raw Data', 'Treated Data'])
     plt.show(block=False)
+
+
+def plotD_plotly(params, testID, start=None, end=None, channel=None):
+    import pandas as pd
+    import numpy as np
+    import plotly
+    import plotly.graph_objs as go
+    from plotly import tools
+
+    # This function allows to create several plots with the data feature.
+    # For each data features, you need to change the limits. The whole are
+    # defined in the DefaultParam function.
+    if channel:
+        filtration_method = channel.info['current_filtration_method']
+        df = channel.filtered[filtration_method]
+        start = df.first_valid_index()
+        end = df.last_valid_index()
+
+    min_val = params[0]
+    max_val = params[1]
+    titles={
+        'Q_corr': 'Residual correlation',
+        'Q_slope': 'Slope',
+        'Q_std': 'Standard deviation',
+        'Q_range': 'Data range'
+    }
+    if testID == 'Q_std':
+        min_val = 10 ** min_val
+        max_val = 10 ** max_val
+
+    # DEFINING VARIABLES
+    traces = []
+    trace1a = go.Scattergl(
+        x=[start, end],
+        y=[min_val, min_val],
+        xaxis='x1',
+        yaxis='y1',
+        name='Min. threshold',
+        mode='lines',
+        line=dict(
+            color=('rgb(205, 12, 24)'),
+            width=1,
+        )
+    )
+    traces.append(trace1a)
+    trace1b = go.Scattergl(
+        x=[start, end],
+        y=[max_val, max_val],
+        xaxis='x1',
+        yaxis='y1',
+        mode='lines',
+        name='Max. threshold',
+        line=dict(
+            color=('rgb(205, 12, 24)'),
+            width=1,
+        )
+    )
+    traces.append(trace1b)
+    if channel:
+        if testID in df.columns:
+            if testID == 'Q_range':
+                testID = 'Smoothed_AD'
+            trace1c = go.Scattergl(
+                x=df.index,
+                y=df[testID],
+                xaxis='x1',
+                yaxis='y1',
+                name=testID,
+                mode='lines',
+                line=dict(
+                    color=('rgb(22, 96, 167)'),
+                    width=2,
+                )
+            )
+            traces.append(trace1c)
+
+    layout = go.Layout(
+        title=titles[testID],
+        autosize=False,
+        width=800,
+        height=250,
+        margin=go.layout.Margin(
+            l=50,
+            r=50,
+            b=50,
+            t=50,
+            pad=4
+        ),
+        xaxis=dict(
+            zeroline=False,
+            showline=False,
+            ticks='',
+            showticklabels=False
+        ),
+    )
+
+    figure = go.Figure(layout=layout, data=traces)
+    if testID == 'Q_std':
+        # figure.update(dict(layout=dict(clickmode='event+select')))
+        figure.update(dict(layout=dict(yaxis=dict(type='log'))))
+    return figure

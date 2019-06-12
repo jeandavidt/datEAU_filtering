@@ -66,5 +66,5 @@ def Outlier_Detection_online(data, calibperiod, params):
 
     # #######################Find the outliers#################################
     newdata = Outlier_Detection_Online_EWMA(data, params)
-
+    
     return newdata, params

@@ -51,10 +51,10 @@ def D_score(channel):
     ##
     # Generation of outputs
 
-    df['Qcorr'] = Q_corr
-    df['Qslope'] = Q_slope
-    df['Qstd'] = Q_std
-    df['Qrange'] = Q_range
+    df['Q_corr'] = Q_corr
+    df['Q_slope'] = Q_slope
+    df['Q_std'] = Q_std
+    df['Q_range'] = Q_range
     channel.filtered[filtration_method] = df
     return channel
 

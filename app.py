@@ -8,8 +8,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
 import pandas as pd
+import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+
 
 import DataCoherence
 import DefaultSettings
@@ -73,20 +75,32 @@ def small_button(_id, label):
     return button
 
 
-def small_input(_id, placeholder, input_type):
-    inp = dcc.Input(
+def small_graph(_id, title):
+    graph = dcc.Graph(
         id=_id,
-        placeholder=placeholder,
-        type=input_type,
-        value=2,
-        min=1 / 60,
-        style={
-            'height': '24px',
-            'padding': '0 10px',
-            'font-size': '9px',
-            'line-height': '26px',
-        })
-    return inp
+        figure={
+            'layout': go.Layout(
+                title=title,
+                autosize=False,
+                width=800,
+                height=250,
+                margin=go.layout.Margin(
+                    l=50,
+                    r=50,
+                    b=30,
+                    t=50,
+                    pad=4
+                ),
+                xaxis=dict(
+                    zeroline=False,
+                    showline=False,
+                    ticks='',
+                    showticklabels=False
+                ),
+            )
+        },
+    )
+    return graph
 
 
 ########################################################################
@@ -108,7 +122,7 @@ app.layout = html.Div([
                 html.Div([
                     dcc.Upload(
                         id='upload-data',
-                        children=html.Button('Upload File', id='upload-button')
+                        children=html.Button('Upload File', id='upload-button',className='button-primary')
                     ),
                     html.Button(
                         id='select-all-series-import',
@@ -204,7 +218,7 @@ app.layout = html.Div([
                                     html.Button(id='fillna-button', children=['Fill blank rows']),
                                     html.Br(),
                                     html.Br(),
-                                    html.Button(id='reset-button', children=['Reset to raw']),
+                                    html.Button(className='button-alert', id='reset-button', children=['Reset to raw']),
                                 ],
                             ),
                         ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}),
@@ -219,7 +233,10 @@ app.layout = html.Div([
                             ]),
                             html.Br(),
                             dcc.DatePickerRange(id='fit-range'),
-                            html.Button(id='fit-button', children='Fit outlier filter')
+                            html.Button(
+                                className='button-primary',
+                                id='fit-button',
+                                children='Fit outlier filter'),
                         ], style={'width': '55%', 'display': 'inline-block'}
                     ),
                     html.Div(
@@ -265,40 +282,102 @@ app.layout = html.Div([
                     ),
                 ]
             ),
-            html.Hr(),
+            html.Br(),
             html.Div(
                 id='uni-down',
                 children=[
-                    html.Br(),
-                    html.Div(
-                        id='uni-low-left',
-                        children=[
-                            html.Br(),
-                            html.Br(),
-                            html.Button(id='smooth-button', children='Smoothen data'),
-                            html.Br(),
-                            html.Br(),
-                            html.Button(id='detect_faults-uni', children='Detect Faults'),
-                            html.Br(),
-                            html.Br(),
-                            html.Button(id='Accept-filter', children='Accept Filter results')
-                        ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
-                    ),
-                    html.Div(
-                        id='uni-down-center',
-                        children=[
-                            dcc.Tabs([
-                                dcc.Tab(
-                                    id='uniOutlier-graph-tab',
-                                    label='Outliers',
-                                    children=[dcc.Graph(id='uni-outlier-graph')]),
-                                dcc.Tab(
-                                    id='uniFaults-graph-tab',
-                                    label='Faults',
-                                    children=[dcc.Graph(id='uni-faults-graph')]),
+                    dcc.Tabs([
+                        dcc.Tab(
+                            id='uniOutlier-graph-tab',
+                            label='Outliers',
+                            children=[
+                                html.Div(
+                                    id='uni-outlier-left',
+                                    children=[
+                                        html.Br(),
+                                        html.Br(),
+                                        html.Button(className='button-primary', id='smooth-button', children='Smoothen data'),
+                                    ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
+                                ),
+                                html.Div(
+                                    id='uni-outlier-center',
+                                    children=[
+                                        dcc.Graph(id='uni-outlier-graph')
+                                    ], style={'width': '80%', 'display': 'inline-block'}
+                                )
                             ]),
-                        ], style={'width': '80%', 'display': 'inline-block'}
-                    ),
+                        dcc.Tab(
+                            id='uniFaults-graph-tab',
+                            label='Faults',
+                            children=[
+                                html.Div(
+                                    id='uni-faults-left',
+                                    children=[
+                                        html.P('Correlation'),
+                                        dcc.RangeSlider(
+                                            id='corr-slide',
+                                            updatemode='mouseup',
+                                            allowCross=False,
+                                            min=-25,
+                                            max=25,
+                                            value=[-5, 5]
+                                        ),
+                                        html.P(id='corr-vals'),
+                                        html.Br(),
+                                        html.P('Slope Limits'),
+                                        dcc.RangeSlider(
+                                            id='slope-slide',
+                                            updatemode='mouseup',
+                                            allowCross=False,
+                                            min=-2,
+                                            max=2,
+                                            step=0.01,
+                                            value=[-1, 1]
+                                        ),
+                                        html.P(id='slope-vals'),
+                                        html.Br(),
+                                        html.P('Standard devation limits'),
+                                        dcc.RangeSlider(
+                                            id='std-slide',
+                                            updatemode='mouseup',
+                                            allowCross=False,
+                                            min=-5,
+                                            max=2,
+                                            step=0.01,
+                                            value=[-2, 1]
+                                        ),
+                                        html.P(id='std-vals'),
+                                        html.Br(),
+                                        html.P('Range limits'),
+                                        dcc.RangeSlider(
+                                            id='range-slide',
+                                            updatemode='mouseup',
+                                            allowCross=False,
+                                            min=0,
+                                            max=2000,
+                                            value=[10, 300]
+                                        ),
+                                        html.P(id='range-vals'),
+                                        html.Br(),
+                                        html.Br(),
+                                        html.Button(id='detect_faults-uni', children='Detect Faults'),
+                                        html.Br(),
+                                        html.Br(),
+                                        
+                                    ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
+                                ),
+                                html.Div(
+                                    id='uni-faults-field',
+                                    children=[
+                                        small_graph('uni-corr-graph', 'Correlation test'),
+                                        small_graph('uni-slope-graph', 'Slope test'),
+                                        small_graph('uni-std-graph', 'Standard deviation test'),
+                                        small_graph('uni-range-graph', 'Range test'),
+                                    ], style={'textAlign': 'center', 'width': '80%', 'display': 'inline-block'}
+                                )
+                            ],
+                        )
+                    ]),
                 ]
             ),
             html.Hr(),
@@ -314,6 +393,9 @@ app.layout = html.Div([
 # HELPER FUNCTIONS #
 ########################################################################
 
+
+def transform_value(value):
+    return 10 ** value
 
 def parse_contents(contents, filename):
     _, content_string = contents.split(',')
@@ -359,10 +441,24 @@ def get_sensors_and_channel(serialized_data, channel_props):
     return sensors, sensor_index, channel
 
 
-def is_number(s):
+def is_int(s):
     try:
         float(s)
-        return True
+        if '.' not in s:
+            return True
+        else:
+            return False
+    except ValueError:
+        return False
+
+
+def is_float(s):
+    try:
+        float(s)
+        if '.' in s:
+            return True
+        else:
+            return False
     except ValueError:
         return False
 
@@ -373,8 +469,10 @@ def parse_parameter(parameter):
         return True
     elif 'False' in par or 'false' in par:
         return False
-    elif is_number(par):
-        return float(parameter)
+    elif is_int(par):
+        return int(par)
+    elif is_float(par):
+        return float(par)
     else:
         return par
 
@@ -470,7 +568,8 @@ def check_if_ready_to_save(series):
         return[
             html.Button(
                 id='save-button',
-                children='Save data for analysis'
+                children='Save data for analysis',
+                className='button-primary'
             )
         ]
     else:
@@ -556,12 +655,17 @@ def create_sensors(original_data, modif_data):
         State('outlier-param-table', 'data'),
         State('data_smoother-param-table', 'data'),
         State('fault_detection_uni-param-table', 'data'),
-        State('fit-range', 'start_date')])
+        State('fit-range', 'start_date'),
+        State('corr-slide', 'value'),
+        State('slope-slide', 'value'),
+        State('std-slide', 'value'),
+        State('range-slide', 'value'), ])
 def modify_sensors(
     # Inputs vars
     fillna, resamp, srt, fit, param_button, reset, calib_end, smooth, faults, filtration_method,
     # State vars
-        sensor_data, channel_info, frequency, par_outlier, par_smooth, par_f_uni, calib_start):
+        sensor_data, channel_info, frequency, par_outlier, par_smooth,
+        par_f_uni, calib_start, corr, slope, std, _range):
     ctx = dash.callback_context
     if not sensor_data:
         raise PreventUpdate
@@ -599,7 +703,7 @@ def modify_sensors(
             outlier_method = channel.info['current_filtration_method']
             default_params = DefaultSettings.DefaultParam(outlier_method)
             new_params['data_coherence'] = default_params['data_coherence']
-
+            new_params['general'] = default_params['general']
             for row in par_outlier:
                 valu = parse_parameter(row['Value'])
                 new_params['outlier_detection'][row['Parameter']] = valu
@@ -614,7 +718,8 @@ def modify_sensors(
         elif trigger == 'reset-button':
             channel.info = {'most_recent_series': 'raw'}
             channel.processed_data = None
-
+            channel.filtered = None
+            channel.params = DefaultSettings.DefaultParam
         elif trigger == 'smooth-button':
             channel = Smoother.kernel_smoother(channel)
 
@@ -622,14 +727,24 @@ def modify_sensors(
             channel.info['current_filtration_method'] = filtration_method
 
         elif trigger == 'detect_faults-uni':
+            print('correct trigger')
+            channel.params['fault_detection_uni']['corr_min'] = corr[0]
+            channel.params['fault_detection_uni']['corr_max'] = corr[1]
+            channel.params['fault_detection_uni']['slope_min'] = slope[0]
+            channel.params['fault_detection_uni']['slope_max'] = slope[1]
+            channel.params['fault_detection_uni']['std_min'] = std[0]
+            channel.params['fault_detection_uni']['std_max'] = std[1]
+            channel.params['fault_detection_uni']['range_min'] = _range[0]
+            channel.params['fault_detection_uni']['range_max'] = _range[1]
             channel = FaultDetection.D_score(channel)
+            print('Fault detection finished')
 
-        if calib_start and calib_end:
+        elif calib_start and calib_end:
             if channel.calib is not None:
                 channel_start = channel.calib['start']
                 channel_end = channel.calib['end']
                 if channel_start == calib_start and channel_end == calib_end:
-                    if (trigger == 'fit-button' or trigger == 'smooth-button' or trigger == 'detect_faults_uni'):
+                    if (trigger == 'fit-button' or trigger == 'smooth-button' or trigger == 'detect_faults-uni'):
                         pass
                     else:
                         print('update prevented')
@@ -642,7 +757,7 @@ def modify_sensors(
 
         sensor = sensors[sensor_index]
         sensor.channels[channel.parameter] = channel
-        print('ready to return')
+        print('Sensor object modified')
         return json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
 
 
@@ -867,27 +982,89 @@ def update_second_univariate_figure(value, data):
 
 
 @app.callback(
-    Output('uni-faults-graph', 'figure'),
-    [Input('detect_faults-uni', 'n_clicks')],
+    [Output('uni-corr-graph', 'figure'),
+        Output('uni-slope-graph', 'figure'),
+        Output('uni-std-graph', 'figure'),
+        Output('uni-range-graph', 'figure')],
+    [Input('sensors-store', 'data'),
+        Input('corr-slide', 'value'),
+        Input('slope-slide', 'value'),
+        Input('std-slide', 'value'),
+        Input('range-slide', 'value')],
     [State('select-series', 'value'),
-        State('sensors-store', 'data'),
-        State('select-method', 'value')])
-def update_third_univariate_figure(clicks, series, data, filtration_method):
-    if not series or not filtration_method or not clicks:
+        State('select-method', 'value')]
+)
+def update_faults_figures(
+        data, corr, slope, std, _range, series, filtration_method):
+    if not series or not filtration_method or not data or None in corr:
+        print('fig prevented')
         raise PreventUpdate
     else:
+        ctx = dash.callback_context
+        trigger = ctx.triggered[0]['prop_id'].split('.')[0]
         channel = get_channel(data, series)
-        if channel.filtered is None:
-            raise PreventUpdate
-        else:
-            a = time.time()
+        start = channel.raw_data.first_valid_index()
+        end = channel.raw_data.last_valid_index()
+        if channel.filtered:
+            filtered = channel.filtered[filtration_method]
+           
+            if ('Q_corr' not in filtered.columns or
+                'Q_slope' not in filtered.columns or
+                    'Q_std' not in filtered.columns or
+                    'Q_range' not in filtered.columns):
+                print('empty figs start')
+                figure1 = PlottingTools.plotD_plotly(corr, 'Q_corr', start=start, end=end, channel=None)
+                figure2 = PlottingTools.plotD_plotly(slope, 'Q_slope', start=start, end=end, channel=None)
+                figure3 = PlottingTools.plotD_plotly(std, 'Q_std', start=start, end=end, channel=None)
+                figure4 = PlottingTools.plotD_plotly(_range, 'Q_range', start=start, end=end, channel=None)
+            else:
+                print('full figs start')
+                figure1 = PlottingTools.plotD_plotly(corr, 'Q_corr', channel=channel)
+                figure2 = PlottingTools.plotD_plotly(slope, 'Q_slope', channel=channel)
+                figure3 = PlottingTools.plotD_plotly(std, 'Q_std', channel=channel)
+                figure4 = PlottingTools.plotD_plotly(_range, 'Q_range', channel=channel)
 
-            figure = PlottingTools.plotDScore_plotly(channel)
-            figure.update(dict(
-                layout=dict(clickmode='event+select')
-            ))
-            print('Fault figure creation took ' + str((time.time() - a)) + 's')
-            return figure
+            return figure1, figure2, figure3, figure4
+        else:
+            print('faults figure prevented')
+            raise PreventUpdate
+
+# Update the sliders text
+@app.callback(Output('corr-vals', 'children'),
+              [Input('corr-slide', 'value')])
+def display_value_corr(value):
+    if len(value) < 2:
+        raise PreventUpdate
+    else:
+        return 'Min: {:0.2f}, Max: {:0.2f}'.format(value[0], value[1])
+
+@app.callback(Output('slope-vals', 'children'),
+              [Input('slope-slide', 'value')])
+def display_value_slope(value):
+    if len(value) < 2:
+        raise PreventUpdate
+    else:
+        transform = [transform_value(x) for x in value]
+        return 'Min: {:0.5f}, Max: {:0.2f}'.format(transform[0], transform[1])
+
+
+@app.callback(Output('std-vals', 'children'),
+              [Input('std-slide', 'value')])
+def display_value_std(value):
+    if len(value) < 2:
+        raise PreventUpdate
+    else:
+        return 'Min: {:0.1f}, Max: {:0.1f}'.format(value[0], value[1])
+
+
+@app.callback(Output('range-vals', 'children'),
+              [Input('range-slide', 'value')])
+def display_value_range(value):
+    if len(value) < 2:
+        raise PreventUpdate
+    else:
+        return 'Min: {:0.0f}, Max: {:0.0f}'.format(value[0], value[1])
+
 
 
 if __name__ == '__main__':
