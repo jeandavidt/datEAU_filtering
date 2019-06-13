@@ -7,6 +7,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
+import flask
 import pandas as pd
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
@@ -122,13 +123,17 @@ app.layout = html.Div([
                 html.Div([
                     dcc.Upload(
                         id='upload-data',
-                        children=html.Button('Upload File', id='upload-button',className='button-primary')
+                        children=html.Button(
+                            'Upload Raw Data',
+                            id='upload-button',
+                            className='button-primary'
+                        )
                     ),
                     html.Button(
                         id='select-all-series-import',
                         children=['Select all series']
                     ),
-                ], style={'width': '25%', 'columnCount': 2}),
+                ], style={'width': '40%', 'columnCount': 2}),
                 html.H6(id='import-message'),
                 html.Div(id='upload-graph-location'),
                 html.Div('Use the Box Select tool to choose a range of dates to analyze.'),
@@ -144,6 +149,14 @@ app.layout = html.Div([
             html.Div([
                 html.H3('Univariate fault detection'),
                 'Pick a series to anlayze.',
+                html.Br(),
+                #dcc.Upload(
+                #    id='upload-sensor-data',
+                #    children=html.Button(
+                #        'Upload Processed Data',
+                #        id='upload-sensor-button',
+                #    )
+                #),
                 html.Br(),
                 dcc.Dropdown(
                     id='select-series',
@@ -363,7 +376,6 @@ app.layout = html.Div([
                                         html.Button(id='detect_faults-uni', children='Detect Faults'),
                                         html.Br(),
                                         html.Br(),
-                                        
                                     ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
                                 ),
                                 html.Div(
@@ -385,7 +397,12 @@ app.layout = html.Div([
         dcc.Tab(label='Multivariate filter', value='multivar')
     ], id="tabs", value='import'),
     html.Div(id='output-data-upload', style={'display': 'none'}),
-    html.Div(id='tabs-content')
+    html.Div(id='tabs-content'),
+    html.Hr(),
+    #dcc.Link(
+    #    'Save sensor data for later analysis.',
+    #    id='save-sensors-link',
+    #),
 ], id='applayout')
 
 
@@ -607,34 +624,66 @@ def store_raw(click, data, series, start, end):
 
 @app.callback(
     Output('select-series', 'options'),
-    [Input('session-store', 'data')])
+    [Input('sensors-store', 'data')])
 def show_univar_list(data):
     if not data:
         raise PreventUpdate
     else:
-        df = pd.read_json(data, orient='split')
-        columns = df.columns
-        labels = [column.split('-')[-2] + ' ' + column.split('-')[-1] for column in columns]
+        sensors = json.loads(data, object_hook=Sensors.decode_object)
+        labels = []
+        columns = []
+        for sensor in sensors:
+            project = sensor.project
+            location = sensor.location
+            print(sensor.channels)
+            for channel in sensor.channels.values():
+                equipment = channel.equipment
+                parameter = channel.parameter
+                unit = channel.unit
+
+                labels.append('{} ({})'.format(parameter, unit))
+                columns.append('-'.join([project, location, equipment, parameter, unit]))
         options = [{'label': labels[i], 'value':columns[i]} for i in range(len(columns))]
+        
         return options
 
 
 @app.callback(
     Output('sensors-store', 'data'),
     [Input('session-store', 'data'),
+        #Input('upload-sensor-data', 'contents'),
         Input('modif-store', 'data')])
-def create_sensors(original_data, modif_data):
-    if not original_data:
-        raise PreventUpdate
-    if modif_data == original_data:
-        raise PreventUpdate
-    if not modif_data:
-        df = pd.read_json(original_data, orient='split')
-        sensors = Sensors.parse_dataframe(df)
-        serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
-        return serialized
+    #[State('upload-sensor-data', 'filename')])
+def create_sensors(original_data, modif_data):  # sensor_upload, sensor_filename
+    ctx = dash.callback_context
+    trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+    if trigger == 'upload-sensor-data':
+        '''_, content_string = sensor_upload.split(',')
+        decoded = base64.b64decode(content_string)
+        try:
+            if 'json' in sensor_filename:
+                # Assume that the user uploaded a JSON file
+                sensors = json.load(io.BytesIO(decoded), object_hook=Sensors.decode_object)
+                serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
+                return serialized
+        except Exception as e:
+            print(e)
+            return html.Div([
+                'There was an error processing this file.'
+            ])'''
     else:
-        return modif_data
+        print('else is triggered too')
+        if not original_data:
+            raise PreventUpdate
+        if modif_data == original_data:
+            raise PreventUpdate
+        if not modif_data:
+            df = pd.read_json(original_data, orient='split')
+            sensors = Sensors.parse_dataframe(df)
+            serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
+            return serialized
+        else:
+            return modif_data
 
 
 @app.callback(
@@ -981,6 +1030,9 @@ def update_second_univariate_figure(value, data):
             return figure
 
 
+###########################################################################
+# PLOT FAULT DETECTION ######################################################
+
 @app.callback(
     [Output('uni-corr-graph', 'figure'),
         Output('uni-slope-graph', 'figure'),
@@ -1007,7 +1059,6 @@ def update_faults_figures(
         end = channel.raw_data.last_valid_index()
         if channel.filtered:
             filtered = channel.filtered[filtration_method]
-           
             if ('Q_corr' not in filtered.columns or
                 'Q_slope' not in filtered.columns or
                     'Q_std' not in filtered.columns or
@@ -1065,6 +1116,32 @@ def display_value_range(value):
     else:
         return 'Min: {:0.0f}, Max: {:0.0f}'.format(value[0], value[1])
 
+
+###########################################################################
+# SAVE DATA ###############################################################
+
+'''@app.callback(
+    Output('save-sensors-link', 'href'),
+    [Input('sensors-store', 'data')])
+def update_link(data):
+    return '/dash/urlToDownload?value={}'.format(data)
+
+@app.server.route('/dash/urlToDownload')
+def download_json():
+    value = flask.request.args.get('value')
+    # create a dynamic csv or file here using `StringIO`
+    # (instead of writing to the file system)
+    str_io = io.StringIO()
+    str_io.write(str(value))
+    mem = io.BytesIO()
+    mem.write(str_io.getvalue().encode('utf-8'))
+    mem.seek(0)
+    str_io.close()
+    return flask.send_file(
+        mem,
+        mimetype='text/json',
+        attachment_filename='downloadFile.json',
+        as_attachment=True)'''
 
 
 if __name__ == '__main__':

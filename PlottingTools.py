@@ -376,203 +376,6 @@ def plotDScore_mpl(channel):
     plt.show(block=False)
 
 
-def plotDScore_plotly(channel, params):
-    import pandas as pd
-    import numpy as np
-    import plotly
-    import plotly.graph_objs as go
-    from plotly import tools
-
-    # This function allows to create several plots with the data feature.
-    # For each data features, you need to change the limits. The whole are
-    # defined in the DefaultParam function.
-    filtration_method = channel.info['current_filtration_method']
-    df = channel.filtered[filtration_method]
-
-    corr_min = params['corr'][0]
-    corr_max = params['corr'][1]
-    slope_min = 10 ** params['slope'][0]
-    slope_max = 10 ** params['slope'][1]
-    std_min = params['std'][0]
-    std_max = params['std'][1]
-    range_min = params['range'][0]
-    range_max = params['range'][1]
-
-    # DEFINING VARIABLES
-
-    trace1a = go.Scattergl(
-        x=[df.first_valid_index(), df.last_valid_index()],
-        y=[corr_max, corr_max],
-        xaxis='x1',
-        yaxis='y1',
-        mode='lines',
-        line=dict(
-            color=('rgb(205, 12, 24)'),
-            width=1,
-        )
-    )
-
-    trace1b = go.Scattergl(
-        x=[df.first_valid_index(), df.last_valid_index()],
-        y=[corr_min, corr_min],
-        xaxis='x1',
-        yaxis='y1',
-        mode='lines',
-        line=dict(
-            color=('rgb(205, 12, 24)'),
-            width=1,
-        )
-    )
-
-    trace2a = go.Scattergl(
-        x=[df.first_valid_index(), df.last_valid_index()],
-        y=[slope_max, slope_max],
-        xaxis='x1',
-        yaxis='y2',
-        mode='lines',
-        line=dict(
-            color=('rgb(205, 12, 24)'),
-            width=1,
-        )
-    )
-
-    trace2b = go.Scattergl(
-        x=[df.first_valid_index(), df.last_valid_index()],
-        y=[slope_min, slope_min],
-        xaxis='x1',
-        yaxis='y2',
-        mode='lines',
-        line=dict(
-            color=('rgb(205, 12, 24)'),
-            width=1,
-        )
-    )
-
-    trace3a = go.Scattergl(
-        x=[df.first_valid_index(), df.last_valid_index()],
-        y=[std_max, std_max],
-        xaxis='x1',
-        yaxis='y3',
-        mode='lines',
-        line=dict(
-            color=('rgb(205, 12, 24)'),
-            width=1,
-        )
-    )
-
-    trace3b = go.Scattergl(
-        x=[df.first_valid_index(), df.last_valid_index()],
-        y=[std_min, std_min],
-        xaxis='x1',
-        yaxis='y3',
-        mode='lines',
-        line=dict(
-            color=('rgb(205, 12, 24)'),
-            width=1,
-        )
-    )
-
-    trace4a = go.Scattergl(
-        x=[df.first_valid_index(), df.last_valid_index()],
-        y=[range_max, range_max],
-        xaxis='x1',
-        yaxis='y4',
-        mode='lines',
-        line=dict(
-            color=('rgb(205, 12, 24)'),
-            width=1,
-        )
-    )
-
-    trace4b = go.Scattergl(
-        x=[df.first_valid_index(), df.last_valid_index()],
-        y=[range_min, range_min],
-        xaxis='x1',
-        yaxis='y4',
-        mode='lines',
-        line=dict(
-            color=('rgb(205, 12, 24)'),
-            width=1,
-        )
-    )
-    fig = tools.make_subplots(
-        rows=4,
-        cols=1,
-        specs=[[{}], [{}], [{}]],
-        shared_xaxes=True,
-        shared_yaxes=False,
-        vertical_spacing=0.1
-    )
-    fig.append_trace(trace1a, 1, 1)
-    fig.append_trace(trace1b, 1, 1)
-
-    fig.append_trace(trace2a, 2, 1)
-    fig.append_trace(trace2b, 2, 1)
-
-    fig.append_trace(trace3a, 3, 1)
-    fig.append_trace(trace3b, 3, 1)
-
-    fig.append_trace(trace4a, 4, 1)
-    fig.append_trace(trace4b, 4, 1)
-
-    if 'Q_corr' in df.columns:
-        trace1c = go.Scattergl(
-            x=df.index,
-            y=df['Q_corr'],
-            xaxis='x1',
-            yaxis='y1',
-            mode='lines',
-            line=dict(
-                color=('rgb(22, 96, 167)'),
-                width=2,
-            )
-        )
-        fig.append_trace(trace1c, 1, 1),
-
-    if 'Qslope' in df.columns:
-        trace2c = go.Scattergl(
-            x=df.index,
-            y=df['Qslope'],
-            xaxis='x1',
-            yaxis='y2',
-            mode='lines',
-            line=dict(
-                color=('rgb(22, 96, 167)'),
-                width=2,
-            )
-        )
-        fig.append_trace(trace2c, 2, 1)
-
-    if 'Qstd' in df.columns:
-        trace3c = go.Scattergl(
-            x=df.index,
-            y=df['Qstd'],
-            xaxis='x1',
-            yaxis='y3',
-            mode='lines',
-            line=dict(
-                color=('rgb(22, 96, 167)'),
-                width=2,
-            )
-        )
-        fig.append_trace(trace3c, 3, 1)
-
-    if 'Smoothed_AD' in df.columns:
-        trace4c = go.Scattergl(
-            x=df.index,
-            y=df['Smoothed_AD'],
-            xaxis='x1',
-            yaxis='y4',
-            mode='lines',
-            line=dict(
-                color=('rgb(22, 96, 167)'),
-                width=2,
-            )
-        )
-        fig.append_trace(trace4c, 4, 1)
-
-    return fig
-
 def plotTreatedD(df, name):
     import pandas as pd
     import numpy as np
@@ -611,7 +414,7 @@ def plotD_plotly(params, testID, start=None, end=None, channel=None):
 
     min_val = params[0]
     max_val = params[1]
-    titles={
+    titles = {
         'Q_corr': 'Residual correlation',
         'Q_slope': 'Slope',
         'Q_std': 'Standard deviation',
@@ -692,3 +495,30 @@ def plotD_plotly(params, testID, start=None, end=None, channel=None):
         # figure.update(dict(layout=dict(clickmode='event+select')))
         figure.update(dict(layout=dict(yaxis=dict(type='log'))))
     return figure
+
+
+def show_pca_mpl(df, limits, svd, model):
+    import pandas as pd
+    import numpy as np
+    from matplotlib import cm
+    from matplotlib import pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(10,10),nrows=1, ncols=1)
+    plt.rc('lines', linewidth=1)
+    color=iter(cm.plasma(np.linspace(0,1,4)))
+    start = model['start_cal']
+    end= model['end_cal']
+    ax.plot(df['t_1'],df['t_2'],'o',markersize=0.5, c=next(color))
+    ax.plot(df['t_1'].loc[start:end],df['t_2'].loc[start:end],'o',markersize=0.5, c=next(color))
+    ax.set(ylabel='PC 2', xlabel='PC 1',title='Principal components of calibration and complete data sets')
+    #### drawing the ellipse
+    
+    ellipse_a = np.sqrt(limits['t2'])*model['t_hat_stdev'][0]
+    ellipse_b = np.sqrt(limits['t2'])*model['t_hat_stdev'][1]
+    t=np.linspace(0,2*np.pi,100)
+    
+    ax.plot(ellipse_a*np.cos(t), ellipse_b*np.sin(t),c=next(color))
+    ax.grid(which='major',axis='both')
+    ax.legend(['complete','calibration','limit {}'.format(limits['alpha'])])
+    plt.gca().set_aspect('equal')
+    plt.show()
