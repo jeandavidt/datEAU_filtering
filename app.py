@@ -115,6 +115,7 @@ app.layout = html.Div([
     dcc.Store(id='modif-store'),
     dcc.Store(id='coherence-store'),
     dcc.Store(id='new-params-store'),
+    dcc.Store(id='multivariate-store'),
     html.H1(dcc.Markdown('dat*EAU* filtration'), id='header'),
     dcc.Tabs([
         dcc.Tab(label='Data Import', value='import', children=[
@@ -150,13 +151,13 @@ app.layout = html.Div([
                 html.H3('Univariate fault detection'),
                 'Pick a series to anlayze.',
                 html.Br(),
-                #dcc.Upload(
+                # dcc.Upload(
                 #    id='upload-sensor-data',
                 #    children=html.Button(
                 #        'Upload Processed Data',
                 #        id='upload-sensor-button',
                 #    )
-                #),
+                # ),
                 html.Br(),
                 dcc.Dropdown(
                     id='select-series',
@@ -309,7 +310,10 @@ app.layout = html.Div([
                                     children=[
                                         html.Br(),
                                         html.Br(),
-                                        html.Button(className='button-primary', id='smooth-button', children='Smoothen data'),
+                                        html.Button(
+                                            className='button-primary',
+                                            id='smooth-button',
+                                            children='Smoothen data'),
                                     ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
                                 ),
                                 html.Div(
@@ -376,6 +380,9 @@ app.layout = html.Div([
                                         html.Button(id='detect_faults-uni', children='Detect Faults'),
                                         html.Br(),
                                         html.Br(),
+                                        html.Button(id='treated-uni', children='Get treated data'),
+                                        html.Br(),
+                                        html.Br(),
                                     ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
                                 ),
                                 html.Div(
@@ -393,16 +400,66 @@ app.layout = html.Div([
                 ]
             ),
             html.Hr(),
+            html.Button(id='send-to-multivar', children=['Send to multivariate']),
         ]),
-        dcc.Tab(label='Multivariate filter', value='multivar')
+        dcc.Tab(label='Multivariate filter', value='multivar', children=[
+            html.Br(),
+            dcc.Dropdown(
+                id='multivar-select-dropdown',
+                multi=True,
+                placeholder='Pick a series to analyze here.',
+                options=[]
+            ),
+            html.Div(id='multivar-top-left', children=[
+                dcc.Graph(id='multivar-select-graph')
+            ], style={'width': '70%', 'display': 'inline-block', 'float': 'left'}),
+            html.Div(id='multivar-top-right', children=[
+                html.Br(),
+                html.H6('Parameters'),
+                'Min explained variance',
+                dcc.Input(
+                    id='multivar-min-exp-var',
+                    type='number',
+                    min=0,
+                    max=1,
+                    step=0.01,
+                    value=0.95),
+                html.Br(),
+                'Alpha',
+                dcc.Input(
+                    id='multivar-alpha',
+                    type='number',
+                    min=0,
+                    max=1,
+                    step=0.01,
+                    value=0.95),
+                html.Br(),
+                html.Hr(),
+                html.H6('Calibration period'),
+                dcc.DatePickerRange(id='multivar-select-range'),
+                html.Br(),
+                html.Br(),
+                html.Button(
+                    id='multivar-calibrate-button',
+                    children='Calibrate model'),
+            ], style={'width': '30%', 'display': 'inline-block', 'float': 'right'}),
+            html.Br(),
+            html.Div(id='multivariate-bottom-left', children=[
+                dcc.Graph(id='multivariate-pca-graph')
+            ], style={'width': '50%', 'display': 'inline-block', 'float': 'left'}),
+            html.Div(id='multivariate-bottom-right', children=[
+                dcc.Graph(id='multivariate-faults-graph')
+            ], style={'width': '50%', 'display': 'inline-block', 'float': 'right'}),
+            html.Button(id='multi-save-accepted-button', children='Save accepted to CSV')
+        ])
     ], id="tabs", value='import'),
     html.Div(id='output-data-upload', style={'display': 'none'}),
     html.Div(id='tabs-content'),
     html.Hr(),
-    #dcc.Link(
+    # dcc.Link(
     #    'Save sensor data for later analysis.',
     #    id='save-sensors-link',
-    #),
+    # ),
 ], id='applayout')
 
 
@@ -644,16 +701,16 @@ def show_univar_list(data):
                 labels.append('{} ({})'.format(parameter, unit))
                 columns.append('-'.join([project, location, equipment, parameter, unit]))
         options = [{'label': labels[i], 'value':columns[i]} for i in range(len(columns))]
-        
+
         return options
 
 
 @app.callback(
     Output('sensors-store', 'data'),
     [Input('session-store', 'data'),
-        #Input('upload-sensor-data', 'contents'),
+        # Input('upload-sensor-data', 'contents'),
         Input('modif-store', 'data')])
-    #[State('upload-sensor-data', 'filename')])
+# [State('upload-sensor-data', 'filename')])
 def create_sensors(original_data, modif_data):  # sensor_upload, sensor_filename
     ctx = dash.callback_context
     trigger = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -1117,8 +1174,51 @@ def display_value_range(value):
         return 'Min: {:0.0f}, Max: {:0.0f}'.format(value[0], value[1])
 
 
+@app.callback(
+    Output('multivariate-store', 'data'),
+    [Input('send-to-multivar', 'n_clicks')]
+    [State('select-series', 'value'),
+        State('select-method', 'value'),
+        State('sensors-store', 'data'),
+        State('multivariate-store', 'data')])
+def send_to_multivar(click, channel_info, method, uni_data, multi_data):
+    if not click:
+        raise PreventUpdate
+    else:
+        sensors, sensor_index, channel = get_sensors_and_channel(uni_data, channel_info)
+        if channel.filtered[method] is not None:
+            df = channel.filtered[method]
+            if 'Treated' in df.columns and 'Deleted' in df.columns:
+                project = channel.project
+                location = channel.location
+                equipment = channel.equipment
+                parameter = channel.parameter
+                unit = channel.unit
+                name = '-'.join([project, location, equipment, parameter, unit])
+                currentdf = channel.raw_data['raw'].join(df[['treated, deleted']], how='left')
+                currentdf.columns = [name + '-raw', name + '-treated', name + '-deleted']
+                if multi_data:
+                    multi_df = pd.read_json(multi_data, orient='split')
+                    currentdf = multi_df.join(currentdf, how='left')
+                else:
+                    pass
+                currentdf.to_json(date_format='iso', orient='split')
+                return currentdf
+            else:
+                raise PreventUpdate
+        else:
+            raise PreventUpdate
+
+
+########################################################################
+# MULTIVARIATE TAB #
+########################################################################
+
+
 ###########################################################################
 # SAVE DATA ###############################################################
+###########################################################################
+
 
 '''@app.callback(
     Output('save-sensors-link', 'href'),

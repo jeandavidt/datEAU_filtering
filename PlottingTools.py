@@ -156,47 +156,55 @@ def plotUnivar_plotly(channel):
     return figure
 
 def plotOutliers_mpl(channel):
-
+    import datetime
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
+
     from pandas.plotting import register_matplotlib_converters
 
     register_matplotlib_converters()
 
     _, ax = plt.subplots(figsize=(12, 8))
     filtration_method = channel.info['current_filtration_method']
-    df = channel.filtered[filtration_method]
-    raw = channel.raw_data
-    AD = df['Accepted']
+    df = channel.filtered[filtration_method].copy(deep=True)
+    df.reset_index(inplace=True, drop=False)
+    df['t'] = df['index'].apply(lambda x: pd.Timestamp(str(x)))
+    df.set_index(df['t'], drop=True)
+
+    raw = channel.raw_data.copy(deep=True)
+    raw.reset_index(inplace=True, drop=False)
+    raw['t'] = raw['index'].apply(lambda x: pd.Timestamp(str(x)))
+    raw.set_index(raw['t'], drop=True)
     raw_out = raw.join(df['outlier'], how='left').dropna()
+
+    AD = df['Accepted']
     outlier = raw_out['raw'].loc[raw_out['outlier']]
 
     ub = df['UpperLimit_outlier']
     lb = df['LowerLimit_outlier']
 
     legend_list = []
-    if 'Smoothed_AD' in df.columns:
-        smooth = df['Smoothed_AD']
-        ax.plot(smooth, 'g')
-        legend_list.append('Smooth')
-
+    ax.plot(raw.index, raw['raw'], 'grey', 'o')
+    legend_list.append('Raw')
     ax.plot(outlier, 'rx')
     legend_list.append('Outliers')
-    ax.plot(lb, 'b')
+    ax.plot(df.index, lb, 'b')
     legend_list.append('Lower bound')
-    ax.plot(ub, 'r')
+    ax.plot(df.index, ub, 'r')
     legend_list.append('Upper bound')
 
-    ax.plot(AD, 'orange')
+    ax.plot(df.index, AD, 'orange')
     legend_list.append('Accepted')
-    ax.plot(channel.raw_data.index, channel.raw_data['raw'], 'grey', 'o')
-    legend_list.append('Raw')
+
+    if 'Smoothed_AD' in df.columns:
+        smooth = df['Smoothed_AD']
+        ax.plot(df.index, smooth, 'g')
+        legend_list.append('Smooth')
 
     plt.xlabel('Time')
-    # plt.xticks(rotation=45)
-    # plt.ylabel(channel.parameter)
+    plt.xticks(rotation=45)
+    plt.ylabel(channel.parameter)
 
     plt.legend(legend_list)
     plt.show(block=False)
@@ -213,7 +221,7 @@ def plotOutliers_plotly(channel):
     AD = df['Accepted']
     raw_out = channel.raw_data.join(df['outlier'], how='left').dropna()
     outlier = raw_out['raw'].loc[raw_out['outlier']]
-    
+
     ub = df['UpperLimit_outlier']
     lb = df['LowerLimit_outlier']
 
@@ -295,7 +303,11 @@ def plotDScore_mpl(channel):
     axes_list = axes.flatten()
 
     filtration_method = channel.info['current_filtration_method']
-    df = channel.filtered[filtration_method]
+    df = channel.filtered[filtration_method].copy(deep=True)
+
+    df.reset_index(inplace=True)
+    df['t'] = df['index'].apply(lambda x: pd.Timestamp(str(x)))
+    df.set_index(df['t'], drop=True)
 
     params = channel.params
 
@@ -312,7 +324,7 @@ def plotDScore_mpl(channel):
     range_min = params['fault_detection_uni']['range_max']
 
     ax0 = axes_list[0]
-    ax0.plot(df['Qcorr'], linewidth=2)
+    ax0.plot(df['Q_corr'], linewidth=2)
     ax0.set(ylabel='Runs test value')
 
     ax0.plot(
@@ -328,7 +340,7 @@ def plotDScore_mpl(channel):
     ax0.set_xticks([])
 
     ax1 = axes_list[1]
-    ax1.plot(df['Qslope'], linewidth=2)
+    ax1.plot(df['Q_slope'], linewidth=2)
 
     ax1.set(ylabel='Slope [mg/L*s]')
     ax1.plot(
@@ -344,7 +356,7 @@ def plotDScore_mpl(channel):
     ax1.set_xticks([])
 
     ax2 = axes_list[2]
-    ax2.plot(df['Qstd'], linewidth=2)
+    ax2.plot(df['Q_std'], linewidth=2)
     ax2.set(ylabel='Std ln[mg/L]')
     ax2.plot(
         [df.first_valid_index(), df.last_valid_index()],
@@ -376,7 +388,7 @@ def plotDScore_mpl(channel):
     plt.show(block=False)
 
 
-def plotTreatedD(df, name):
+def plotTreatedD_mpl(channel):
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
@@ -384,15 +396,31 @@ def plotTreatedD(df, name):
     from pandas.plotting import register_matplotlib_converters
     register_matplotlib_converters()
 
+    filtration_method = channel.info['current_filtration_method']
+
+    raw = channel.raw_data['raw'].copy(deep=True)
+    df = channel.filtered[filtration_method][['treated', 'deleted']].copy(deep=True)
+    print(df.head())
+    df.reset_index(inplace=True, drop=False)
+    df['t'] = df['index'].apply(lambda x: pd.Timestamp(str(x)))
+    df.set_index(df['t'], drop=True)
+
+    raw = channel.raw_data.copy(deep=True)
+    raw.reset_index(inplace=True, drop=False)
+    raw['t'] = raw['index'].apply(lambda x: pd.Timestamp(str(x)))
+    raw.set_index(raw['t'], drop=True)
+
+    treated = df['treated']
+    deleted = df['deleted']
     _, ax = plt.subplots(figsize=(12, 8))
     # This function allows to plot the DataValidated with also the raw data
-    ax.plot(df[name + '_raw'], 'k')
-    ax.plot(df[name + "_Treated"], '-g', markersize=6, markerfacecolor='r')
-    # plot(Time, DeletedD, 'Or', 'markersize',6, 'markerfacecolor', 'r')
-    ax.set(xlabel='Temps')
+    ax.plot(raw.index, raw['raw'], 'k')
+    ax.plot(treated, '-g', markersize=6, markerfacecolor='g')
+    ax.plot(deleted, 'r', markersize=6, markerfacecolor='r')
+    ax.set(xlabel='Time')
     plt.xticks(rotation=45)
-    ax.set(ylabel=name)
-    plt.legend(['Raw Data', 'Treated Data'])
+    ax.set(ylabel=channel.parameter)
+    plt.legend(['Raw', 'Treated', 'Deleted'])
     plt.show(block=False)
 
 
@@ -503,22 +531,30 @@ def show_pca_mpl(df, limits, svd, model):
     from matplotlib import cm
     from matplotlib import pyplot as plt
 
-    fig, ax = plt.subplots(figsize=(10,10),nrows=1, ncols=1)
+    fig, ax = plt.subplots(figsize=(10, 10), nrows=1, ncols=1)
     plt.rc('lines', linewidth=1)
-    color=iter(cm.plasma(np.linspace(0,1,4)))
+    color = iter(cm.plasma(np.linspace(0, 1, 4)))
     start = model['start_cal']
-    end= model['end_cal']
-    ax.plot(df['t_1'],df['t_2'],'o',markersize=0.5, c=next(color))
-    ax.plot(df['t_1'].loc[start:end],df['t_2'].loc[start:end],'o',markersize=0.5, c=next(color))
-    ax.set(ylabel='PC 2', xlabel='PC 1',title='Principal components of calibration and complete data sets')
-    #### drawing the ellipse
-    
-    ellipse_a = np.sqrt(limits['t2'])*model['t_hat_stdev'][0]
-    ellipse_b = np.sqrt(limits['t2'])*model['t_hat_stdev'][1]
-    t=np.linspace(0,2*np.pi,100)
-    
-    ax.plot(ellipse_a*np.cos(t), ellipse_b*np.sin(t),c=next(color))
-    ax.grid(which='major',axis='both')
-    ax.legend(['complete','calibration','limit {}'.format(limits['alpha'])])
+    end = model['end_cal']
+    ax.plot(df['t_1'], df['t_2'], 'o', markersize=0.5, c=next(color))
+    ax.plot(
+        df['t_1'].loc[start:end],
+        df['t_2'].loc[start:end],
+        'o', markersize=0.5, c=next(color)
+    )
+    ax.set(
+        ylabel='PC 2',
+        xlabel='PC 1',
+        title='Principal components of calibration and complete data sets'
+    )
+    # ### drawing the ellipse
+
+    ellipse_a = np.sqrt(limits['t2']) * model['t_hat_stdev'][0]
+    ellipse_b = np.sqrt(limits['t2']) * model['t_hat_stdev'][1]
+    t = np.linspace(0, 2 * np.pi, 100)
+
+    ax.plot(ellipse_a * np.cos(t), ellipse_b * np.sin(t), c=next(color))
+    ax.grid(which='major', axis='both')
+    ax.legend(['complete', 'calibration', 'limit {}'.format(limits['alpha'])])
     plt.gca().set_aspect('equal')
     plt.show()

@@ -109,7 +109,8 @@ def single_sample_runs_test(AcceptedData, SMOOTHED_ACCEPTEDDATA, nb_data, params
     for i in range(moving_window - 1, nb_data - 1):
         # i=moving_window:nb_data-1
         y = Sign_change[i - moving_window + 1:i]
-        r = np.sum(np.sign(y[np.all([y < 0], axis=0)]))
+        with np.errstate(invalid='ignore'):
+            r = np.sum(np.sign(y[np.all([y < 0], axis=0)]))
         Q_corr[i] = (abs(r) - (moving_window / 2)) / np.sqrt(moving_window / 2)
     return Q_corr
 

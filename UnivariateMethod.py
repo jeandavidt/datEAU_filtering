@@ -7,6 +7,7 @@
 
 # ############### Importing the required libraries #########################
 import time
+import json
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,7 +26,7 @@ import DataCoherence
 from DefaultSettings import DefaultParam
 
 register_matplotlib_converters()
-
+'''
 # #########################################################################
 # #######################  TIME SERIES : RAW DATA  #########################
 
@@ -45,7 +46,7 @@ raw_data.set_index('datetime', inplace=True, drop=True)
 Times['import_done'] = time.time()
 
 # Add new data
-# path1 = 'G:\Documents\......\New_data.csv'
+
 # other_data = pd.read_csv(path1,sep=';')
 # other_data.datetime = pd.to_datetime(other_data.datetime)
 # other_data.set_index('datetime', inplace=True, drop=True)
@@ -128,9 +129,9 @@ channel = OutlierDetection.outlier_detection(channel)
 Times['outlier detection done'] = time.time()
 # Plot the outliers detected
 
-PlottingTools.plotOutliers_mpl(channel, filtration_method)
+# PlottingTools.plotOutliers_mpl(channel)
 # PlottingTools.Plot_Outliers(channel, filtration_method)(data, channel)
-Times['Outliers plotted'] = time.time()
+# Times['Outliers plotted'] = time.time()
 
 ###########################################################################
 # #########################  DATA SMOOTHER   ##############################
@@ -148,10 +149,13 @@ channel = Smoother.kernel_smoother(channel)
 Times['data smoothed'] = time.time()
 
 # Plot filtered data
-# PlottingTools.plotOutliers_mpl(channel, filtration_method)
+
+
+# PlottingTools.plotOutliers_mpl(channel)
 # plt.show()
 fault_detect_time = time.time()
-Times['smoothed data plotted'] = time.time()
+# Times['smoothed data plotted'] = time.time()
+
 
 ##########################################################################
 
@@ -186,28 +190,34 @@ channel.params['fault_detection_uni']['std_max'] = 0.1
 
 # Calcul Q_corr, Q_std, Q_slope, Q_range:
 # #data = FaultDetection.D_score(data, channel.params, channel)
-channel = FaultDetection.D_score(channel, filtration_method)
-Times['Faults detected'] = time.time()
-
+channel = FaultDetection.D_score(channel)
+# Times['Faults detected'] = time.time()
+with open('script.json', 'w') as outfile:
+    json.dump(channel, outfile, indent=4, cls=Sensors.CustomEncoder)
+'''
+with open('script.json') as json_file:
+    channel = json.load(json_file, object_hook=Sensors.decode_object)
 # Plot scores
-PlottingTools.plotDScore_mpl(channel, filtration_method)
-Times['Detected faults plottted'] = time.time()
+PlottingTools.plotDScore_mpl(channel)
+plt.show()
+# Times['Detected faults plottted'] = time.time()
 ##########################################################################
 
 # ############################  TREATED DATA   ###########################
-'''
-#To allow to determinate the treated data and deleted data:
-Final_data = TreatedData.TreatedD(data, channel.params,channel)
-Times['Final data generated'] = time.time()
-#plot the raw data and treated data:
-PlottingTools.plotTreatedD(Final_data, channel)
-plt.show()
-Times['Final data plotted'] = time.time()
 
-Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values())})
+# To allow to determinate the treated data and deleted data:
+channel = TreatedData.TreatedD(channel)
+# Times['Final data generated'] = time.time()
+# plot the raw data and treated data:
+PlottingTools.plotTreatedD_mpl(channel)
+plt.show()
+# Times['Final data plotted'] = time.time()
+
+# Timedf = pd.DataFrame(data={'event': list(Times.keys()), 'time': list(Times.values())})
 
 # Percentage of outliers and deleted data
-Intervariable = TreatedData.InterpCalculator(Final_data, channel)
+filtration_method = channel.info['current_filtration_method']
+print(channel.info['filtration_results'][filtration_method])
 
 
-# save ('Sensor.mat')# Save the whole data '''
+# save ('Sensor.mat')# Save the whole data
