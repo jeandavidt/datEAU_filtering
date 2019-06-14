@@ -27,7 +27,7 @@ from DefaultSettings import DefaultParam
 
 register_matplotlib_converters()
 
-# #########################################################################
+'''# #########################################################################
 # #######################  TIME SERIES : RAW DATA  #########################
 
 ##########################################################################
@@ -55,7 +55,7 @@ Times['import_done'] = time.time()
 # resamp_data= raw_data.asfreq('2 min')
 # data = resamp_data.fillna(method='ffill')
 # Times['resample_done'] = time.time()
-data = raw_data
+data = raw_data['15-09-2017 00:00:00':'15-04-2018 00:00:00']
 sensors = Sensors.parse_dataframe(data)
 
 # Plot raw data
@@ -110,33 +110,28 @@ answer = None
 #         exit()
 #     else:
 #         print("Please enter y or n.")
-Times['Data coherence checked'] = time.time()
-channel = DataCoherence.resample(channel, '2 min')
-flag = DataCoherence.data_coherence(channel)
+# Times['Data coherence checked'] = time.time()
+# channel = DataCoherence.resample(channel, '2 min')
+# flag = DataCoherence.data_coherence(channel)
 
-channel = DataCoherence.sort_dat(channel)
-flag = DataCoherence.data_coherence(channel)
+# channel = DataCoherence.sort_dat(channel)
+# flag = DataCoherence.data_coherence(channel)
 
-channel = DataCoherence.fillna(channel)
-flag = DataCoherence.data_coherence(channel)
+# channel = DataCoherence.fillna(channel)
+# flag = DataCoherence.data_coherence(channel)
 
 # ############################ Outlier detection ##########################
 filtration_method = "Online_EWMA"
 channel.params['outlier_detection']['method'] = filtration_method
-with open('script.json', 'w') as outfile:
-    json.dump(channel, outfile, indent=4, cls=Sensors.CustomEncoder)
-
-with open('script.json') as json_file:
-    channel = json.load(json_file, object_hook=Sensors.decode_object)
 
 channel = OutlierDetection.outlier_detection(channel)
 
-Times['outlier detection done'] = time.time()
+# Times['outlier detection done'] = time.time()
 # Plot the outliers detected
 
-PlottingTools.plotOutliers_mpl(channel)
-plt.show()
-'''
+# PlottingTools.plotOutliers_mpl(channel)
+# plt.show()
+
 # PlottingTools.Plot_Outliers(channel, filtration_method)(data, channel)
 # Times['Outliers plotted'] = time.time()
 
@@ -153,24 +148,27 @@ channel.params['data_smoother']['h_smoother'] = 10
 
 # data = Smoother.kernel_smoother(data, channel, channel.params)
 channel = Smoother.kernel_smoother(channel)
-Times['data smoothed'] = time.time()
+# Times['data smoothed'] = time.time()
 
 # Plot filtered data
+with open('script.json', 'w') as outfile:
+    json.dump(channel, outfile, indent=4, cls=Sensors.CustomEncoder)
 
 
-# PlottingTools.plotOutliers_mpl(channel)
+
+PlottingTools.plotOutliers_mpl(channel)
 # plt.show()
 fault_detect_time = time.time()
-# Times['smoothed data plotted'] = time.time()
-
+# Times['smoothed data plotted'] = time.time()'''
+with open('script.json') as json_file:
+    channel = json.load(json_file, object_hook=Sensors.decode_object)
 
 ##########################################################################
 
 # ############################FAULT DETECTION#############################
 
 ##########################################################################
-# data = pickle.load(open('smooth.p','rb'))
-# channel.params = pickle.load(open('parameters.p','rb'))
+
 
 # Definition range (min and max)for Q_range:
 # minimum real expected value of the variable
@@ -180,29 +178,28 @@ channel.params['fault_detection_uni']['range_min'] = 50
 channel.params['fault_detection_uni']['range_max'] = 550
 
 # Definition limit of scores:
-channel.params['fault_detection_uni']['corr_min'] = -5
-channel.params['fault_detection_uni']['corr_max'] = 5
+channel.params['fault_detection_uni']['corr_min'] = -50
+channel.params['fault_detection_uni']['corr_max'] = 50
 
 # minimum expected slope based on good data series
-channel.params['fault_detection_uni']['slope_min'] = -1
+channel.params['fault_detection_uni']['slope_min'] = -10
 
 # maximum expected slope based on a good data series
-channel.params['fault_detection_uni']['slope_max'] = 1
+channel.params['fault_detection_uni']['slope_max'] = 10
 
 # Minimum variation between accepted data and smoothed data
-channel.params['fault_detection_uni']['std_min'] = -0.1
+channel.params['fault_detection_uni']['std_min'] = -10
 
 # Maximum variation between accepted data and smoothed data
-channel.params['fault_detection_uni']['std_max'] = 0.1
+channel.params['fault_detection_uni']['std_max'] = 10
 
 # Calcul Q_corr, Q_std, Q_slope, Q_range:
-# #data = FaultDetection.D_score(data, channel.params, channel)
 channel = FaultDetection.D_score(channel)
 # Times['Faults detected'] = time.time()
 
 # Plot scores
-PlottingTools.plotDScore_mpl(channel)
-plt.show()
+# PlottingTools.plotDScore_mpl(channel)
+# plt.show()
 # Times['Detected faults plottted'] = time.time()
 ##########################################################################
 

@@ -28,90 +28,39 @@ def TreatedD(channel):
     # Initialisation of Inputs: Here, it takes back the different scores and the
     # smoothed data.
     filtration_method = channel.info['current_filtration_method']
-    df = channel.filtered[filtration_method]
+    dat = channel.filtered[filtration_method].copy(deep=True)
     params = channel.params
 
-    raw = np.array(channel.raw_data['raw']).flatten()
-    raw_out = channel.raw_data.join(df['outlier'], how='left').dropna()
-    outlier = np.array(raw_out['raw'].loc[raw_out['outlier']]).flatten()
-    Smoothed_AD = np.array(df["Smoothed_AD"]).flatten()
-    Q_corr = np.array(df["Q_corr"]).flatten()
-    Q_slope = np.array(df["Q_slope"]).flatten()
-    Q_std = np.array(df["Q_std"]).flatten()
-    Q_range = np.array(df["Q_range"]).flatten()
+    corr_min = params['fault_detection_uni']['corr_min']
+    corr_max = params['fault_detection_uni']['corr_max']
+    slope_min = params['fault_detection_uni']['slope_min']
+    slope_max = params['fault_detection_uni']['slope_max']
+    std_min = params['fault_detection_uni']['std_min']
+    std_max = params['fault_detection_uni']['std_max']
+    range_min = params['fault_detection_uni']['std_min']
+    range_max = params['fault_detection_uni']['std_max']
 
-    # Test correlation limits:
-    with np.errstate(invalid='ignore'):
-        Val_corr_min = Q_corr > params['fault_detection_uni']['corr_min']
-        Val_corr_max = Q_corr < params['fault_detection_uni']['corr_max']
-        Val_slope_min = Q_slope > params['fault_detection_uni']['slope_min']
-        Val_slope_max = Q_slope < params['fault_detection_uni']['slope_max']
-        Val_std_min = Q_std > params['fault_detection_uni']['std_min']
-        Val_std_max = Q_std < params['fault_detection_uni']['std_max']
+    if 'raw' not in dat.columns:
+        dat = dat.join(channel.raw_data['raw'], how='left')
 
-    # Aggregate values that comply both with minimum correlation and maximum correlation.
-    idx_corr = Val_corr_min * Val_corr_max
-    idx_slope = Val_slope_min * Val_slope_max
-    idx_std = Val_std_min * Val_std_max
-    idx_range = Q_range
+    dat['val_corr'] = dat['Q_corr'].between(corr_min, corr_max)
+    dat['val_slope'] = dat['Q_slope'].between(slope_min, slope_max)
+    dat['val_std'] = dat['Q_std'].between(std_min, std_max)
+    dat['val_range'] = dat['Q_slope'].between(slope_min, slope_max)
+    dat['val_range'] = dat['Q_range'].between(range_min, range_max)
+    dat['treated'] = dat.val_corr & dat.val_slope & dat.val_std & dat.val_range
+    dat['deleted'] = ~ dat.treated
+    dat['treated'] = (dat['treated'] * dat['Smoothed_AD']).replace(0, np.nan)
+    dat['deleted'] = (dat['deleted'] * dat['Smoothed_AD']).replace(0, np.nan)
 
-    idx_tot = idx_corr * idx_slope * idx_std * idx_range
+    n_del = (dat['deleted'] > 0).sum()
+    n_dat = len(dat)
+    n_outlier = (dat['outlier'] > 0).sum()
+    dat.drop(['val_corr', 'val_slope', 'val_std', 'val_range', 'raw'], axis=1)
 
-    # Generation of outputs:
-    Treateddata = Smoothed_AD * idx_tot.astype('int')
-    Deleteddata = Smoothed_AD * ~idx_tot.astype('int') * -1
-
-    for i in range(len(Smoothed_AD)):  # i=1:length (Smoothed_AD):
-        if idx_tot[i] == 0:
-            Treateddata[i] = np.nan
-        elif idx_tot[i] == 1:
-            Deleteddata[i] = np.nan
-
-    # Generalization of OUPUTS:
-    df['treated'] = Treateddata
-    df['deleted'] = Deleteddata
-
+    channel.filtered[filtration_method] = dat
     channel.info['filtration_results'][filtration_method] = {}
-    stats = channel.info['filtration_results'][filtration_method]
-    stats['percent_outlier'], stats['percent_loss'] = InterpCalculator(raw, outlier, Deleteddata)
+    channel.info['filtration_results'][filtration_method]['percent_outlier'] = n_outlier / n_dat * 100
+    channel.info['filtration_results'][filtration_method]['percent_loss'] = (n_del) / n_dat * 100
 
-    channel.info['filtration_results'][filtration_method] = stats
-    channel.filtered[filtration_method] = df
     return channel
-
-
-def InterpCalculator(raw, outlier, deleted):
-    import numpy as np
-    import pandas as pd
-    # This function allows to calculate different variable to interprate the
-    # data filtration.
-
-    # Input:
-    # Data: Raw data
-    # Outlier: the outlier obtained
-    # DataValidated: data
-
-    # Output:
-    # PercenOutlier: Outlier percentage
-    # LosingData: number of data lose.
-
-    # Initialization of INPUTS:
-    DATA = np.array(raw.flatten())
-    Outlier = np.array(outlier).flatten()
-    Deleteddata = np.array(deleted).flatten()
-
-    Datatot = len(DATA)
-
-    # Percentage Outliers:
-    Out = Outlier[Outlier == 1]
-    Outtot = len(Out)
-    PercenOutlier = (Outtot / Datatot) * 100
-
-    # Percentage data losing
-    mask = ~np.isnan(Deleteddata)
-    Deleted = len(Deleteddata[mask > 0])
-
-    PerceletedData = (100 - ((Datatot - Deleted) / Datatot) * 100)
-
-    # Generalization Outputs:
-    return PercenOutlier, PerceletedData

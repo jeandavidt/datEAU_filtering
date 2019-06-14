@@ -193,10 +193,8 @@ def plotOutliers_mpl(channel):
     legend_list.append('Lower bound')
     ax.plot(df.index, ub, 'r')
     legend_list.append('Upper bound')
-
     ax.plot(df.index, AD, 'orange')
     legend_list.append('Accepted')
-
     if 'Smoothed_AD' in df.columns:
         smooth = df['Smoothed_AD']
         ax.plot(df.index, smooth, 'g')
@@ -400,7 +398,6 @@ def plotTreatedD_mpl(channel):
 
     raw = channel.raw_data['raw'].copy(deep=True)
     df = channel.filtered[filtration_method][['treated', 'deleted']].copy(deep=True)
-    print(df.head())
     df.reset_index(inplace=True, drop=False)
     df['t'] = df['index'].apply(lambda x: pd.Timestamp(str(x)))
     df.set_index(df['t'], drop=True)
