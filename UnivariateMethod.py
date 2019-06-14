@@ -26,7 +26,7 @@ import DataCoherence
 from DefaultSettings import DefaultParam
 
 register_matplotlib_converters()
-'''
+
 # #########################################################################
 # #######################  TIME SERIES : RAW DATA  #########################
 
@@ -102,14 +102,14 @@ Times['parameters set'] = time.time()
 flag = DataCoherence.data_coherence(channel)
 
 answer = None
-while answer not in ("y", "n"):
-    answer = input("Continue?")
-    if answer == "y":
-        pass
-    elif answer == "n":
-        exit()
-    else:
-        print("Please enter y or n.")
+# while answer not in ("y", "n"):
+#     answer = input("Continue?")
+#     if answer == "y":
+#         pass
+#     elif answer == "n":
+#         exit()
+#     else:
+#         print("Please enter y or n.")
 Times['Data coherence checked'] = time.time()
 channel = DataCoherence.resample(channel, '2 min')
 flag = DataCoherence.data_coherence(channel)
@@ -123,13 +123,20 @@ flag = DataCoherence.data_coherence(channel)
 # ############################ Outlier detection ##########################
 filtration_method = "Online_EWMA"
 channel.params['outlier_detection']['method'] = filtration_method
+with open('script.json', 'w') as outfile:
+    json.dump(channel, outfile, indent=4, cls=Sensors.CustomEncoder)
+
+with open('script.json') as json_file:
+    channel = json.load(json_file, object_hook=Sensors.decode_object)
 
 channel = OutlierDetection.outlier_detection(channel)
 
 Times['outlier detection done'] = time.time()
 # Plot the outliers detected
 
-# PlottingTools.plotOutliers_mpl(channel)
+PlottingTools.plotOutliers_mpl(channel)
+plt.show()
+'''
 # PlottingTools.Plot_Outliers(channel, filtration_method)(data, channel)
 # Times['Outliers plotted'] = time.time()
 
@@ -192,11 +199,7 @@ channel.params['fault_detection_uni']['std_max'] = 0.1
 # #data = FaultDetection.D_score(data, channel.params, channel)
 channel = FaultDetection.D_score(channel)
 # Times['Faults detected'] = time.time()
-with open('script.json', 'w') as outfile:
-    json.dump(channel, outfile, indent=4, cls=Sensors.CustomEncoder)
-'''
-with open('script.json') as json_file:
-    channel = json.load(json_file, object_hook=Sensors.decode_object)
+
 # Plot scores
 PlottingTools.plotDScore_mpl(channel)
 plt.show()
@@ -220,4 +223,4 @@ filtration_method = channel.info['current_filtration_method']
 print(channel.info['filtration_results'][filtration_method])
 
 
-# save ('Sensor.mat')# Save the whole data
+# save ('Sensor.mat')# Save the whole data'''
