@@ -27,7 +27,7 @@ from DefaultSettings import DefaultParam
 
 register_matplotlib_converters()
 
-'''# #########################################################################
+# #########################################################################
 # #######################  TIME SERIES : RAW DATA  #########################
 
 ##########################################################################
@@ -151,17 +151,17 @@ channel = Smoother.kernel_smoother(channel)
 # Times['data smoothed'] = time.time()
 
 # Plot filtered data
-with open('script.json', 'w') as outfile:
-    json.dump(channel, outfile, indent=4, cls=Sensors.CustomEncoder)
+# with open('script.json', 'w') as outfile:
+#    json.dump(channel, outfile, indent=4, cls=Sensors.CustomEncoder)
 
 
 
 PlottingTools.plotOutliers_mpl(channel)
 # plt.show()
 fault_detect_time = time.time()
-# Times['smoothed data plotted'] = time.time()'''
-with open('script.json') as json_file:
-    channel = json.load(json_file, object_hook=Sensors.decode_object)
+# Times['smoothed data plotted'] = time.time()
+# with open('script.json') as json_file:
+#    channel = json.load(json_file, object_hook=Sensors.decode_object)
 
 ##########################################################################
 

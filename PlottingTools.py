@@ -168,12 +168,16 @@ def plotOutliers_mpl(channel):
     _, ax = plt.subplots(figsize=(12, 8))
     filtration_method = channel.info['current_filtration_method']
     df = channel.filtered[filtration_method].copy(deep=True)
+    df.index.name = 'index'
     df.reset_index(inplace=True, drop=False)
+    df.index.name = 'index'
     df['t'] = df['index'].apply(lambda x: pd.Timestamp(str(x)))
     df.set_index(df['t'], drop=True)
 
     raw = channel.raw_data.copy(deep=True)
+    raw.index.name = 'index'
     raw.reset_index(inplace=True, drop=False)
+    raw.index.name = 'index'
     raw['t'] = raw['index'].apply(lambda x: pd.Timestamp(str(x)))
     raw.set_index(raw['t'], drop=True)
     raw_out = raw.join(df['outlier'], how='left').dropna()
@@ -398,12 +402,16 @@ def plotTreatedD_mpl(channel):
 
     raw = channel.raw_data['raw'].copy(deep=True)
     df = channel.filtered[filtration_method][['treated', 'deleted']].copy(deep=True)
+    df.index.name = 'index'
     df.reset_index(inplace=True, drop=False)
+    df.index.name = 'index'
     df['t'] = df['index'].apply(lambda x: pd.Timestamp(str(x)))
     df.set_index(df['t'], drop=True)
 
     raw = channel.raw_data.copy(deep=True)
+    raw.index.name = 'index'
     raw.reset_index(inplace=True, drop=False)
+    raw.index.name = 'index'
     raw['t'] = raw['index'].apply(lambda x: pd.Timestamp(str(x)))
     raw.set_index(raw['t'], drop=True)
 
