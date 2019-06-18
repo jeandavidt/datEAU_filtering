@@ -1256,7 +1256,7 @@ def update_treated_uni_fig(data, series):
         return fig, msg
 
 
-'''@app.callback(
+@app.callback(
     Output('multivariate-store', 'data'),
     [Input('send-to-multivar', 'n_clicks')]
     [State('select-series', 'value'),
@@ -1270,14 +1270,14 @@ def send_to_multivar(click, channel_info, method, uni_data, multi_data):
         sensors, sensor_index, channel = get_sensors_and_channel(uni_data, channel_info)
         if channel.filtered[method] is not None:
             df = channel.filtered[method]
-            if 'Treated' in df.columns and 'Deleted' in df.columns:
+            if 'treated' in df.columns and 'deleted' in df.columns and 'raw' in df.columns:
                 project = channel.project
                 location = channel.location
                 equipment = channel.equipment
                 parameter = channel.parameter
                 unit = channel.unit
                 name = '-'.join([project, location, equipment, parameter, unit])
-                currentdf = channel.raw_data['raw'].join(df[['treated, deleted']], how='left')
+                currentdf = df[['raw','treated, deleted']]
                 currentdf.columns = [name + '-raw', name + '-treated', name + '-deleted']
                 if multi_data:
                     multi_df = pd.read_json(multi_data, orient='split')
@@ -1290,7 +1290,7 @@ def send_to_multivar(click, channel_info, method, uni_data, multi_data):
                 raise PreventUpdate
         else:
             raise PreventUpdate
-'''
+
 
 ########################################################################
 # MULTIVARIATE TAB #
@@ -1300,45 +1300,44 @@ def send_to_multivar(click, channel_info, method, uni_data, multi_data):
 ###########################################################################
 # SAVE DATA ###############################################################
 ###########################################################################
-
-
 @app.callback(
     Output('save-unvivar-link', 'href'),
-    [Input('select-series', 'value'),
-        Input('sensors-store', 'data')])
-def update_univar_download_link(value, data):
-    if not data:
+    [Input('sensors-store', 'data'),
+        Input('select-series', 'value'),
+        Input('select-method', 'value')])
+def update_link(data, channel_info, method):
+    if not data or not channel_info or not method:
         raise PreventUpdate
     else:
-        return '/dash/urlToDownload?value={}'.format(value)
+        channel = get_channel(data, channel_info)
+        if channel.filtered is None:
+            raise PreventUpdate
+        else:
+            filtered = channel.filtered[method]
+            if (('raw' not in filtered.columns) or (
+                'treated' not in filtered.columns) or (
+                    'deleted' not in filtered.columns)):
+                raise PreventUpdate
+            else:
+                filtered = filtered[['raw', 'treated', 'deleted']].to_json(date_format='iso', orient='split')
+                return '/dash/urlToDownload?value={}'.format(filtered)
 
 @app.server.route('/dash/urlToDownload')
-@app.callback(
-    Output('placeholder', 'children'),
-    [Input('save-unvivar-link', 'n_clicks')],
-    [State('sensors-store', 'data')])
-def download_csv(click, data):
-    if not click or not data:
-        raise PreventUpdate
-    else:
-        value = flask.request.args.get('value')
-        # create a dynamic csv or file here using `StringIO`
-        # (instead of writing to the file system)
-        sensors, sensor_index, channel = get_sensors_and_channel(data, value)
-        filtration_method = channel.info['current_filtration_method']
-        filtered = channel.filtered[filtration_method]
-        
-        str_io = io.StringIO()
-        str_io.write(str(filtered))
-        mem = io.BytesIO()
-        mem.write(str_io.getvalue().encode('utf-8'))
-        mem.seek(0)
-        str_io.close()
-        return flask.send_file(
-            mem,
-            mimetype='text/csv',
-            attachment_filename='downloadFile.csv',
-            as_attachment=True)
+def download_json():
+    value = flask.request.args.get('value')
+    # create a dynamic csv or file here using `StringIO`
+    # (instead of writing to the file system)
+    str_io = io.StringIO()
+    str_io.write(str(value))
+    mem = io.BytesIO()
+    mem.write(str_io.getvalue().encode('utf-8'))
+    mem.seek(0)
+    str_io.close()
+    return flask.send_file(
+        mem,
+        mimetype='text/json',
+        attachment_filename='downloadFile.json',
+        as_attachment=True)
 
 
 if __name__ == '__main__':
