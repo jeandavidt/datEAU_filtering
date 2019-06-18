@@ -1258,7 +1258,7 @@ def update_treated_uni_fig(data, series):
 
 @app.callback(
     Output('multivariate-store', 'data'),
-    [Input('send-to-multivar', 'n_clicks')]
+    [Input('send-to-multivar', 'n_clicks')],
     [State('select-series', 'value'),
         State('select-method', 'value'),
         State('sensors-store', 'data'),
@@ -1277,7 +1277,7 @@ def send_to_multivar(click, channel_info, method, uni_data, multi_data):
                 parameter = channel.parameter
                 unit = channel.unit
                 name = '-'.join([project, location, equipment, parameter, unit])
-                currentdf = df[['raw','treated, deleted']]
+                currentdf = df[['raw', 'treated, deleted']]
                 currentdf.columns = [name + '-raw', name + '-treated', name + '-deleted']
                 if multi_data:
                     multi_df = pd.read_json(multi_data, orient='split')
