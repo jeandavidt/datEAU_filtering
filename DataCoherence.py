@@ -37,7 +37,7 @@ def data_coherence(channel):
     import numpy as np
     import json
 
-    series = channel.info['most_recent_series']
+    series = channel.info['last-processed']
     if series == 'raw':
         data = channel.raw_data
     else:
@@ -105,7 +105,7 @@ def data_coherence(channel):
 
 def sort_dat(channel):
     import pandas as pd
-    series = channel.info['most_recent_series']
+    series = channel.info['last-processed']
     if series == 'raw':
         data = channel.raw_data
     else:
@@ -118,12 +118,12 @@ def sort_dat(channel):
     else:
         channel.processed_data['sorted'] = sorted_data
 
-    channel.info['most_recent_series'] = 'sorted'
+    channel.info['last-processed'] = 'sorted'
     return channel
 
 def resample(channel, timestep):
     import pandas as pd
-    series = channel.info['most_recent_series']
+    series = channel.info['last-processed']
     if series == 'raw':
         data = channel.raw_data
     else:
@@ -132,12 +132,12 @@ def resample(channel, timestep):
     resampled.columns = ['resampled']
 
     channel.processed_data = resampled
-    channel.info['most_recent_series'] = 'resampled'
+    channel.info['last-processed'] = 'resampled'
     return channel
 
 def fillna(channel):
     import pandas as pd
-    series = channel.info['most_recent_series']
+    series = channel.info['last-processed']
     if series == 'raw':
         data = channel.raw_data
     else:
@@ -148,5 +148,5 @@ def fillna(channel):
         channel.processed_data = filled
     else:
         channel.processed_data['filled'] = filled
-    channel.info['most_recent_series'] = 'filled'
+    channel.info['last-processed'] = 'filled'
     return channel

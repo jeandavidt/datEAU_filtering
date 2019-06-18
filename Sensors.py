@@ -31,7 +31,7 @@ class Channel:
         self.processed_data = None
         self.params = DefaultSettings.DefaultParam()
         self.info = {
-            'most_recent_series': 'raw',
+            'last-processed': 'raw',
             'current_filtration_method': 'Online_EWMA',
             'filtration_results': {},
         }

@@ -6,11 +6,10 @@ def outlier_detection(channel):
 
     # The whole of INPUT and OUTPUT are explained in the three functions :
     # OutlierDetection_EWMA, Outlier_Detection_NeuralNetworks, Outlier_Detection_online
-    print('Hey! Fitting has started')
     channel.filtered = {}
     params = channel.params
     calibperiod = channel.calib
-    most_recent = channel.info['most_recent_series']
+    most_recent = channel.info['last-processed']
     if most_recent == 'raw':
         data = channel.raw_data
     else:
@@ -66,5 +65,5 @@ def Outlier_Detection_online(data, calibperiod, params):
 
     # #######################Find the outliers#################################
     newdata = Outlier_Detection_Online_EWMA(data, params)
-    
+
     return newdata, params

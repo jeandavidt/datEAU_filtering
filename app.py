@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import time
+import urllib.parse
 
 import dash
 import dash_core_components as dcc
@@ -13,7 +14,6 @@ import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-
 import DataCoherence
 import DefaultSettings
 import FaultDetection
@@ -21,6 +21,7 @@ import OutlierDetection
 import PlottingTools
 import Sensors
 import Smoother
+import TreatedData
 
 # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -82,8 +83,8 @@ def small_graph(_id, title):
         figure={
             'layout': go.Layout(
                 title=title,
-                autosize=False,
-                width=800,
+                autosize=True,
+                # width=800,
                 height=250,
                 margin=go.layout.Margin(
                     l=50,
@@ -116,6 +117,7 @@ app.layout = html.Div([
     dcc.Store(id='coherence-store'),
     dcc.Store(id='new-params-store'),
     dcc.Store(id='multivariate-store'),
+    html.Div(id='placeholder', style={'display': 'none'}),
     html.H1(dcc.Markdown('dat*EAU* filtration'), id='header'),
     dcc.Tabs([
         dcc.Tab(label='Data Import', value='import', children=[
@@ -171,8 +173,7 @@ app.layout = html.Div([
                     id='select-method',
                     multi=False,
                     placeholder='Pick a method to detect outliers.',
-                    options=[{'label': 'Online EWMA', 'value': 'Online_EWMA'}],
-                    value='Online_EWMA'),
+                    options=[{'label': 'Online EWMA', 'value': 'Online_EWMA'}]),
                 html.Br()]),
             html.Div(
                 id='uni-up',
@@ -217,16 +218,17 @@ app.layout = html.Div([
                                     html.Button(id='sort-button', children=['Sort indices']),
                                     html.Br(),
                                     html.Br(),
-                                    html.Button(id='resample-button', children=['Resample']),
+                                    html.Button(id='resample-button', children=['Resample'], style={'width': '35%'}),
                                     dcc.Input(
                                         id='sample-freq',
                                         placeholder='frequency (min)',
                                         type='number',
                                         value=2,
                                         min=0.01,
-                                        step=1
+                                        step=1,
+                                        style={'width': '35%'}
                                     ),
-                                    'min',
+                                    '    min.',
                                     html.Br(),
                                     html.Br(),
                                     html.Button(id='fillna-button', children=['Fill blank rows']),
@@ -251,6 +253,10 @@ app.layout = html.Div([
                                 className='button-primary',
                                 id='fit-button',
                                 children='Fit outlier filter'),
+                            html.Button(
+                                className='button-alert',
+                                id='reset-proc-button',
+                                children=['Reset to processed']),
                         ], style={'width': '55%', 'display': 'inline-block'}
                     ),
                     html.Div(
@@ -359,9 +365,9 @@ app.layout = html.Div([
                                             updatemode='mouseup',
                                             allowCross=False,
                                             min=-5,
-                                            max=2,
-                                            step=0.01,
-                                            value=[-2, 1]
+                                            max=5,
+                                            step=0.1,
+                                            value=[-0.1, 0.1]
                                         ),
                                         html.P(id='std-vals'),
                                         html.Br(),
@@ -372,15 +378,13 @@ app.layout = html.Div([
                                             allowCross=False,
                                             min=0,
                                             max=2000,
+                                            step=5,
                                             value=[10, 300]
                                         ),
                                         html.P(id='range-vals'),
                                         html.Br(),
                                         html.Br(),
                                         html.Button(id='detect_faults-uni', children='Detect Faults'),
-                                        html.Br(),
-                                        html.Br(),
-                                        html.Button(id='treated-uni', children='Get treated data'),
                                         html.Br(),
                                         html.Br(),
                                     ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
@@ -394,6 +398,20 @@ app.layout = html.Div([
                                         small_graph('uni-range-graph', 'Range test'),
                                     ], style={'textAlign': 'center', 'width': '80%', 'display': 'inline-block'}
                                 )
+                            ],
+                        ),
+                        dcc.Tab(
+                            id='unitreated-graph-tab',
+                            label='Treated data',
+                            children=[
+                                dcc.Graph(id='uni-treated-graph'),
+                                html.Br(),
+                                html.P(id='faults-stats'),
+                                html.Button(
+                                    className='button-primary',
+                                    id='extract-uni-button',
+                                    children='Extract treated data'
+                                ),
                             ],
                         )
                     ]),
@@ -456,10 +474,13 @@ app.layout = html.Div([
     html.Div(id='output-data-upload', style={'display': 'none'}),
     html.Div(id='tabs-content'),
     html.Hr(),
-    # dcc.Link(
-    #    'Save sensor data for later analysis.',
-    #    id='save-sensors-link',
-    # ),
+    html.A(
+        'Save treated univariate data.',
+        id='save-unvivar-link',
+        download='treateddata.csv',
+        href='',
+        target="_blank"
+    ),
 ], id='applayout')
 
 
@@ -468,7 +489,7 @@ app.layout = html.Div([
 ########################################################################
 
 
-def transform_value(value):
+def transform_value(value):  # To transform slider value into its log. Unused at the moment.
     return 10 ** value
 
 def parse_contents(contents, filename):
@@ -692,7 +713,6 @@ def show_univar_list(data):
         for sensor in sensors:
             project = sensor.project
             location = sensor.location
-            print(sensor.channels)
             for channel in sensor.channels.values():
                 equipment = channel.equipment
                 parameter = channel.parameter
@@ -729,7 +749,6 @@ def create_sensors(original_data, modif_data):  # sensor_upload, sensor_filename
                 'There was an error processing this file.'
             ])'''
     else:
-        print('else is triggered too')
         if not original_data:
             raise PreventUpdate
         if modif_data == original_data:
@@ -751,6 +770,7 @@ def create_sensors(original_data, modif_data):  # sensor_upload, sensor_filename
         Input('fit-button', 'n_clicks'),
         Input('save-params-button', 'n_clicks'),
         Input('reset-button', 'n_clicks'),
+        Input('reset-proc-button', 'n_clicks'),
         Input('fit-range', 'end_date'),
         Input('smooth-button', 'n_clicks'),
         Input('detect_faults-uni', 'n_clicks'),
@@ -768,7 +788,7 @@ def create_sensors(original_data, modif_data):  # sensor_upload, sensor_filename
         State('range-slide', 'value'), ])
 def modify_sensors(
     # Inputs vars
-    fillna, resamp, srt, fit, param_button, reset, calib_end, smooth, faults, filtration_method,
+    fillna, resamp, srt, fit, param_button, reset, reset_proc, calib_end, smooth, faults, filtration_method,
     # State vars
         sensor_data, channel_info, frequency, par_outlier, par_smooth,
         par_f_uni, calib_start, corr, slope, std, _range):
@@ -792,12 +812,7 @@ def modify_sensors(
             channel = DataCoherence.sort_dat(channel)
 
         elif trigger == 'fit-button':
-            print('Outlier detection triggered!')
-            a = time.time()
             channel = OutlierDetection.outlier_detection(channel)
-            print('outlier detection has finished')
-            delta = time.time() - a
-            print('Outlier detection took ' + str(delta) + 's')
 
         elif trigger == 'save-params-button':
             new_params = {
@@ -822,10 +837,18 @@ def modify_sensors(
             channel.params = new_params
 
         elif trigger == 'reset-button':
-            channel.info = {'most_recent_series': 'raw'}
+            channel.info = {'last-processed': 'raw'}
             channel.processed_data = None
             channel.filtered = None
-            channel.params = DefaultSettings.DefaultParam
+            channel.calib = None
+            channel.params = DefaultSettings.DefaultParam()
+
+        elif trigger == 'reset-proc-button':
+            channel.info['last-processed'] = 'raw'
+            channel.calib = None
+            channel.filtered = None
+            channel.params = DefaultSettings.DefaultParam()
+
         elif trigger == 'smooth-button':
             channel = Smoother.kernel_smoother(channel)
 
@@ -833,7 +856,6 @@ def modify_sensors(
             channel.info['current_filtration_method'] = filtration_method
 
         elif trigger == 'detect_faults-uni':
-            print('correct trigger')
             channel.params['fault_detection_uni']['corr_min'] = corr[0]
             channel.params['fault_detection_uni']['corr_max'] = corr[1]
             channel.params['fault_detection_uni']['slope_min'] = slope[0]
@@ -843,7 +865,7 @@ def modify_sensors(
             channel.params['fault_detection_uni']['range_min'] = _range[0]
             channel.params['fault_detection_uni']['range_max'] = _range[1]
             channel = FaultDetection.D_score(channel)
-            print('Fault detection finished')
+            channel = TreatedData.TreatedD(channel)
 
         elif calib_start and calib_end:
             if channel.calib is not None:
@@ -853,7 +875,6 @@ def modify_sensors(
                     if (trigger == 'fit-button' or trigger == 'smooth-button' or trigger == 'detect_faults-uni'):
                         pass
                     else:
-                        print('update prevented')
                         raise PreventUpdate
                 else:
                     channel.calib['start'] = calib_start
@@ -863,7 +884,6 @@ def modify_sensors(
 
         sensor = sensors[sensor_index]
         sensor.channels[channel.parameter] = channel
-        print('Sensor object modified')
         return json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
 
 
@@ -1071,19 +1091,21 @@ def update_second_univariate_figure(value, data):
         raise PreventUpdate
     else:
         channel = get_channel(data, value)
+        method = channel.info['current_filtration_method']
         if channel.filtered is None:
             raise PreventUpdate
         else:
-            a = time.time()
-            figure = PlottingTools.plotOutliers_plotly(channel)
-            figure.update(
-                dict(
-                    layout=dict(
-                        clickmode='event+select'
+            if 'Q_range' in channel.filtered[method].columns:
+                raise PreventUpdate
+            else:
+                figure = PlottingTools.plotOutliers_plotly(channel)
+                figure.update(
+                    dict(
+                        layout=dict(
+                            clickmode='event+select'
+                        )
                     )
                 )
-            )
-            print('Outlier figure creation took ' + str((time.time() - a)) + 's')
             return figure
 
 
@@ -1101,41 +1123,75 @@ def update_second_univariate_figure(value, data):
         Input('std-slide', 'value'),
         Input('range-slide', 'value')],
     [State('select-series', 'value'),
-        State('select-method', 'value')]
+        State('select-method', 'value'),
+        State('uni-corr-graph', 'figure'),
+        State('uni-slope-graph', 'figure'),
+        State('uni-std-graph', 'figure'),
+        State('uni-range-graph', 'figure'),
+        State('detect_faults-uni', 'n_clicks')]
 )
 def update_faults_figures(
-        data, corr, slope, std, _range, series, filtration_method):
-    if not series or not filtration_method or not data or None in corr:
-        print('fig prevented')
+        data, corr, slope, std, _range, series,
+        filtration_method, corr_fig, slope_fig, std_fig, range_fig, fault_clicks):
+    if not series or not filtration_method or not data or None in corr or not fault_clicks:
         raise PreventUpdate
     else:
-        ctx = dash.callback_context
-        trigger = ctx.triggered[0]['prop_id'].split('.')[0]
         channel = get_channel(data, series)
         start = channel.raw_data.first_valid_index()
         end = channel.raw_data.last_valid_index()
-        if channel.filtered:
-            filtered = channel.filtered[filtration_method]
-            if ('Q_corr' not in filtered.columns or
-                'Q_slope' not in filtered.columns or
-                    'Q_std' not in filtered.columns or
-                    'Q_range' not in filtered.columns):
-                print('empty figs start')
-                figure1 = PlottingTools.plotD_plotly(corr, 'Q_corr', start=start, end=end, channel=None)
-                figure2 = PlottingTools.plotD_plotly(slope, 'Q_slope', start=start, end=end, channel=None)
-                figure3 = PlottingTools.plotD_plotly(std, 'Q_std', start=start, end=end, channel=None)
-                figure4 = PlottingTools.plotD_plotly(_range, 'Q_range', start=start, end=end, channel=None)
-            else:
-                print('full figs start')
+        method = channel.info['current_filtration_method']
+        fig_list = {'corr': corr_fig, 'slope': slope_fig, 'std': std_fig, 'range': range_fig}
+        if 'Q_range' in channel.filtered[method].columns:
+            if 'data' not in range_fig:
                 figure1 = PlottingTools.plotD_plotly(corr, 'Q_corr', channel=channel)
                 figure2 = PlottingTools.plotD_plotly(slope, 'Q_slope', channel=channel)
                 figure3 = PlottingTools.plotD_plotly(std, 'Q_std', channel=channel)
                 figure4 = PlottingTools.plotD_plotly(_range, 'Q_range', channel=channel)
-
-            return figure1, figure2, figure3, figure4
+                return figure1, figure2, figure3, figure4
+            else:
+                n_traces = 0
+                for test, fig, in fig_list.items():
+                    n_traces += len(fig['data'])
+                if n_traces > 2 * len(fig_list):
+                    for test, fig in fig_list.items():
+                        new_data = fig['data']
+                        if test == 'corr':
+                            vals = corr
+                        elif test == 'slope':
+                            vals = slope
+                        elif test == 'std':
+                            vals = std
+                        elif test == 'range':
+                            vals = _range
+                        for trace in new_data:
+                            name_of_trace = trace['name']
+                            if 'Min' in name_of_trace:
+                                pos_min = fig['data'].index(trace)
+                                new_data[pos_min]['y'] = [vals[0], vals[0]]
+                            if 'Max' in name_of_trace:
+                                pos_max = fig['data'].index(trace)
+                                new_data[pos_max]['y'] = [vals[1], vals[1]]
+                        fig.update(dict(data=new_data))
+                    return fig_list['corr'], fig_list['slope'], fig_list['std'], fig_list['range']
+                else:
+                    figure1 = PlottingTools.plotD_plotly(corr, 'Q_corr', channel=channel)
+                    figure2 = PlottingTools.plotD_plotly(slope, 'Q_slope', channel=channel)
+                    figure3 = PlottingTools.plotD_plotly(std, 'Q_std', channel=channel)
+                    figure4 = PlottingTools.plotD_plotly(_range, 'Q_range', channel=channel)
+                    return figure1, figure2, figure3, figure4
         else:
-            print('faults figure prevented')
-            raise PreventUpdate
+            if range_fig is not None:
+                for fig in fig_list.values():
+                    new_data = fig['data']
+                    for trace in new_data:
+                        name_of_trace = trace['name']
+                        if ('Min' not in name_of_trace) and ('Max' not in name_of_trace):
+                            pos_dat = fig['data'].index(trace)
+                            del new_data[pos_dat]
+                    fig.update(dict(data=new_data))
+                return fig_list['corr'], fig_list['slope'], fig_list['std'], fig_list['range']
+            else:
+                raise PreventUpdate
 
 # Update the sliders text
 @app.callback(Output('corr-vals', 'children'),
@@ -1152,8 +1208,8 @@ def display_value_slope(value):
     if len(value) < 2:
         raise PreventUpdate
     else:
-        transform = [transform_value(x) for x in value]
-        return 'Min: {:0.5f}, Max: {:0.2f}'.format(transform[0], transform[1])
+        # transform = [transform_value(x) for x in value]
+        return 'Min: {:0.2f}, Max: {:0.2f}'.format(value[0], value[1])
 
 
 @app.callback(Output('std-vals', 'children'),
@@ -1175,6 +1231,32 @@ def display_value_range(value):
 
 
 @app.callback(
+    [Output('uni-treated-graph', 'figure'),
+        Output('faults-stats', 'children')],
+    [Input('sensors-store', 'data')],
+    [State('select-series', 'value')])
+def update_treated_uni_fig(data, series):
+    if not series or not data:
+        raise PreventUpdate
+    channel = get_channel(data, series)
+    method = channel.info['current_filtration_method']
+    if channel.filtered is None:
+        raise PreventUpdate
+    elif channel.filtered[method] is None:
+        raise PreventUpdate
+    elif 'treated' not in channel.filtered[method].columns:
+        raise PreventUpdate
+    else:
+        fig = PlottingTools.plotTreatedD_plotly(channel)
+        perc_out = channel.info['filtration_results'][method]['percent_outlier']
+        perc_del = channel.info['filtration_results'][method]['percent_loss']
+        msg1 = '{:0.2f}% of the data was found to be outliers.'.format(perc_out)
+        msg2 = ' {:0.2f}% of the raw data was found to be faulty.'.format(perc_del)
+        msg = msg1 + msg2
+        return fig, msg
+
+
+'''@app.callback(
     Output('multivariate-store', 'data'),
     [Input('send-to-multivar', 'n_clicks')]
     [State('select-series', 'value'),
@@ -1208,7 +1290,7 @@ def send_to_multivar(click, channel_info, method, uni_data, multi_data):
                 raise PreventUpdate
         else:
             raise PreventUpdate
-
+'''
 
 ########################################################################
 # MULTIVARIATE TAB #
@@ -1220,28 +1302,43 @@ def send_to_multivar(click, channel_info, method, uni_data, multi_data):
 ###########################################################################
 
 
-'''@app.callback(
-    Output('save-sensors-link', 'href'),
-    [Input('sensors-store', 'data')])
-def update_link(data):
-    return '/dash/urlToDownload?value={}'.format(data)
+@app.callback(
+    Output('save-unvivar-link', 'href'),
+    [Input('select-series', 'value'),
+        Input('sensors-store', 'data')])
+def update_univar_download_link(value, data):
+    if not data:
+        raise PreventUpdate
+    else:
+        return '/dash/urlToDownload?value={}'.format(value)
 
 @app.server.route('/dash/urlToDownload')
-def download_json():
-    value = flask.request.args.get('value')
-    # create a dynamic csv or file here using `StringIO`
-    # (instead of writing to the file system)
-    str_io = io.StringIO()
-    str_io.write(str(value))
-    mem = io.BytesIO()
-    mem.write(str_io.getvalue().encode('utf-8'))
-    mem.seek(0)
-    str_io.close()
-    return flask.send_file(
-        mem,
-        mimetype='text/json',
-        attachment_filename='downloadFile.json',
-        as_attachment=True)'''
+@app.callback(
+    Output('placeholder', 'children'),
+    [Input('save-unvivar-link', 'n_clicks')],
+    [State('sensors-store', 'data')])
+def download_csv(click, data):
+    if not click or not data:
+        raise PreventUpdate
+    else:
+        value = flask.request.args.get('value')
+        # create a dynamic csv or file here using `StringIO`
+        # (instead of writing to the file system)
+        sensors, sensor_index, channel = get_sensors_and_channel(data, value)
+        filtration_method = channel.info['current_filtration_method']
+        filtered = channel.filtered[filtration_method]
+        
+        str_io = io.StringIO()
+        str_io.write(str(filtered))
+        mem = io.BytesIO()
+        mem.write(str_io.getvalue().encode('utf-8'))
+        mem.seek(0)
+        str_io.close()
+        return flask.send_file(
+            mem,
+            mimetype='text/csv',
+            attachment_filename='downloadFile.csv',
+            as_attachment=True)
 
 
 if __name__ == '__main__':

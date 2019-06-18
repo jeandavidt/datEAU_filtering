@@ -154,8 +154,6 @@ channel = Smoother.kernel_smoother(channel)
 # with open('script.json', 'w') as outfile:
 #    json.dump(channel, outfile, indent=4, cls=Sensors.CustomEncoder)
 
-
-
 PlottingTools.plotOutliers_mpl(channel)
 # plt.show()
 fault_detect_time = time.time()

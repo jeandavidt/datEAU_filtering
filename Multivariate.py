@@ -1,14 +1,17 @@
 import numpy as np
 import numpy.linalg as alg
 import pandas as pd
+
 from sklearn.preprocessing import StandardScaler
+# debugging data import
+
 
 
 # def multivariate(df,col_name_list, start_cal, end_cal,min_var_exp=0.95, alpha=0.95):
-def multivariate(channel_list): 
-    ##### scaling the features
-    DF=df.copy()
-    scaler=StandardScaler()
+def build_pca(df):
+    # #### scaling the features
+    DF = df.copy()
+    scaler = StandardScaler()
     x_raw = df[col_name_list].loc[start_cal:end_cal].values
     x_bar=scaler.fit_transform(x_raw)
     

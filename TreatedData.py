@@ -37,17 +37,17 @@ def TreatedD(channel):
     slope_max = params['fault_detection_uni']['slope_max']
     std_min = params['fault_detection_uni']['std_min']
     std_max = params['fault_detection_uni']['std_max']
-    range_min = params['fault_detection_uni']['std_min']
-    range_max = params['fault_detection_uni']['std_max']
+    range_min = params['fault_detection_uni']['range_min']
+    range_max = params['fault_detection_uni']['range_max']
 
     if 'raw' not in dat.columns:
         dat = dat.join(channel.raw_data['raw'], how='left')
-
+    
     dat['val_corr'] = dat['Q_corr'].between(corr_min, corr_max)
     dat['val_slope'] = dat['Q_slope'].between(slope_min, slope_max)
     dat['val_std'] = dat['Q_std'].between(std_min, std_max)
     dat['val_range'] = dat['Q_slope'].between(slope_min, slope_max)
-    dat['val_range'] = dat['Q_range'].between(range_min, range_max)
+    dat['val_range'] = dat['Smoothed_AD'].between(range_min, range_max)
     dat['treated'] = dat.val_corr & dat.val_slope & dat.val_std & dat.val_range
     dat['deleted'] = ~ dat.treated
     dat['treated'] = (dat['treated'] * dat['Smoothed_AD']).replace(0, np.nan)

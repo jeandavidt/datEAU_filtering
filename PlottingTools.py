@@ -78,7 +78,7 @@ def plotUnivar_mpl(channel):
     if channel.calib is not None:
         calib_start = pd.to_datetime(channel.calib['start'])
         calib_end = pd.to_datetime(channel.calib['end'])
-        most_recent = channel.info['most_recent_series']
+        most_recent = channel.info['last-processed']
         if most_recent == 'raw':
             df = channel.raw_data
         else:
@@ -126,14 +126,14 @@ def plotUnivar_plotly(channel):
     if channel.calib is not None:
         calib_start = pd.to_datetime(channel.calib['start'])
         calib_end = pd.to_datetime(channel.calib['end'])
-        most_recent = channel.info['most_recent_series']
+        most_recent = channel.info['last-processed']
         if most_recent == 'raw':
             df = channel.raw_data
-            if channel.processed_data:
-                df = channel.processed_data
-            else:
-                df = channel.raw_data
-                most_recent = 'raw'
+        elif channel.processed_data is not None:
+            df = channel.processed_data
+        else:
+            df = channel.raw_data
+            most_recent = 'raw'
         trace = go.Scattergl(
             x=df[calib_start:calib_end].index,
             y=df[calib_start:calib_end][most_recent],
@@ -389,6 +389,50 @@ def plotDScore_mpl(channel):
 
     plt.show(block=False)
 
+def plotTreatedD_plotly(channel):
+    import pandas as pd
+    import numpy as np
+    import plotly
+    import plotly.graph_objs as go
+
+    filtration_method = channel.info['current_filtration_method']
+    df = channel.filtered[filtration_method]
+    raw = channel.raw_data['raw']
+    treated = df['treated']
+    deleted = df['deleted']
+    to_plot = {
+        'Raw': raw,
+        'Treated': treated,
+        'Deleted': deleted,
+    }
+    traces = []
+    for name, series in to_plot.items():
+        trace = go.Scattergl(
+            x=series.index,
+            y=series,
+            name=name
+        )
+        if name == 'Treated':
+            trace['mode'] = 'lines+markers'
+            trace['marker'] = dict(opacity=0, color='rgb(44, 160, 44)')  # green
+        elif name == 'Deleted':
+            trace['mode'] = 'lines+markers'
+            trace['marker'] = dict(opacity=0, color='rgb(214, 39, 40)')  # red
+        elif name == 'Raw':
+            trace['mode'] = 'markers'
+            trace['marker'] = dict(opacity=0.8, color='rgb(127, 127, 127)', size=5)  # grey
+        traces.append(trace)
+
+    layout = go.Layout(
+        dict(
+            title='Treated univariate data',
+            yaxis=dict(title='Value'),
+            xaxis=dict(title='Date and Time')
+        )
+    )
+    figure = go.Figure(data=traces, layout=layout)
+    return figure
+
 
 def plotTreatedD_mpl(channel):
     import pandas as pd
@@ -453,9 +497,9 @@ def plotD_plotly(params, testID, start=None, end=None, channel=None):
         'Q_std': 'Standard deviation',
         'Q_range': 'Data range'
     }
-    if testID == 'Q_std':
-        min_val = 10 ** min_val
-        max_val = 10 ** max_val
+    # if testID == 'Q_std':
+    #     min_val = 10 ** min_val
+    #     max_val = 10 ** max_val
 
     # DEFINING VARIABLES
     traces = []
@@ -488,13 +532,15 @@ def plotD_plotly(params, testID, start=None, end=None, channel=None):
     if channel:
         if testID in df.columns:
             if testID == 'Q_range':
-                testID = 'Smoothed_AD'
+                name = 'Smoothed_AD'
+            else:
+                name = testID
             trace1c = go.Scattergl(
                 x=df.index,
-                y=df[testID],
+                y=df[name],
                 xaxis='x1',
                 yaxis='y1',
-                name=testID,
+                name=name,
                 mode='lines',
                 line=dict(
                     color=('rgb(22, 96, 167)'),
@@ -505,8 +551,8 @@ def plotD_plotly(params, testID, start=None, end=None, channel=None):
 
     layout = go.Layout(
         title=titles[testID],
-        autosize=False,
-        width=800,
+        autosize=True,
+        # width=800,
         height=250,
         margin=go.layout.Margin(
             l=50,
@@ -524,9 +570,8 @@ def plotD_plotly(params, testID, start=None, end=None, channel=None):
     )
 
     figure = go.Figure(layout=layout, data=traces)
-    if testID == 'Q_std':
-        # figure.update(dict(layout=dict(clickmode='event+select')))
-        figure.update(dict(layout=dict(yaxis=dict(type='log'))))
+    # if testID == 'Q_std':
+    #     figure.update(dict(layout=dict(yaxis=dict(type='log'))))
     return figure
 
 
