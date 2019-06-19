@@ -7,10 +7,15 @@ import time
 import numpy as np
 from matplotlib import pyplot as plt
 
+with open('login.txt') as f:
+    usr = f.readline().strip()
+    pwd = f.readline().strip()
+
+    
 def create_connection():
     import getpass
-    username=input("Enter username")
-    password =getpass.getpass(prompt="Enter password")
+    username = usr  # input("Enter username")
+    password = pwd  # getpass.getpass(prompt="Enter password")
     config = dict(server=   '10.10.10.10', # change this to your SQL Server hostname or IP address
                 port=      1433,                    # change this to your SQL Server port number [1433 is the default]
                 database= 'dateaubase',
@@ -25,14 +30,17 @@ def create_connection():
         conn_str.format(**config)
         )
     cursor = conn.cursor()
-    return cursor
+    return cursor, conn
 
-cursor = create_connection()
+cursor, conn = create_connection()
+
 
 def date_to_epoch(date):
     naive_datetime = pd.to_datetime(date)
     local_datetime = naive_datetime.tz_localize(tz='US/Eastern')
     return int(local_datetime.value/10**9)
+
+
 def epoch_to_pandas_datetime(epoch):
     local_time = time.localtime(epoch)
     return pd.Timestamp(*local_time[:6])
@@ -87,7 +95,7 @@ def clean_up_pulled_data(df,project, location, equipment, parameter):
 
 
 Start = date_to_epoch('2017-09-01 12:00:00')
-End = date_to_epoch('2018-09-01 12:00:00')
+End = date_to_epoch('2017-10-01 12:00:00')
 Location = 'Primary settling tank effluent'
 Project = 'pilEAUte'
 
@@ -114,14 +122,16 @@ def extract_data(connexion, extraction_list):
                                extract_list[i]['Equipment'],
                                extract_list[i]['Parameter'])
         if i==0:
-            df = pd.read_sql(query,conn)
+            print('first extract')
+            df = pd.read_sql(query, connexion)
             clean_up_pulled_data(df,
                                  extract_list[i]['Project'],
                                  extract_list[i]['Location'],
                                  extract_list[i]['Equipment'],
                                  extract_list[i]['Parameter'])
         else:
-            temp_df = pd.read_sql(query,conn)
+            print('next extract')
+            temp_df = pd.read_sql(query, connexion)
             clean_up_pulled_data(temp_df,
                                  extract_list[i]['Project'],
                                  extract_list[i]['Location'],
@@ -147,8 +157,12 @@ def plot_pulled_data(df):
     
     plt.show()
 
+print('ready to extract')
+df = extract_data(conn, extract_list)
+print(len(df))
+print('plotting')
 plot_pulled_data(df)
 
 name = 'influent3'
 path = r"C:\Users\Jean-David Therrien\Desktop\\"
-#result.to_csv(path+name+'.csv',sep=';')
+df.to_csv(path+name+'.csv',sep=';')

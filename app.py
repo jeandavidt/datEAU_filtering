@@ -110,6 +110,7 @@ def small_graph(_id, title):
 
 
 app.layout = html.Div([
+    dcc.Store(id='sql-store'),
     dcc.Store(id='session-store'),
     dcc.Store(id='sensors-store'),
     dcc.Store(id='modif-store'),
@@ -1052,8 +1053,6 @@ def update_faults_figures(
         print('fig prevented')
         raise PreventUpdate
     else:
-        ctx = dash.callback_context
-        trigger = ctx.triggered[0]['prop_id'].split('.')[0]
         channel = get_channel(data, series)
         start = channel.raw_data.first_valid_index()
         end = channel.raw_data.last_valid_index()
