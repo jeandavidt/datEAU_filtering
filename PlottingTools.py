@@ -522,3 +522,20 @@ def show_pca_mpl(df, limits, svd, model):
     ax.legend(['complete','calibration','limit {}'.format(limits['alpha'])])
     plt.gca().set_aspect('equal')
     plt.show()
+
+def extract_plotly(df):
+    import plotly
+    import plotly.graph_objs as go
+    traces = []
+    for column in df.columns:
+        project, location, equipment, parameter, unit = column.split('-')
+        trace = go.Scattergl(
+            x=df.index,
+            y=df[column],
+            name="{}, {}({})".format(equipment, parameter, unit),
+            mode='lines',
+        )
+        traces.append(trace)
+    layout = go.Layout(title='Data to extract',)
+    figure = go.Figure(data=traces, layout=layout)
+    return figure

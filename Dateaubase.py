@@ -7,13 +7,12 @@ import time
 import numpy as np
 from matplotlib import pyplot as plt
 
-with open('login.txt') as f:
-    usr = f.readline().strip()
-    pwd = f.readline().strip()
-
-    
+   
 def create_connection():
     import getpass
+    with open('login.txt') as f:
+        usr = f.readline().strip()
+        pwd = f.readline().strip()
     username = usr  # input("Enter username")
     password = pwd  # getpass.getpass(prompt="Enter password")
     config = dict(server=   '10.10.10.10', # change this to your SQL Server hostname or IP address
@@ -32,8 +31,6 @@ def create_connection():
     cursor = conn.cursor()
     return cursor, conn
 
-cursor, conn = create_connection()
-
 
 def date_to_epoch(date):
     naive_datetime = pd.to_datetime(date)
@@ -45,6 +42,86 @@ def epoch_to_pandas_datetime(epoch):
     local_time = time.localtime(epoch)
     return pd.Timestamp(*local_time[:6])
 
+
+def get_projects(connection):
+    query = '''
+SELECT DISTINCT Project_name
+FROM project
+ORDER BY Project_name ASC;'''
+    df = pd.read_sql(query,connection)
+    return df
+
+def get_locations(connection, project):
+    query = '''
+SELECT dbo.sampling_points.Description
+FROM sampling_points
+left outer join dbo.project_has_sampling_points on dbo.project_has_sampling_points.Sampling_point_ID = dbo.sampling_points.Sampling_point_ID
+left outer join dbo.project on dbo.project.Project_ID = dbo.project_has_sampling_points.Project_ID
+WHERE
+dbo.project.Project_name = \'{}\'
+ORDER BY dbo.project.Project_ID ASC;
+'''.format(project)
+    locations = pd.read_sql(query, connection)
+    return locations
+
+
+def get_equipment(connection, project, location):
+    query = '''
+    SELECT dbo.equipment.Equipment_identifier
+    FROM equipment
+    left outer join dbo.equipment_has_sampling_points on dbo.equipment_has_sampling_points.Equipment_ID = dbo.equipment.Equipment_ID
+    left outer join dbo.sampling_points on dbo.sampling_points.Sampling_point_ID = dbo.equipment_has_sampling_points.Sampling_point_ID
+    left outer join dbo.project_has_sampling_points on dbo.project_has_sampling_points.Sampling_point_ID = dbo.sampling_points.Sampling_point_ID
+    left outer join dbo.project on dbo.project.Project_ID = dbo.project_has_sampling_points.Project_ID
+    WHERE
+    dbo.project.Project_name = \'{}\'
+    AND dbo.sampling_points.Sampling_location = \'{}\'
+    ORDER BY dbo.project.Project_ID ASC;'''.format(project,location)
+    equipment = pd.read_sql(query, connection)
+    return equipment
+
+
+def get_parameters(connection, project, location, equipment):
+    query = '''
+    SELECT dbo.parameter.Parameter 
+    FROM dbo.parameter
+    left outer join dbo.equipment_model_has_parameter on dbo.equipment_model_has_parameter.Parameter_ID = dbo.parameter.Parameter_ID
+    left outer join dbo.equipment_model on dbo.equipment_model.Equipment_model_ID = dbo.equipment_model_has_parameter.Equipment_model_ID
+    left outer join dbo.equipment on dbo.equipment.Equipment_model_ID = dbo.equipment_model.Equipment_model_ID
+    left outer join dbo.equipment_has_sampling_points on dbo.equipment_has_sampling_points.Equipment_ID = dbo.equipment.Equipment_ID
+    left outer join dbo.sampling_points on dbo.sampling_points.Sampling_point_ID = dbo.equipment_has_sampling_points.Sampling_point_ID
+    left outer join dbo.project_has_sampling_points on dbo.project_has_sampling_points.Sampling_point_ID = dbo.sampling_points.Sampling_point_ID
+    left outer join dbo.project on dbo.project.Project_ID = dbo.project_has_sampling_points.Project_ID
+    WHERE
+    dbo.project.Project_name = \'{}\'
+    AND dbo.sampling_points.Sampling_location = \'{}\'
+    AND dbo.equipment.Equipment_identifier = \'{}\'
+    ORDER BY dbo.project.Project_ID ASC;
+    '''.format(project, location, equipment)
+    parameters = pd.read_sql(query, connection)
+    return parameters
+
+def get_units(connection, project, location, equipment, parameter):
+    query = '''
+    SELECT dbo.unit.Unit
+    FROM dbo.unit
+    left outer join dbo.parameter on dbo.parameter.Unit_ID = dbo.unit.Unit_ID
+    left outer join dbo.equipment_model_has_parameter on dbo.equipment_model_has_parameter.Parameter_ID = dbo.parameter.Parameter_ID
+    left outer join dbo.equipment_model on dbo.equipment_model.Equipment_model_ID = dbo.equipment_model_has_parameter.Equipment_model_ID
+    left outer join dbo.equipment on dbo.equipment.Equipment_model_ID = dbo.equipment_model.Equipment_model_ID
+    left outer join dbo.equipment_has_sampling_points on dbo.equipment_has_sampling_points.Equipment_ID = dbo.equipment.Equipment_ID
+    left outer join dbo.sampling_points on dbo.sampling_points.Sampling_point_ID = dbo.equipment_has_sampling_points.Sampling_point_ID
+    left outer join dbo.project_has_sampling_points on dbo.project_has_sampling_points.Sampling_point_ID = dbo.sampling_points.Sampling_point_ID
+    left outer join dbo.project on dbo.project.Project_ID = dbo.project_has_sampling_points.Project_ID
+    WHERE
+    dbo.project.Project_name = \'{}\'
+    AND dbo.sampling_points.Sampling_location = \'{}\'
+    AND dbo.equipment.Equipment_identifier = \'{}\'
+    AND dbo.parameter.Parameter = \'{}\'
+    ORDER BY dbo.project.Project_ID ASC;
+    '''.format(project, location, equipment, parameter)
+    units = pd.read_sql(query, connection)
+    return units
 
 def build_query(start, end, project, location, equipment, parameter):
     return '''SELECT dbo.value.Timestamp,
@@ -94,25 +171,6 @@ def clean_up_pulled_data(df,project, location, equipment, parameter):
     return df
 
 
-Start = date_to_epoch('2017-09-01 12:00:00')
-End = date_to_epoch('2017-10-01 12:00:00')
-Location = 'Primary settling tank effluent'
-Project = 'pilEAUte'
-
-param_list = ['COD','CODf','NH4-N','K']
-equip_list = ['Spectro_010','Spectro_010','Ammo_005','Ammo_005']
-
-extract_list={}
-for i in range(len(param_list)):
-    extract_list[i] = {
-        'Start':Start,
-        'End':End,
-        'Project':Project,
-        'Location':Location,
-        'Parameter':param_list[i],
-        'Equipment':equip_list[i]
-    }
-
 def extract_data(connexion, extraction_list):
     for i in range(len(extract_list)):
         query =build_query(extract_list[i]['Start'],
@@ -157,12 +215,31 @@ def plot_pulled_data(df):
     
     plt.show()
 
+# cursor, conn = create_connection()
+'''Start = date_to_epoch('2017-09-01 12:00:00')
+End = date_to_epoch('2017-10-01 12:00:00')
+Location = 'Primary settling tank effluent'
+Project = 'pilEAUte'
+
+param_list = ['COD','CODf','NH4-N','K']
+equip_list = ['Spectro_010','Spectro_010','Ammo_005','Ammo_005']
+
+extract_list={}
+for i in range(len(param_list)):
+    extract_list[i] = {
+        'Start':Start,
+        'End':End,
+        'Project':Project,
+        'Location':Location,
+        'Parameter':param_list[i],
+        'Equipment':equip_list[i]
+    }
 print('ready to extract')
 df = extract_data(conn, extract_list)
 print(len(df))
 print('plotting')
 plot_pulled_data(df)
-
-name = 'influent3'
-path = r"C:\Users\Jean-David Therrien\Desktop\\"
-df.to_csv(path+name+'.csv',sep=';')
+'''
+# name = 'influent3'
+# path = r"C:\Users\Jean-David Therrien\Desktop\\"
+# df.to_csv(path+name+'.csv',sep=';') 

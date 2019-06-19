@@ -12,13 +12,14 @@ import pandas as pd
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-
+from datetime import datetime, timedelta
 
 import DataCoherence
 import DefaultSettings
 import FaultDetection
 import OutlierDetection
 import PlottingTools
+import Dateaubase
 import Sensors
 import Smoother
 
@@ -27,7 +28,13 @@ import Smoother
 app = dash.Dash(__name__)
 app.config['suppress_callback_exceptions'] = True
 
-
+########################################################################
+# creating link to datEAUbase #
+########################################################################
+try:
+    cursor, conn = Dateaubase.create_connection()
+except Exception:
+    pass
 ########################################################################
 # Table Building helper function #
 ########################################################################
@@ -104,6 +111,14 @@ def small_graph(_id, title):
     return graph
 
 
+def get_options(df):
+    options = []
+    df.columns=['value']
+    for _, row in df.iterrows():
+        options.append({'label':row['value'], 'value':row['value']})
+    return options
+
+
 ########################################################################
 # APP LAYOUT #
 ########################################################################
@@ -118,6 +133,80 @@ app.layout = html.Div([
     dcc.Store(id='new-params-store'),
     html.H1(dcc.Markdown('dat*EAU* filtration'), id='header'),
     dcc.Tabs([
+        dcc.Tab(label='Data Extraction', value='extract',children=[
+            html.Br(),
+            dcc.Dropdown(
+                id='project-drop',
+                multi=False,
+                placeholder='Select a model*EAU* project.',
+            ),
+            html.Br(),
+            html.Div(
+                id='proj-layout-div',
+                style={'width': '100%', 'display': 'inline-block', 'verticalAlign': 'middle'}
+            ),
+            html.Br(),
+            dcc.Dropdown(
+                id='location-drop',
+                multi=False,
+                placeholder='Select a sensor location.',
+                options=[]
+            ),
+            html.Br(),
+            dcc.Dropdown(
+                id='equip-drop',
+                multi=False,
+                placeholder='Select a sensor.',
+                options=[]
+            ),
+            html.Br(),
+            
+            dcc.Dropdown(
+                id='parameter-drop',
+                multi=False,
+                placeholder='Select a water quality parameter.',
+                options=[],
+            ),
+            html.Br(),
+            dcc.Dropdown(
+                id='unit-drop',
+                multi=False,
+                placeholder='Select the desired units.',
+                options=[],
+            ),
+            html.Br(),
+            html.Hr(),
+            dcc.Dropdown(
+                id='extract-list',
+                multi=True,
+                placeholder='Selected data series will appear here',
+                options=[]
+            ),
+            dcc.DatePickerRange(
+                id='extract-dates',
+                start_date=datetime.now() - timedelta(days=7),
+                end_date=datetime.now(),
+                min_date_allowed=datetime(2016, 1, 1),
+                max_date_allowed=datetime.now(),
+                initial_visible_month = datetime.now()
+            ),
+            html.Div(style={'width': '10%', 'display': 'inline-block'}),
+            html.Button(
+                'Add to selection',
+                id='add-extract-button',
+                className='button-primary'
+            ),
+            html.Br(),
+            dcc.Graph(
+                id='extract-graph'
+            ),
+            html.Br(),
+            html.Button(
+                'Extract data',
+                id='extract-button',
+                className='button-primary',
+            )
+        ]),
         dcc.Tab(label='Data Import', value='import', children=[
             html.Div([
                 html.H3('Import data'),
@@ -396,7 +485,7 @@ app.layout = html.Div([
             html.Hr(),
         ]),
         dcc.Tab(label='Multivariate filter', value='multivar')
-    ], id="tabs", value='import'),
+    ], id="tabs", value='extract'),
     html.Div(id='output-data-upload', style={'display': 'none'}),
     html.Div(id='tabs-content'),
     html.Hr(),
@@ -494,6 +583,125 @@ def parse_parameter(parameter):
     else:
         return par
 
+
+########################################################################
+# EXTRACT TAB #
+########################################################################
+
+
+@app.callback(
+    Output('proj-layout-div', 'children'),
+    [Input('project-drop', 'value')])
+def show_layout(project):
+    if not project:
+        raise PreventUpdate
+    elif project == 'pilEAUte':
+        return [
+            html.H6(dcc.Markdown('Layout of the pil*EAU*te plant'), style={'textAlign': 'center'}),
+            html.Br(),
+            html.Img(
+                src=app.get_asset_url('layout_pileaute.png'),
+                style={'width': '800px', 'padding-left': '10%','padding-right': '10%' , 'textAlign': 'center'})
+        ]
+    else:
+        return html.H6(dcc.Markdown('*Layout unavailable*'),style={'textAlign': 'center'})
+
+@app.callback(
+    [Output('project-drop', 'options'),
+        Output('location-drop', 'options'),
+        Output('equip-drop', 'options'),
+        Output('parameter-drop', 'options'),
+        Output('unit-drop', 'options')],
+    [Input('tabs', 'value'),
+        Input('project-drop', 'value'),
+        Input('location-drop','value'),
+        Input('equip-drop', 'value'),
+        Input('parameter-drop','value')])
+def populate_extract_dropdowns(tab, project, location, equipment, parameter):
+    if tab != 'extract':
+        raise PreventUpdate
+    elif not project and not location and not equipment and not parameter:
+        projects = Dateaubase.get_projects(conn)
+        opt_proj = get_options(projects)
+        return [opt_proj, [], [], [], []]
+    elif project is not None and not location and not equipment  and not parameter:
+        projects = Dateaubase.get_projects(conn)
+        opt_proj = get_options(projects)
+
+        locations = Dateaubase.get_locations(conn, project)
+        opt_loc = get_options(locations)
+        return [opt_proj, opt_loc, [], [], []]
+
+    elif project is not None and location is not None and not equipment  and not parameter:
+        projects = Dateaubase.get_projects(conn)
+        opt_proj = get_options(projects)
+
+        locations = Dateaubase.get_locations(conn, project)
+        opt_loc = get_options(locations)
+
+        equipments = Dateaubase.get_equipment(conn, project, location)
+        opt_equ = get_options(equipments)
+        return [opt_proj, opt_loc, opt_equ, [], []]
+    elif project is not None and location is not None and equipment is not None and not parameter:
+        projects = Dateaubase.get_projects(conn)
+        opt_proj = get_options(projects)
+
+        locations = Dateaubase.get_locations(conn, project)
+        opt_loc = get_options(locations)
+
+        equipments = Dateaubase.get_equipment(conn, project, location)
+        opt_equ = get_options(equipments)
+
+        parameters = Dateaubase.get_parameters(conn, project, location, equipment)
+        opt_par = get_options(parameters)
+        return [opt_proj, opt_loc, opt_equ, opt_par, []]
+    elif project is not None and location is not None and equipment is not None and parameter is not None:
+        projects = Dateaubase.get_projects(conn)
+        opt_proj = get_options(projects)
+
+        locations = Dateaubase.get_locations(conn, project)
+        opt_loc = get_options(locations)
+
+        equipments = Dateaubase.get_equipment(conn, project, location)
+        opt_equ = get_options(equipments)
+
+        parameters = Dateaubase.get_parameters(conn, project, location, equipment)
+        opt_par = get_options(parameters)
+
+        units = Dateaubase.get_units(conn, project, location, equipment, parameter)
+        opt_uni = get_options(units)
+        return [opt_proj, opt_loc, opt_equ, opt_par, opt_uni]
+    else:
+        projects = Dateaubase.get_projects(conn)
+        opt_proj = get_options(projects)
+        return [opt_proj, [], [], [], []]
+
+
+@app.callback(
+    [Output('extract-list', 'options'),
+        Output('extract-list', 'value')],
+    [Input('add-extract-button', 'n_clicks')],
+    [State('project-drop', 'value'),
+        State('location-drop','value'),
+        State('equip-drop', 'value'),
+        State('parameter-drop', 'options'),
+        State('extract-dates', 'start_date'),
+        State('extract-dates', 'end_date'),
+        State('extract-list', 'options'),
+        State('extract-list', 'value')])
+def extract_data(click, project, location, equipment, parameter, unit, start, end, options, value):
+    if not click:
+        raise PreventUpdate
+    else:
+        if options is None:
+            options=[]
+        if value is None:
+            value=[]
+        else:
+            name = '-'.join([project, location, equipment, parameter, unit])
+            options.append({'label':'/'.join([equipment, parameter]), 'value':name})
+            value.append(name)
+            return [options, value]
 
 ########################################################################
 # IMPORT TAB #
