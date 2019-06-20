@@ -64,8 +64,8 @@ def DefaultParam(method='Online_EWMA'):
         # must be applied to a number of datapoints in the so-called warmup period
         # The period of the filter is defined by N in the equation:
         #           ALPHA = 1/(1+N)
-        # In theory, 86# of the warmup is done after N datapoints are filtered To
-        # get closer to 100#, the parameter N_Reset allows to use more than one
+        # In theory, 86% of the warmup is done after N datapoints are filtered To
+        # get closer to 100%, the parameter N_Reset allows to use more than one
         # period, thus more datapoints based on the calibrated parameter ALPHA
         # No value larger than 4 or 5 should be used, since no improvement can be
         # observed
@@ -120,14 +120,14 @@ def DefaultParam(method='Online_EWMA'):
     param['fault_detection_uni']['reading_interval'] = 5  # Value chose by RP Can be changed
 
     # This parameter allows to
-    param['fault_detection_uni']['affmobilerange'] = None
+    # param['fault_detection_uni']['affmobilerange'] = None NOT IMPLEMENTED
 
     # Definition of window for the mobilerange test of the fault detection
-    param['fault_detection_uni']['affmobilewindow'] = None
+    # param['fault_detection_uni']['affmobilewindow'] = None NOT IMPLEMENTED
 
     # This parameter allows to select the difference of y This one is
-    # differente about each sensor
-    param['fault_detection_uni']['affdy'] = None
+    # differente about each sensor 
+    # param['fault_detection_uni']['affdy'] = None NOT IMPLEMENTED
 
     # Definition of Range (Max and Min): These one will be decided by the
     # operator

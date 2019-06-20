@@ -38,24 +38,36 @@ def build_param_table(_id):
     table = dash_table.DataTable(
         id=_id,
         columns=[
-            {'name': 'Parameter', 'id': 'Parameter'},
-            {'name': 'Value', 'id': 'Value'},
-            {'name': '', 'id': 'blank'}
+            {'name': 'Parameter', 'id': 'Parameter', 'editable': False},
+            {'name': 'Value', 'id': 'Value', 'editable': True},
         ],
-        n_fixed_rows=1,
         style_table={
+            'width': '100%',
             'maxHeight': '300',
             'overflowY': 'scroll'
         },
+        style_data={'whiteSpace': 'normal'},
+        content_style='grow',
+        css=[{
+                'selector': 'td.cell--selected *, td.focused *',
+                'rule': 'text-align: center;'
+            },{
+                'selector': '.dash-cell div.dash-cell-value',
+                'rule': 'font-family: "Helvetica Neue"; display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit; font-size: 10px;'
+            },
+        ],
         style_cell_conditional=[
             {'if': {'column_id': 'Parameter'},
                 'minWidth': '50%', 'maxWidth': '50%', 'textAlign': 'left'},
             {'if': {'column_id': 'Value'},
-                'minWidth': '50%', 'maxWidth': '50%', 'textAlign': 'left'},
+                'minWidth': '50%', 'maxWidth': '50%', 'textAlign': 'center'},
         ],
         style_header={
             'backgroundColor': 'white',
-            'fontWeight': 'bold'
+            'fontWeight': 'bold',
+            'textAlign': 'center',
+            'fontFamily': 'Helvetica Neue',
+            'fontSize': '12px',
         },
         editable=True,
         style_as_list_view=True,
@@ -262,7 +274,7 @@ app.layout = html.Div([
                     html.Div(
                         id='uni-up-right',
                         children=[
-                            html.H6('Channel Parameters'),
+                            html.H6('Filter Parameters'),
                             dcc.Tabs(
                                 parent_className='custom-tabs',
                                 className='custom-tabs-container',
@@ -407,10 +419,9 @@ app.layout = html.Div([
                                 dcc.Graph(id='uni-treated-graph'),
                                 html.Br(),
                                 html.P(id='faults-stats'),
-                                html.Button(
-                                    className='button-primary',
-                                    id='extract-uni-button',
-                                    children='Extract treated data'
+                                html.A(
+                                    'Save treated univariate data.',
+                                    id='save-unvivar-link',
                                 ),
                             ],
                         )
@@ -474,13 +485,7 @@ app.layout = html.Div([
     html.Div(id='output-data-upload', style={'display': 'none'}),
     html.Div(id='tabs-content'),
     html.Hr(),
-    html.A(
-        'Save treated univariate data.',
-        id='save-unvivar-link',
-        download='treateddata.csv',
-        href='',
-        target="_blank"
-    ),
+    
 ], id='applayout')
 
 
@@ -572,6 +577,47 @@ def parse_parameter(parameter):
         return par
 
 
+def display_parameter_value(parameter):
+    if isinstance(parameter, int):
+        return '{:0.0f}'.format(parameter)
+    elif isinstance(parameter, float):
+        return '{:0.2f}'.format(parameter)
+    elif isinstance(parameter, bool):
+        if parameter:
+            return 'True'
+        else:
+            return 'False'
+    else:
+        return str(parameter)
+
+
+def display_parameter_name(parameter):
+    interchange = {
+        'method': 'Detection method',
+        'nb_s': 'Interval width (x * std.)',
+        'nb_reject': 'Max. streak of rejects before reinitialization.',
+        'nb_backward': 'Reinitialization position (Last rejected - x)',
+        'MAD_ini': 'Initial mean absolute deviation',
+        'min_MAD': 'Min. mean absolute deviation',
+        'N_reset': 'No. periods to use to restart filter (max 5)',
+        'lambda_z': 'Forgetting factor for data',
+        'lambda_MAD': 'Forgetting factor for confidence interval',
+        'h_smoother': 'Smoother window size',
+        'moving_window': 'Runs test window size',
+        'reading_interval': 'N. points for slope calc.',
+        'range_min': 'Min. sensor value',
+        'range_max': 'Max. sensor value',
+        'slope_min': 'Min. slope',
+        'slope_max': 'Max. slope',
+        'std_min': 'Min. standard dev.',
+        'std_max': 'Max. standard dev.',
+        'corr_min': 'Max. streak of neg. residuals',
+        'corr_max': 'Max. streak of pos. residuals',
+    }
+    if parameter in interchange:
+        return interchange[parameter]
+    else:
+        return parameter
 ########################################################################
 # IMPORT TAB #
 ########################################################################
@@ -1070,9 +1116,10 @@ def fill_params_table(channel_info, data):
         tables_data = []
         for table in ['outlier_detection', 'data_smoother', 'fault_detection_uni']:
             table_params = list(params[table].keys())
+            nice_param_names = [display_parameter_name(x) for x in table_params]
             table_params_values = list(params[table].values())
-            strings = [str(x) for x in table_params_values]
-            table_data = pd.DataFrame(data={'Parameter': table_params, 'Value': strings})
+            styled_params = [display_parameter_name(x) for x in table_params_values]
+            table_data = pd.DataFrame(data={'Parameter': nice_param_names, 'Value': styled_params})
             table_data = table_data.to_dict('records')
             tables_data.append(table_data)
         return tables_data
@@ -1297,6 +1344,11 @@ def send_to_multivar(click, channel_info, method, uni_data, multi_data):
 ########################################################################
 
 
+'''@app.callback(
+    Output('multivar-select-dropdown', 'options'),
+    Input('')
+)
+def '''
 ###########################################################################
 # SAVE DATA ###############################################################
 ###########################################################################
@@ -1325,7 +1377,7 @@ def update_link(data, channel_info, method):
 @app.server.route('/dash/urlToDownload')
 def download_json():
     value = flask.request.args.get('value')
-    # create a dynamic csv or file here using `StringIO`
+    # create a dynamic json or file here using `StringIO`
     # (instead of writing to the file system)
     str_io = io.StringIO()
     str_io.write(str(value))
