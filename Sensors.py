@@ -34,6 +34,7 @@ class Channel:
             'last-processed': 'raw',
             'current_filtration_method': 'Online_EWMA',
             'filtration_results': {},
+            'send_to_multivar': None
         }
         self.calib = None
         self.filtered = None

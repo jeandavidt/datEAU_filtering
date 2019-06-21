@@ -42,7 +42,7 @@ def TreatedD(channel):
 
     if 'raw' not in dat.columns:
         dat = dat.join(channel.raw_data['raw'], how='left')
-    
+
     dat['val_corr'] = dat['Q_corr'].between(corr_min, corr_max)
     dat['val_slope'] = dat['Q_slope'].between(slope_min, slope_max)
     dat['val_std'] = dat['Q_std'].between(std_min, std_max)
@@ -62,5 +62,5 @@ def TreatedD(channel):
     channel.info['filtration_results'][filtration_method] = {}
     channel.info['filtration_results'][filtration_method]['percent_outlier'] = n_outlier / n_dat * 100
     channel.info['filtration_results'][filtration_method]['percent_loss'] = (n_del) / n_dat * 100
-
+    channel.info['send_to_multivar'] = 'treated'
     return channel

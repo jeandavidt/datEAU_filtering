@@ -48,13 +48,10 @@ def build_param_table(_id):
         },
         style_data={'whiteSpace': 'normal'},
         content_style='grow',
-        css=[{
-                'selector': 'td.cell--selected *, td.focused *',
-                'rule': 'text-align: center;'
-            },{
-                'selector': '.dash-cell div.dash-cell-value',
-                'rule': 'font-family: "Helvetica Neue"; display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit; font-size: 10px;'
-            },
+        css=[
+            {'selector': 'td.cell--selected *, td.focused *', 'rule': 'text-align: center;'},
+            {'selector': '.dash-cell div.dash-cell-value',
+                'rule': 'font-family: "Helvetica Neue"; display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit; font-size: 10px;'},
         ],
         style_cell_conditional=[
             {'if': {'column_id': 'Parameter'},
@@ -129,6 +126,7 @@ app.layout = html.Div([
     dcc.Store(id='coherence-store'),
     dcc.Store(id='new-params-store'),
     dcc.Store(id='multivariate-store'),
+    dcc.Store(id='multivariate-calib'),
     html.Div(id='placeholder', style={'display': 'none'}),
     html.H1(dcc.Markdown('dat*EAU* filtration'), id='header'),
     dcc.Tabs([
@@ -429,7 +427,6 @@ app.layout = html.Div([
                 ]
             ),
             html.Hr(),
-            html.Button(id='send-to-multivar', children=['Send to multivariate']),
         ]),
         dcc.Tab(label='Multivariate filter', value='multivar', children=[
             html.Br(),
@@ -465,7 +462,7 @@ app.layout = html.Div([
                 html.Br(),
                 html.Hr(),
                 html.H6('Calibration period'),
-                dcc.DatePickerRange(id='multivar-select-range'),
+                dcc.DatePickerRange(id='multivar-calib-range'),
                 html.Br(),
                 html.Br(),
                 html.Button(
@@ -485,7 +482,7 @@ app.layout = html.Div([
     html.Div(id='output-data-upload', style={'display': 'none'}),
     html.Div(id='tabs-content'),
     html.Hr(),
-    
+
 ], id='applayout')
 
 
@@ -618,6 +615,25 @@ def display_parameter_name(parameter):
         return interchange[parameter]
     else:
         return parameter
+
+
+def regroup_multivar_data(data, data_ID):
+    df = None
+    for ids in data_ID:
+        column, project, location, equipment, parameter, unit = ids.split('-')
+        channel_props = '-'.join([project, location, equipment, parameter, unit])
+        channel = channel = get_channel(data, channel_props)
+        if column == 'raw':
+            selection = channel.raw_data['raw'].rename(ids)
+        elif 'filled' in column or 'resampled' in column or 'sorted' in column:
+            selection = channel.processed_data[column].rename(ids)
+        elif 'outliers' in column or 'Smoothed_AD' in column or 'treated' in column:
+            selection = channel.filtered[column].rename(ids)
+        if df is None:
+            df = pd.DataFrame(selection)
+        else:
+            df = df.join(selection, how='left')
+    return df
 ########################################################################
 # IMPORT TAB #
 ########################################################################
@@ -794,16 +810,17 @@ def create_sensors(original_data, modif_data):  # sensor_upload, sensor_filename
             return html.Div([
                 'There was an error processing this file.'
             ])'''
+        pass
     else:
         if not original_data:
             raise PreventUpdate
-        if modif_data == original_data:
-            raise PreventUpdate
-        if not modif_data:
+        elif not modif_data and original_data is not None:
             df = pd.read_json(original_data, orient='split')
             sensors = Sensors.parse_dataframe(df)
             serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
             return serialized
+        elif modif_data == original_data:
+            raise PreventUpdate
         else:
             return modif_data
 
@@ -1303,52 +1320,55 @@ def update_treated_uni_fig(data, series):
         return fig, msg
 
 
-@app.callback(
-    Output('multivariate-store', 'data'),
-    [Input('send-to-multivar', 'n_clicks')],
-    [State('select-series', 'value'),
-        State('select-method', 'value'),
-        State('sensors-store', 'data'),
-        State('multivariate-store', 'data')])
-def send_to_multivar(click, channel_info, method, uni_data, multi_data):
-    if not click:
-        raise PreventUpdate
-    else:
-        sensors, sensor_index, channel = get_sensors_and_channel(uni_data, channel_info)
-        if channel.filtered[method] is not None:
-            df = channel.filtered[method]
-            if 'treated' in df.columns and 'deleted' in df.columns and 'raw' in df.columns:
-                project = channel.project
-                location = channel.location
-                equipment = channel.equipment
-                parameter = channel.parameter
-                unit = channel.unit
-                name = '-'.join([project, location, equipment, parameter, unit])
-                currentdf = df[['raw', 'treated, deleted']]
-                currentdf.columns = [name + '-raw', name + '-treated', name + '-deleted']
-                if multi_data:
-                    multi_df = pd.read_json(multi_data, orient='split')
-                    currentdf = multi_df.join(currentdf, how='left')
-                else:
-                    pass
-                currentdf.to_json(date_format='iso', orient='split')
-                return currentdf
-            else:
-                raise PreventUpdate
-        else:
-            raise PreventUpdate
-
-
 ########################################################################
 # MULTIVARIATE TAB #
 ########################################################################
 
-
-'''@app.callback(
+@app.callback(
     Output('multivar-select-dropdown', 'options'),
-    Input('')
+    [Input('sensors-store', 'data')])
+def show_multivar_list(data):
+    if not data:
+        raise PreventUpdate
+    else:
+        sensors = json.loads(data, object_hook=Sensors.decode_object)
+        labels = []
+        ids = []
+        for sensor in sensors:
+            project = sensor.project
+            location = sensor.location
+            for channel in sensor.channels.values():
+                to_multi = channel.info['send_to_multivar']
+                equipment = channel.equipment
+                parameter = channel.parameter
+                unit = channel.unit
+                # for each channel we send the raw data and the latest treated data
+                labels.append('{}: {} ({})'.format('raw', parameter, unit))
+                ids.append('-'.join(['raw', project, location, equipment, parameter, unit]))
+                if to_multi is not None:
+                    labels.append('{}: {} ({})'.format(to_multi, parameter, unit))
+                    ids.append('-'.join([to_multi, project, location, equipment, parameter, unit]))
+        options = [{'label': labels[i], 'value':ids[i]} for i in range(len(ids))]
+        return options
+
+
+@app.callback(
+    Output('multivar-select-graph', 'figure'),
+    [Input('sensors-store', 'data'),
+        Input('multivar-select-dropdown', 'value')],
 )
-def '''
+def draw_multivar_data(data, value):
+    if not data or not value:  # or not value:
+        raise PreventUpdate
+    else:
+        df = regroup_multivar_data(data, value)
+        figure = PlottingTools.ini_multivar_plotly(df)
+        return figure
+
+''',
+        Input('multivariate-calib-range', 'end_date')],
+    [State('multivariate-calib-range', 'start_date')]'''
+
 ###########################################################################
 # SAVE DATA ###############################################################
 ###########################################################################

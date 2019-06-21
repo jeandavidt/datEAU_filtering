@@ -65,4 +65,5 @@ def kernel_smoother(channel):
     df['Smoothed_AD'] = SmoothedAD
     df['err'] = err
     channel.filtered[method] = df
+    channel.info['send_to_multivar'] = 'Smoothed_AD'
     return channel

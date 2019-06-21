@@ -29,7 +29,7 @@ def outlier_detection(channel):
         channel.filtered['Online_EWMA'], channel.params = Outlier_Detection_online(data, calibperiod, params)
     else:
         raise Exception('Outlier detection: unknown method')
-
+    channel.info['send_to_multivar'] = 'outliers'
     return channel
 
 def Outlier_Detection_online(data, calibperiod, params):
@@ -65,5 +65,4 @@ def Outlier_Detection_online(data, calibperiod, params):
 
     # #######################Find the outliers#################################
     newdata = Outlier_Detection_Online_EWMA(data, params)
-
     return newdata, params

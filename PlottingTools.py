@@ -608,3 +608,83 @@ def show_pca_mpl(df, limits, svd, model):
     ax.legend(['complete', 'calibration', 'limit {}'.format(limits['alpha'])])
     plt.gca().set_aspect('equal')
     plt.show()
+
+def ini_multivar_plotly(df, start=None, end=None):
+    import pandas as pd
+    import plotly
+    import plotly.graph_objs as go
+    from itertools import cycle
+
+    traces = []
+    axes = []
+    colors = []
+    color_palette = [
+        'rgb(31, 119, 180)',    # blue
+        'rgb(255, 127, 14)',    # orange
+        'rgb(44, 160, 44)',    # green
+        'rgb(214, 39, 40)',     # red
+        'rgb(148, 103, 189)',   # purple
+        'rgb(140, 86, 75)',     # taupe
+        'rgb(227, 119, 194)',   # pink
+        'rgb(127, 127, 127)',   # middle grey
+        'rgb(188, 189, 34)',    # greenish yellow
+        'rgb(23, 190, 207)',    # azure
+    ]
+    color_cycle = cycle(color_palette)
+    dash_styles = ['solid', 'dash', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot']
+    dash_cycle = cycle(dash_styles)
+    for column in df.columns:
+        series, project, location, equipment, parameter, unit = column.split('-')
+        name = '{} ({})'.format(parameter, unit)
+        if name not in axes:
+            axes.append(name)
+            del dash_cycle
+            dash_cycle = cycle(dash_styles)
+        else:
+            pass
+        trace = go.Scattergl(
+            x=df[column].index,
+            y=df[column],
+            yaxis='y{}'.format(axes.index(name)+1),
+            name='{}: {}-{} ({})'.format(series, equipment, parameter, unit),
+            mode='lines',
+            line=dict(
+                dash=next(dash_cycle)
+            ),
+        )
+        traces.append(trace)
+    n_axes = len(axes)
+    layout_axes = []
+    ax_pos = 0
+    for i in range(n_axes):
+        color = next(color_cycle)
+        '''anchor='free',
+        overlaying='y',
+        side='left',
+        position=0.15'''
+        ax_pos = i * 0.10
+        layout_axes.append({
+            'yaxis{}'.format(i + 1): dict(
+                title=axes[i],
+                titlefont=dict(
+                    color=color
+                ),
+                tickfont=dict(
+                    color=color
+                ),
+                anchor='free',
+                side='left',
+                position=ax_pos
+            )
+        })
+    layout = {
+        'title': 'Multivariate data preparation',
+        'xaxis': {
+            'domain': [0.10 * (n_axes - 1), 1]
+        }
+    }
+    for ax in layout_axes:
+        layout = {**layout, **ax}
+
+    figure = go.Figure(layout=layout, data=traces)
+    return figure

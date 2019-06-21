@@ -119,6 +119,7 @@ def sort_dat(channel):
         channel.processed_data['sorted'] = sorted_data
 
     channel.info['last-processed'] = 'sorted'
+    channel.info['send_to_multivar'] = 'sorted'
     return channel
 
 def resample(channel, timestep):
@@ -133,6 +134,7 @@ def resample(channel, timestep):
 
     channel.processed_data = resampled
     channel.info['last-processed'] = 'resampled'
+    channel.info['send_to_multivar'] = 'resampled'
     return channel
 
 def fillna(channel):
@@ -149,4 +151,5 @@ def fillna(channel):
     else:
         channel.processed_data['filled'] = filled
     channel.info['last-processed'] = 'filled'
+    channel.info['send_to_multivar'] = 'filled'
     return channel
