@@ -656,8 +656,8 @@ def show_pca_mpl(df, limits, svd, model):
     )
     # ### drawing the ellipse
 
-    ellipse_a = np.sqrt(limits['t2']) * model['t_hat_stdev'][0]
-    ellipse_b = np.sqrt(limits['t2']) * model['t_hat_stdev'][1]
+    ellipse_a = np.sqrt(limits['T2']) * model['t_hat_stdev'][0]
+    ellipse_b = np.sqrt(limits['T2']) * model['t_hat_stdev'][1]
     t = np.linspace(0, 2 * np.pi, 100)
 
     ax.plot(ellipse_a * np.cos(t), ellipse_b * np.sin(t), c=next(color))
@@ -747,7 +747,7 @@ def ini_multivar_plotly(df, start=None, end=None):
     for ax in layout_axes:
         layout = {**layout, **ax}
     if start is not None and end is not None:
-        calib_shape ={
+        calib_shape = {
             'type': 'rect',
             'xref': 'x',
             'yref': 'paper',

@@ -439,7 +439,6 @@ app.layout = html.Div([
             html.Div(id='multivar-top-left', children=[
                 dcc.Graph(id='multivar-select-graph'),
             ], style={'width': '70%', 'display': 'inline-block', 'float': 'left'}),
-            
             html.Div(id='multivar-top-right', children=[
                 html.Br(),
                 html.H6('Parameters'),
