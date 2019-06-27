@@ -437,8 +437,9 @@ app.layout = html.Div([
                 options=[]
             ),
             html.Div(id='multivar-top-left', children=[
-                dcc.Graph(id='multivar-select-graph')
+                dcc.Graph(id='multivar-select-graph'),
             ], style={'width': '70%', 'display': 'inline-block', 'float': 'left'}),
+            
             html.Div(id='multivar-top-right', children=[
                 html.Br(),
                 html.H6('Parameters'),
@@ -623,12 +624,13 @@ def regroup_multivar_data(data, data_ID):
         column, project, location, equipment, parameter, unit = ids.split('-')
         channel_props = '-'.join([project, location, equipment, parameter, unit])
         channel = channel = get_channel(data, channel_props)
+        method = channel.info['current_filtration_method']
         if column == 'raw':
             selection = channel.raw_data['raw'].rename(ids)
         elif 'filled' in column or 'resampled' in column or 'sorted' in column:
             selection = channel.processed_data[column].rename(ids)
         elif 'outliers' in column or 'Smoothed_AD' in column or 'treated' in column:
-            selection = channel.filtered[column].rename(ids)
+            selection = channel.filtered[method][column].rename(ids)
         if df is None:
             df = pd.DataFrame(selection)
         else:
@@ -1355,19 +1357,61 @@ def show_multivar_list(data):
 @app.callback(
     Output('multivar-select-graph', 'figure'),
     [Input('sensors-store', 'data'),
-        Input('multivar-select-dropdown', 'value')],
+        Input('multivar-select-dropdown', 'value'),
+        Input('multivariate-calib', 'data')],
 )
-def draw_multivar_data(data, value):
+def draw_multivar_data(data, value, calib):
     if not data or not value:  # or not value:
         raise PreventUpdate
     else:
         df = regroup_multivar_data(data, value)
-        figure = PlottingTools.ini_multivar_plotly(df)
+        if calib is None:
+            start = None
+            end = None
+        else:
+            start = calib['start']
+            end = calib['end']
+        figure = PlottingTools.ini_multivar_plotly(df, start=start, end=end)
+        figure.update(dict(layout=dict(clickmode='event+select')))
         return figure
 
-''',
-        Input('multivariate-calib-range', 'end_date')],
-    [State('multivariate-calib-range', 'start_date')]'''
+
+@app.callback(
+    [Output('multivar-calib-range', 'start_date'),
+        Output('multivar-calib-range', 'end_date')],
+    [Input('multivar-select-graph', 'selectedData')])
+def multivar_fit_range(selection):
+    if selection is None:
+        raise PreventUpdate
+    else:
+        try:
+            start = selection['range']['x'][0]
+            end = selection['range']['x'][1]
+        except KeyError:
+            raise PreventUpdate
+        return [start, end]
+
+
+@app.callback(
+    Output('multivariate-calib', 'data'),
+    [Input('multivar-calib-range', 'end_date'),
+        Input('multivar-calib-range', 'start_date')],
+    [State('multivariate-calib', 'data')])
+def update_calib_store(end_field, start_field, current_data):
+    if not end_field or not start_field:
+        raise PreventUpdate
+    else:
+        start = start_field
+        end = end_field
+        if current_data is None:
+            data = {'start': start, 'end': end}
+            return data
+        elif current_data['start'] == start and current_data['end'] == end:
+            raise PreventUpdate
+        else:
+            data = {'start': start, 'end': end}
+            return data
+
 
 ###########################################################################
 # SAVE DATA ###############################################################
