@@ -968,3 +968,72 @@ def show_multi_output_plotly(data):
             layout = {**layout, **ax}
         figure = go.Figure(layout=layout, data=traces)
         return figure
+def extract_plotly(df):
+    traces = []
+    axes = []
+    colors = []
+    color_cycle = cycle(COLOR_PALETTE)
+    dash_styles = ['solid', 'dash', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot']
+    dash_cycle = cycle(dash_styles)
+
+    for column in df.columns:
+        project, location, equipment, parameter, unit = column.split('-')
+        name = '{} ({})'.format(parameter, unit)
+        if name not in axes:
+            axes.append(name)
+            del dash_cycle
+            dash_cycle = cycle(dash_styles)
+        else:
+            pass
+        trace = go.Scattergl(
+            x=df.index,
+            y=df[column],
+            yaxis='y{}'.format(axes.index(name) + 1),
+            name='{}-{} ({})'.format(equipment, parameter, unit),
+            mode='lines+markers',
+            line=dict(
+                dash=next(dash_cycle)
+            ),
+            marker=dict(
+                opacity=0
+            ),
+        )
+        traces.append(trace)
+
+    n_axes = len(axes)
+    layout_axes = []
+    ax_pos = 0
+    for i in range(n_axes):
+        color = next(color_cycle)
+        '''anchor='free',
+        overlaying='y',
+        side='left',
+        position=0.15'''
+        ax_pos = i * 0.075
+        layout_axes.append({
+            'yaxis{}'.format(i + 1): dict(
+                title=axes[i],
+                titlefont=dict(
+                    color=color
+                ),
+                tickfont=dict(
+                    color=color
+                ),
+                anchor='free',
+                side='left',
+                position=ax_pos
+            )
+        })
+    layout = {
+        'title': 'Data to extract data',
+        'xaxis': {
+            'domain': [0.075 * (n_axes - 1), 1],
+            'title': 'Date and time'
+        }
+    }
+    for ax in layout_axes:
+        layout = {**layout, **ax}
+
+    figure = go.Figure(data=traces, layout=layout)
+    
+    return figure
