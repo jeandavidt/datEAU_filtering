@@ -49,13 +49,13 @@ def lambda_determination(data, param):
     # method (i.e. optimal lambda_z not between 0 and 1).
 
     lambda_0 = np.array([1])
-    bnds_lambda = Bounds(0.01, 1)
+    bnds_lambda = Bounds(0.001, 1)
 
-    result = minimize(objFun_alpha_z, lambda_0, db, bounds=bnds_lambda)
+    result = minimize(objFun_alpha_z, lambda_0, db, method='Nelder-Mead')
     log_lambda_z = result.x[0]
     # put error handling code here in case the optimization fails
     lambda_z = np.exp(-(log_lambda_z**2))
-    result = minimize(objFun_alpha_MAD, lambda_0, args=(lambda_z, db), bounds=bnds_lambda)
+    result = minimize(objFun_alpha_MAD, lambda_0, args=(lambda_z, db), method='Nelder-Mead')
     log_lambda_MAD = result.x[0]
     # put error handling code here in case the optimization fails
     lambda_MAD = np.exp(-(log_lambda_MAD**2))

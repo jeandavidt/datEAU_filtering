@@ -8,3 +8,7 @@ orig.json
 
 .vscode/settings.json
 login.txt
+*.pyo
+*.pyc
+clip.py
+*/__pycache__
