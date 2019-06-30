@@ -126,12 +126,8 @@ def small_graph(_id, title):
 ########################################################################
 
 
-<<<<<<< HEAD
 app.layout = html.Div([
     dcc.Store(id='sql-store'),
-=======
-app.layout = html.Div(id='applayout', children=[
->>>>>>> ab9ffce94fdb5a3cccf13aa857d2932968cc05b6
     dcc.Store(id='session-store'),
     dcc.Store(id='sensors-store'),
     dcc.Store(id='modif-store'),
