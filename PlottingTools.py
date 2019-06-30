@@ -1,3 +1,20 @@
+from itertools import cycle
+import plotly
+import pandas as pd
+import numpy as np
+import plotly.graph_objs as go
+COLOR_PALETTE = [
+    'rgb(31, 119, 180)',    # blue
+    'rgb(255, 127, 14)',    # orange
+    'rgb(44, 160, 44)',    # green
+    'rgb(214, 39, 40)',     # red
+    'rgb(148, 103, 189)',   # purple
+    'rgb(140, 86, 75)',     # taupe
+    'rgb(227, 119, 194)',   # pink
+    'rgb(127, 127, 127)',   # middle grey
+    'rgb(188, 189, 34)',    # greenish yellow
+    'rgb(23, 190, 207)']    # azure
+
 def plotRaw_D_mpl(df):
     import pandas as pd
     import numpy as np
@@ -524,18 +541,71 @@ def show_pca_mpl(df, limits, svd, model):
     plt.show()
 
 def extract_plotly(df):
-    import plotly
-    import plotly.graph_objs as go
     traces = []
+    axes = []
+    colors = []
+    color_cycle = cycle(COLOR_PALETTE)
+    dash_styles = ['solid', 'dash', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot']
+    dash_cycle = cycle(dash_styles)
+
     for column in df.columns:
         project, location, equipment, parameter, unit = column.split('-')
+        name = '{} ({})'.format(parameter, unit)
+        if name not in axes:
+            axes.append(name)
+            del dash_cycle
+            dash_cycle = cycle(dash_styles)
+        else:
+            pass
         trace = go.Scattergl(
             x=df.index,
             y=df[column],
-            name="{}, {}({})".format(equipment, parameter, unit),
-            mode='lines',
+            yaxis='y{}'.format(axes.index(name) + 1),
+            name='{}-{} ({})'.format(equipment, parameter, unit),
+            mode='lines+markers',
+            line=dict(
+                dash=next(dash_cycle)
+            ),
+            marker=dict(
+                opacity=0
+            ),
         )
         traces.append(trace)
-    layout = go.Layout(title='Data to extract',)
+
+    n_axes = len(axes)
+    layout_axes = []
+    ax_pos = 0
+    for i in range(n_axes):
+        color = next(color_cycle)
+        '''anchor='free',
+        overlaying='y',
+        side='left',
+        position=0.15'''
+        ax_pos = i * 0.075
+        layout_axes.append({
+            'yaxis{}'.format(i + 1): dict(
+                title=axes[i],
+                titlefont=dict(
+                    color=color
+                ),
+                tickfont=dict(
+                    color=color
+                ),
+                anchor='free',
+                side='left',
+                position=ax_pos
+            )
+        })
+    layout = {
+        'title': 'Data to extract data',
+        'xaxis': {
+            'domain': [0.075 * (n_axes - 1), 1],
+            'title': 'Date and time'
+        }
+    }
+    for ax in layout_axes:
+        layout = {**layout, **ax}
+
     figure = go.Figure(data=traces, layout=layout)
+    
     return figure

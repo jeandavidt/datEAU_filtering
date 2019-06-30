@@ -175,6 +175,11 @@ app.layout = html.Div([
                 options=[],
             ),
             html.Br(),
+            html.Button(
+                'Add to selection',
+                id='add-extract-button',
+            ),
+            html.Br(),
             html.Hr(),
             dcc.Dropdown(
                 id='extract-list',
@@ -192,13 +197,9 @@ app.layout = html.Div([
             ),
             html.Div(style={'width': '10%', 'display': 'inline-block'}),
             html.Button(
-                'Add to selection',
-                id='add-extract-button',
-            ),
-            html.Button(
-                'Graph preview',
-                id='graph-preview-button',
-                className='button-primary'
+                'Extract data',
+                id='extract-button',
+                className='button-primary',
             ),
             html.Br(),
             dcc.Graph(
@@ -206,9 +207,15 @@ app.layout = html.Div([
             ),
             html.Br(),
             html.Button(
-                'Extract data',
-                id='extract-button',
-                className='button-primary',
+                'Use for analysis',
+                id='send-extract-to-analysis-button'
+            ),
+            html.Button(
+                html.A(
+                    'Download raw data',
+                    id='download-raw-link'
+                ),
+                id='download-raw-button'
             )
         ]),
         dcc.Tab(label='Data Import', value='import', children=[
@@ -701,48 +708,56 @@ def populate_extract_list(click, project, location, equipment, parameter, unit, 
         if options is None and value is None:
             return [[],[]]
         elif options is not None and value is None:
-            name = '-'.join([project, location, equipment, parameter, unit])
-            options.append({'label':'/'.join([equipment, parameter]), 'value':name})
-            value=[]
+            name = '*'.join([project, location, equipment, parameter, unit])
+            options.append({'label':' '.join([equipment, parameter]), 'value':name})
+            value=[name]
             return [options, value]
         elif options is None and value is not None:
             options = []
             value = []
             return [[], []]
         else:
-            name = '-'.join([project, location, equipment, parameter, unit])
-            options.append({'label':'/'.join([equipment, parameter]), 'value':name})
+            name = '*'.join([project, location, equipment, parameter, unit])
+            options.append({'label':' '.join([equipment, parameter]), 'value':name})
             value.append(name)
             return [options, value]
 
-'''@app.callback(
+@app.callback(
+    Output('extract-graph', 'figure'),
+    [Input('sql-store', 'data')]
+)
+def graph_extracted(data):
+    if not data:
+        raise PreventUpdate
+    else:
+        df = pd.read_json(data, orient='split')
+        figure = PlottingTools.extract_plotly(df)
+        return figure
+
+@app.callback(
     Output('sql-store', 'data'),
-    [Input('add-extract-button', 'n_clicks')],
+    [Input('extract-button', 'n_clicks')],
     [State('extract-dates', 'start_date'),
         State('extract-dates', 'end_date'),
-        State('extract-list', 'value'),
-        State('sql-store', 'data')])
-def store_sql(click, start, end, extract, current_data):
+        State('extract-list', 'value')])
+def store_sql(click, start, end, extract):
     if not click or not start or not end or not extract:
         raise PreventUpdate
     else:
         extract_list={}
         for i in range(len(extract)):
             print(extract[i])
-            project, location, equipment, parameter, _ = extract[i].split('-')
+            project, location, equipment, parameter, _ = extract[i].split('*')
             extract_list[i] = {
-                'Start':start,
-                'End':end,
+                'Start':Dateaubase.date_to_epoch(start),
+                'End':Dateaubase.date_to_epoch(end),
                 'Project':project,
                 'Location':location,
                 'Parameter':parameter,
                 'Equipment':equipment
             }
         df = Dateaubase.extract_data(conn, extract_list)
-        if not current_data:
-            return df.to_json(date_format='iso', orient='split')
-        else:
-            current_df = '''
+        return df.to_json(date_format='iso', orient='split')
 
 
 ########################################################################
@@ -854,18 +869,24 @@ def check_if_ready_to_save(series):
         State('import-dates', 'start_date'),
         State('import-dates', 'end_date')]
 )
-def store_raw(click, data, series, start, end):
-    if not click:
+def store_raw(click_import, data, series, start, end, sql_dat):
+    if not click_import:
         raise PreventUpdate
-    start = pd.to_datetime(start)
-    end = pd.to_datetime(end)
-    df = pd.read_json(data, orient='split')
-    df.index = pd.to_datetime(df.index)
-    if not start:
-        filtered = df
-    filtered = df.loc[start:end, series]
-    to_save = filtered.to_json(date_format='iso', orient='split')
-    return to_save
+    ctx = dash.callback_context
+    trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if trigger == 'save-button':
+        start = pd.to_datetime(start)
+        end = pd.to_datetime(end)
+        df = pd.read_json(data, orient='split')
+        df.index = pd.to_datetime(df.index)
+        if not start:
+            filtered = df
+        filtered = df.loc[start:end, series]
+        to_save = filtered.to_json(date_format='iso', orient='split')
+        return to_save
+    elif trigger == 'send-extract-to-analysis-button':
+        return sql_dat
 
 
 ########################################################################
@@ -902,41 +923,31 @@ def show_univar_list(data):
 @app.callback(
     Output('sensors-store', 'data'),
     [Input('session-store', 'data'),
-        #Input('upload-sensor-data', 'contents'),
-        Input('modif-store', 'data')])
+        Input('modif-store', 'data'),
+        Input('sql-store', 'data')])
     #[State('upload-sensor-data', 'filename')])
-def create_sensors(original_data, modif_data):  # sensor_upload, sensor_filename
+def create_sensors(original_data, modif_data, sql_data):  # sensor_upload, sensor_filename
     ctx = dash.callback_context
     trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-    if trigger == 'upload-sensor-data':
-        '''_, content_string = sensor_upload.split(',')
-        decoded = base64.b64decode(content_string)
-        try:
-            if 'json' in sensor_filename:
-                # Assume that the user uploaded a JSON file
-                sensors = json.load(io.BytesIO(decoded), object_hook=Sensors.decode_object)
-                serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
-                return serialized
-        except Exception as e:
-            print(e)
-            return html.Div([
-                'There was an error processing this file.'
-            ])'''
-    else:
-        print('else is triggered too')
+    if trigger == 'session-store':
         if not original_data:
             raise PreventUpdate
-        if modif_data == original_data:
+        elif modif_data == original_data:
             raise PreventUpdate
-        if not modif_data:
+        elif not modif_data:
             df = pd.read_json(original_data, orient='split')
             sensors = Sensors.parse_dataframe(df)
             serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
             return serialized
         else:
             return modif_data
+    elif trigger == 'sql-store':
+        df = pd.read_json(sql_data, orient='split')
+        sensors = Sensors.parse_dataframe(df)
+        serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
+        return serialized
 
-
+        
 @app.callback(
     Output('modif-store', 'data'),
     [Input('fillna-button', 'n_clicks'),

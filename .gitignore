@@ -9,3 +9,4 @@ orig.json
 .vscode/settings.json
 login.txt
 clip.py
+*/__pycache__

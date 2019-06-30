@@ -149,10 +149,15 @@ order by dbo.value.Value_ID;
 '''.format(start, end, location, parameter,equipment, project)
 
 def clean_up_pulled_data(df,project, location, equipment, parameter):
+    
+
     df['datetime'] = [epoch_to_pandas_datetime(x) for x in df.Timestamp]
     df.sort_values('datetime',axis=0, inplace=True)
     parameter = parameter.replace('-','_')
-    Unit = df.Unit[0]
+    if len(df) == 0:
+        Unit = 'None'
+    else:
+        Unit = df.Unit[0]
     df.drop(['Timestamp','Project_name','par','Unit','equipment','Sampling_location'],axis=1, inplace=True)
     df.rename(columns={
         'measurement':'{}-{}-{}-{}-{}'.format(project, location, equipment, parameter, Unit),
@@ -171,7 +176,6 @@ def extract_data(connexion, extract_list):
                                extract_list[i]['Equipment'],
                                extract_list[i]['Parameter'])
         if i==0:
-            print('first extract')
             df = pd.read_sql(query, connexion)
             clean_up_pulled_data(df,
                                  extract_list[i]['Project'],
@@ -179,7 +183,6 @@ def extract_data(connexion, extract_list):
                                  extract_list[i]['Equipment'],
                                  extract_list[i]['Parameter'])
         else:
-            print('next extract')
             temp_df = pd.read_sql(query, connexion)
             clean_up_pulled_data(temp_df,
                                  extract_list[i]['Project'],
@@ -205,7 +208,7 @@ def plot_pulled_data(df):
     plt.xticks(rotation=45)
     
     plt.show()
-
+'''
 cursor, conn = create_connection()
 Start = date_to_epoch('2017-09-01 12:00:00')
 End = date_to_epoch('2017-10-01 12:00:00')
@@ -228,9 +231,4 @@ for i in range(len(param_list)):
 print('ready to extract')
 df = extract_data(conn, extract_list)
 print(len(df))
-print('plotting')
-plot_pulled_data(df)
-
-name = 'influent3'
-path = r"C:\Users\Jean-David Therrien\Desktop\\"
-df.to_csv(path+name+'.csv',sep=';') 
+ '''

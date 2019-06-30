@@ -16,8 +16,8 @@ def backtodateaubase(input_df, param,sampling_point):
     return df
 
 
-params_list = ['CODf','COD','NH4_N','K']
-sampling_point = 'Primary settling tank effluent'
+'''params_list = ['CODf','COD','NH4_N','K']
+sampling_point = 'Primary settling tank effluent''''
 def stackparams(df_input, params_list, sampling_point):
     df_list = []
     for param in params_list:
@@ -25,7 +25,7 @@ def stackparams(df_input, params_list, sampling_point):
     df = pd.concat(df_list, ignore_index=True)
     return df
 
-test2 = stackparams(raw_data,params_list,sampling_point)
+'''test2 = stackparams(raw_data,params_list,sampling_point)
 print(len(test2))
 test2.set_index('Date and Time', drop=True, inplace=True)
-test2.to_csv('unfiltered_data.csv',sep=';')
+test2.to_csv('unfiltered_data.csv',sep=';')'''
