@@ -10,6 +10,7 @@ import dash_html_components as html
 import dash_table
 import flask
 import pandas as pd
+import numpy as np
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -22,6 +23,7 @@ import PlottingTools
 import Sensors
 import Smoother
 import TreatedData
+import Multivariate
 
 # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -51,7 +53,12 @@ def build_param_table(_id):
         css=[
             {'selector': 'td.cell--selected *, td.focused *', 'rule': 'text-align: center;'},
             {'selector': '.dash-cell div.dash-cell-value',
-                'rule': 'font-family: "Helvetica Neue"; display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit; font-size: 10px;'},
+                'rule': '''font-family: "Helvetica Neue";
+                    display: inline;
+                    white-space: inherit;
+                    overflow: inherit;
+                    text-overflow: inherit;
+                    font-size: 10px;'''},
         ],
         style_cell_conditional=[
             {'if': {'column_id': 'Parameter'},
@@ -119,371 +126,458 @@ def small_graph(_id, title):
 ########################################################################
 
 
-app.layout = html.Div([
+app.layout = html.Div(id='applayout', children=[
     dcc.Store(id='session-store'),
     dcc.Store(id='sensors-store'),
     dcc.Store(id='modif-store'),
     dcc.Store(id='coherence-store'),
     dcc.Store(id='new-params-store'),
-    dcc.Store(id='multivariate-store'),
+    dcc.Store(id='multivariate-data-store'),
+    dcc.Store(id='multivariate-limits-store'),
     dcc.Store(id='multivariate-calib'),
+    dcc.Store(id='multivariate-contrib'),
     html.Div(id='placeholder', style={'display': 'none'}),
+    html.Div(id='output-data-upload', style={'display': 'none'}),
     html.H1(dcc.Markdown('dat*EAU* filtration'), id='header'),
-    dcc.Tabs([
-        dcc.Tab(label='Data Import', value='import', children=[
-            html.Div([
-                html.H3('Import data'),
-                html.Div([
-                    dcc.Upload(
-                        id='upload-data',
-                        children=html.Button(
-                            'Upload Raw Data',
-                            id='upload-button',
-                            className='button-primary'
-                        )
-                    ),
-                    html.Button(
-                        id='select-all-series-import',
-                        children=['Select all series']
-                    ),
-                ], style={'width': '40%', 'columnCount': 2}),
-                html.H6(id='import-message'),
-                html.Div(id='upload-graph-location'),
-                html.Div('Use the Box Select tool to choose a range of dates to analyze.'),
-                html.Br(),
-                dcc.DatePickerRange(id='import-dates'),
-                html.Br(),
-                html.Br(),
-                html.Div(id='upload-dropdown'),
-                html.Div(id="button-location")
-            ], id='tab1_content')
-        ]),
-        dcc.Tab(label='Univariate filter', value='univar', children=[
-            html.Div([
-                html.H3('Univariate fault detection'),
-                'Pick a series to anlayze.',
-                html.Br(),
-                # dcc.Upload(
-                #    id='upload-sensor-data',
-                #    children=html.Button(
-                #        'Upload Processed Data',
-                #        id='upload-sensor-button',
-                #    )
-                # ),
-                html.Br(),
-                dcc.Dropdown(
-                    id='select-series',
-                    multi=False,
-                    placeholder='Pick a series to analyze here.',
-                    options=[]),
-                html.Br(),
-                'Pick an outlier detection method.',
-                html.Br(),
-                dcc.Dropdown(
-                    id='select-method',
-                    multi=False,
-                    placeholder='Pick a method to detect outliers.',
-                    options=[{'label': 'Online EWMA', 'value': 'Online_EWMA'}]),
-                html.Br()]),
-            html.Div(
-                id='uni-up',
-                children=[
-                    html.Div(
-                        id='uni-up-left',
-                        children=[
-                            html.Button(id='check-coherence', children='Check data coherence'),
-                            html.Div(
-                                id='faults',
-                                children=[
-                                    html.Table([
-                                        html.Tr([
-                                            html.Th('Status'),
-                                            html.Th('Message')
-                                        ]),
-                                        html.Tr([
-                                            html.Td(id='err0-status'),
-                                            html.Td(id='err0-msg', children=[])
-                                        ]),
-                                        html.Tr([
-                                            html.Td(id='err1-status'),
-                                            html.Td(id='err1-msg', children=[])
-                                        ]),
-                                        html.Tr([
-                                            html.Td(id='err2-status'),
-                                            html.Td(id='err2-msg', children=[])
-                                        ], style={'line-height': '24px'}),
-                                        html.Tr([
-                                            html.Td(id='err3-status'),
-                                            html.Td(id='err3-msg', children=[])
-                                        ]),
-                                        html.Tr([
-                                            html.Td(id='err4-status'),
-                                            html.Td(id='err4-msg', children=[])
-                                        ])
-                                    ], style={
-                                        'font-size': '9px',
-                                        'font-weight': '200',
-                                        'line-height': '12px'
-                                    }),
-                                    html.Button(id='sort-button', children=['Sort indices']),
-                                    html.Br(),
-                                    html.Br(),
-                                    html.Button(id='resample-button', children=['Resample'], style={'width': '35%'}),
-                                    dcc.Input(
-                                        id='sample-freq',
-                                        placeholder='frequency (min)',
-                                        type='number',
-                                        value=2,
-                                        min=0.01,
-                                        step=1,
-                                        style={'width': '35%'}
-                                    ),
-                                    '    min.',
-                                    html.Br(),
-                                    html.Br(),
-                                    html.Button(id='fillna-button', children=['Fill blank rows']),
-                                    html.Br(),
-                                    html.Br(),
-                                    html.Button(className='button-alert', id='reset-button', children=['Reset to raw']),
-                                ],
-                            ),
-                        ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}),
-                    html.Div(
-                        id='uni-up-center',
-                        children=[
-                            dcc.Graph(id='initial_uni_graph'),
-                            html.P([
-                                'Use the Box Select tool to',
-                                ' choose a range of data with which to',
-                                ' fit the outlier detection model.'
-                            ]),
-                            html.Br(),
-                            dcc.DatePickerRange(id='fit-range'),
-                            html.Button(
-                                className='button-primary',
-                                id='fit-button',
-                                children='Fit outlier filter'),
-                            html.Button(
-                                className='button-alert',
-                                id='reset-proc-button',
-                                children=['Reset to processed']),
-                        ], style={'width': '55%', 'display': 'inline-block'}
-                    ),
-                    html.Div(
-                        id='uni-up-right',
-                        children=[
-                            html.H6('Filter Parameters'),
-                            dcc.Tabs(
-                                parent_className='custom-tabs',
-                                className='custom-tabs-container',
-                                children=[
-                                    dcc.Tab(
-                                        className='custom-tab',
-                                        selected_className='custom-tab--selected',
-                                        id='outlier-param-tab',
-                                        label='Outliers',
-                                        children=[
-                                            build_param_table('outlier-param-table')
-                                        ]
-                                    ),
-                                    dcc.Tab(
-                                        className='custom-tab',
-                                        selected_className='custom-tab--selected',
-                                        id='data_smoother-param-tab',
-                                        label='Smoother',
-                                        children=[
-                                            build_param_table('data_smoother-param-table')
-                                        ]
-                                    ),
-                                    dcc.Tab(
-                                        className='custom-tab',
-                                        selected_className='custom-tab--selected',
-                                        id='fault_detection_uni-param-tab',
-                                        label='Faults',
-                                        children=[
-                                            build_param_table('fault_detection_uni-param-table')
-                                        ]
+    html.Div(
+        id='tabs-content',
+        children=[
+            dcc.Tabs(
+                id="tabs", value='import', children=[
+                    dcc.Tab(label='Data Import', value='import', children=[
+                        html.Div([
+                            html.H3('Import data'),
+                            html.Div([
+                                dcc.Upload(
+                                    id='upload-data',
+                                    children=html.Button(
+                                        'Upload Raw Data',
+                                        id='upload-button',
+                                        className='button-primary'
                                     )
-                                ]
-                            ),
+                                ),
+                                html.Button(
+                                    id='select-all-series-import',
+                                    children=['Select all series']
+                                ),
+                            ], style={'width': '40%', 'columnCount': 2}),
+                            html.H6(id='import-message'),
+                            html.Div(id='upload-graph-location'),
+                            html.Div('Use the Box Select tool to choose a range of dates to analyze.'),
                             html.Br(),
-                            html.Button(id='save-params-button', children=['Save Parameters']),
-                        ], style={'width': '25%', 'display': 'inline-block', 'float': 'right'}
-                    ),
-                ]
-            ),
-            html.Br(),
-            html.Div(
-                id='uni-down',
-                children=[
-                    dcc.Tabs([
-                        dcc.Tab(
-                            id='uniOutlier-graph-tab',
-                            label='Outliers',
+                            dcc.DatePickerRange(id='import-dates'),
+                            html.Br(),
+                            html.Br(),
+                            html.Div(id='upload-dropdown'),
+                            html.Div(id="button-location")
+                        ], id='tab1_content')
+                    ]),
+                    dcc.Tab(label='Univariate filter', value='univar', children=[
+                        html.Div([
+                            html.H3('Univariate fault detection'),
+                            'Pick a series to anlayze.',
+                            html.Br(),
+                            # dcc.Upload(
+                            #    id='upload-sensor-data',
+                            #    children=html.Button(
+                            #        'Upload Processed Data',
+                            #        id='upload-sensor-button',
+                            #    )
+                            # ),
+                            html.Br(),
+                            dcc.Dropdown(
+                                id='select-series',
+                                multi=False,
+                                placeholder='Pick a series to analyze here.',
+                                options=[]),
+                            html.Br(),
+                            'Pick an outlier detection method.',
+                            html.Br(),
+                            dcc.Dropdown(
+                                id='select-method',
+                                multi=False,
+                                placeholder='Pick a method to detect outliers.',
+                                options=[{'label': 'Online EWMA', 'value': 'Online_EWMA'}]),
+                            html.Br()]),
+                        html.Div(
+                            id='uni-up',
                             children=[
                                 html.Div(
-                                    id='uni-outlier-left',
+                                    id='uni-up-left',
                                     children=[
+                                        html.Button(id='check-coherence', children='Check data coherence'),
+                                        html.Div(
+                                            id='faults',
+                                            children=[
+                                                html.Table([
+                                                    html.Tr([
+                                                        html.Th('Status'),
+                                                        html.Th('Message')
+                                                    ]),
+                                                    html.Tr([
+                                                        html.Td(id='err0-status'),
+                                                        html.Td(id='err0-msg', children=[])
+                                                    ]),
+                                                    html.Tr([
+                                                        html.Td(id='err1-status'),
+                                                        html.Td(id='err1-msg', children=[])
+                                                    ]),
+                                                    html.Tr([
+                                                        html.Td(id='err2-status'),
+                                                        html.Td(id='err2-msg', children=[])
+                                                    ], style={'line-height': '24px'}),
+                                                    html.Tr([
+                                                        html.Td(id='err3-status'),
+                                                        html.Td(id='err3-msg', children=[])
+                                                    ]),
+                                                    html.Tr([
+                                                        html.Td(id='err4-status'),
+                                                        html.Td(id='err4-msg', children=[])
+                                                    ])
+                                                ], style={
+                                                    'font-size': '9px',
+                                                    'font-weight': '200',
+                                                    'line-height': '12px'
+                                                }),
+                                                html.Button(id='sort-button', children=['Sort indices']),
+                                                html.Br(),
+                                                html.Br(),
+                                                html.Button(id='resample-button', children=['Resample'], style={'width': '35%'}),
+                                                dcc.Input(
+                                                    id='sample-freq',
+                                                    placeholder='frequency (min)',
+                                                    type='number',
+                                                    value=2,
+                                                    min=0.01,
+                                                    step=1,
+                                                    style={'width': '35%'}
+                                                ),
+                                                '    min.',
+                                                html.Br(),
+                                                html.Br(),
+                                                html.Button(id='fillna-button', children=['Fill blank rows']),
+                                                html.Br(),
+                                                html.Br(),
+                                                html.Button(className='button-alert', id='reset-button', children=['Reset to raw']),
+                                            ],
+                                        ),
+                                    ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}),
+                                html.Div(
+                                    id='uni-up-center',
+                                    children=[
+                                        dcc.Graph(id='initial_uni_graph'),
+                                        html.P([
+                                            'Use the Box Select tool to',
+                                            ' choose a range of data with which to',
+                                            ' fit the outlier detection model.'
+                                        ]),
+                                        html.Br(),
+                                        dcc.DatePickerRange(id='fit-range'),
+                                        html.Button(
+                                            className='button-primary',
+                                            id='fit-button',
+                                            children='Fit outlier filter'),
+                                        html.Button(
+                                            className='button-alert',
+                                            id='reset-proc-button',
+                                            children=['Reset to processed']),
+                                    ], style={'width': '55%', 'display': 'inline-block'}
+                                ),
+                                html.Div(
+                                    id='uni-up-right',
+                                    children=[
+                                        html.H6('Filter Parameters'),
+                                        dcc.Tabs(
+                                            parent_className='custom-tabs',
+                                            className='custom-tabs-container',
+                                            children=[
+                                                dcc.Tab(
+                                                    className='custom-tab',
+                                                    selected_className='custom-tab--selected',
+                                                    id='outlier-param-tab',
+                                                    label='Outliers',
+                                                    children=[
+                                                        build_param_table('outlier-param-table')
+                                                    ]
+                                                ),
+                                                dcc.Tab(
+                                                    className='custom-tab',
+                                                    selected_className='custom-tab--selected',
+                                                    id='data_smoother-param-tab',
+                                                    label='Smoother',
+                                                    children=[
+                                                        build_param_table('data_smoother-param-table')
+                                                    ]
+                                                ),
+                                                dcc.Tab(
+                                                    className='custom-tab',
+                                                    selected_className='custom-tab--selected',
+                                                    id='fault_detection_uni-param-tab',
+                                                    label='Faults',
+                                                    children=[
+                                                        build_param_table('fault_detection_uni-param-table')
+                                                    ]
+                                                )
+                                            ]
+                                        ),
+                                        html.Br(),
+                                        html.Button(id='save-params-button', children=['Save Parameters']),
+                                    ], style={'width': '25%', 'display': 'inline-block', 'float': 'right'}
+                                ),
+                            ]
+                        ),
+                        html.Br(),
+                        html.Div(
+                            id='uni-down',
+                            children=[
+                                dcc.Tabs([
+                                    dcc.Tab(
+                                        id='uniOutlier-graph-tab',
+                                        label='Outliers',
+                                        children=[
+                                            html.Div(
+                                                id='uni-outlier-left',
+                                                children=[
+                                                    html.Br(),
+                                                    html.Br(),
+                                                    html.Button(
+                                                        className='button-primary',
+                                                        id='smooth-button',
+                                                        children='Smoothen data'),
+                                                ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
+                                            ),
+                                            html.Div(
+                                                id='uni-outlier-center',
+                                                children=[
+                                                    dcc.Graph(id='uni-outlier-graph')
+                                                ], style={'width': '80%', 'display': 'inline-block'}
+                                            )
+                                        ]),
+                                    dcc.Tab(
+                                        id='uniFaults-graph-tab',
+                                        label='Faults',
+                                        children=[
+                                            html.Div(
+                                                id='uni-faults-left',
+                                                children=[
+                                                    html.P('Correlation'),
+                                                    dcc.RangeSlider(
+                                                        id='corr-slide',
+                                                        updatemode='mouseup',
+                                                        allowCross=False,
+                                                        min=-25,
+                                                        max=25,
+                                                        value=[-5, 5]
+                                                    ),
+                                                    html.P(id='corr-vals'),
+                                                    html.Br(),
+                                                    html.P('Slope Limits'),
+                                                    dcc.RangeSlider(
+                                                        id='slope-slide',
+                                                        updatemode='mouseup',
+                                                        allowCross=False,
+                                                        min=-2,
+                                                        max=2,
+                                                        step=0.01,
+                                                        value=[-1, 1]
+                                                    ),
+                                                    html.P(id='slope-vals'),
+                                                    html.Br(),
+                                                    html.P('Standard devation limits'),
+                                                    dcc.RangeSlider(
+                                                        id='std-slide',
+                                                        updatemode='mouseup',
+                                                        allowCross=False,
+                                                        min=-5,
+                                                        max=5,
+                                                        step=0.1,
+                                                        value=[-0.1, 0.1]
+                                                    ),
+                                                    html.P(id='std-vals'),
+                                                    html.Br(),
+                                                    html.P('Range limits'),
+                                                    dcc.RangeSlider(
+                                                        id='range-slide',
+                                                        updatemode='mouseup',
+                                                        allowCross=False,
+                                                        min=0,
+                                                        max=2000,
+                                                        step=5,
+                                                        value=[10, 300]
+                                                    ),
+                                                    html.P(id='range-vals'),
+                                                    html.Br(),
+                                                    html.Br(),
+                                                    html.Button(id='detect_faults-uni', children='Detect Faults'),
+                                                    html.Br(),
+                                                    html.Br(),
+                                                ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
+                                            ),
+                                            html.Div(
+                                                id='uni-faults-field',
+                                                children=[
+                                                    small_graph('uni-corr-graph', 'Correlation test'),
+                                                    small_graph('uni-slope-graph', 'Slope test'),
+                                                    small_graph('uni-std-graph', 'Standard deviation test'),
+                                                    small_graph('uni-range-graph', 'Range test'),
+                                                ], style={'textAlign': 'center', 'width': '80%', 'display': 'inline-block'}
+                                            )
+                                        ],
+                                    ),
+                                    dcc.Tab(
+                                        id='unitreated-graph-tab',
+                                        label='Treated data',
+                                        children=[
+                                            dcc.Graph(id='uni-treated-graph'),
+                                            html.Br(),
+                                            html.P(id='faults-stats'),
+                                            html.Button(
+                                                children=[
+                                                    html.A(
+                                                        'Save treated univariate data.',
+                                                        id='save-unvivar-link',
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                    )
+                                ]),
+                            ]
+                        ),
+                        html.Hr(),
+                    ]),
+                    dcc.Tab(label='Multivariate filter', value='multivar', children=[
+                        html.Br(),
+                        dcc.Dropdown(
+                            id='multivar-select-dropdown',
+                            multi=True,
+                            placeholder='Pick a series to analyze here.',
+                            options=[]
+                        ),
+                        html.Br(),
+                        html.Button(
+                            id='select-raw-multivar-button',
+                            children='Select all raw'
+                        ),
+                        html.Button(
+                            id='select-treated-multivar-button',
+                            children='Select all treated'
+                        ),
+                        html.Div(
+                            id='multivar-top',
+                            children=[
+                                html.Div(id='multivar-top-left', children=[
+                                    dcc.Graph(id='multivar-select-graph'),
+                                ], style={'width': '70%', 'display': 'inline-block', 'float': 'left'}),
+                                html.Div(
+                                    id='multivar-top-right',
+                                    children=[
+                                        html.Br(),
+                                        html.H6('Parameters'),
+                                        'Min explained variance',
+                                        dcc.Input(
+                                            id='multivar-min-exp-var',
+                                            type='number',
+                                            min=0,
+                                            max=1,
+                                            step=0.01,
+                                            value=0.95),
+                                        html.Br(),
+                                        'Alpha',
+                                        dcc.Input(
+                                            id='multivar-alpha',
+                                            type='number',
+                                            min=0,
+                                            max=1,
+                                            step=0.01,
+                                            value=0.95),
+                                        html.Br(),
+                                        html.Hr(),
+                                        html.H6('Calibration period'),
+                                        dcc.DatePickerRange(id='multivar-calib-range'),
                                         html.Br(),
                                         html.Br(),
                                         html.Button(
-                                            className='button-primary',
-                                            id='smooth-button',
-                                            children='Smoothen data'),
-                                    ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
+                                            id='multivar-calibrate-button',
+                                            children='Calibrate model'
+                                        ),
+                                    ], style={'width': '30%', 'display': 'inline-block', 'float': 'right'}
                                 ),
-                                html.Div(
-                                    id='uni-outlier-center',
-                                    children=[
-                                        dcc.Graph(id='uni-outlier-graph')
-                                    ], style={'width': '80%', 'display': 'inline-block'}
-                                )
-                            ]),
-                        dcc.Tab(
-                            id='uniFaults-graph-tab',
-                            label='Faults',
-                            children=[
-                                html.Div(
-                                    id='uni-faults-left',
-                                    children=[
-                                        html.P('Correlation'),
-                                        dcc.RangeSlider(
-                                            id='corr-slide',
-                                            updatemode='mouseup',
-                                            allowCross=False,
-                                            min=-25,
-                                            max=25,
-                                            value=[-5, 5]
-                                        ),
-                                        html.P(id='corr-vals'),
-                                        html.Br(),
-                                        html.P('Slope Limits'),
-                                        dcc.RangeSlider(
-                                            id='slope-slide',
-                                            updatemode='mouseup',
-                                            allowCross=False,
-                                            min=-2,
-                                            max=2,
-                                            step=0.01,
-                                            value=[-1, 1]
-                                        ),
-                                        html.P(id='slope-vals'),
-                                        html.Br(),
-                                        html.P('Standard devation limits'),
-                                        dcc.RangeSlider(
-                                            id='std-slide',
-                                            updatemode='mouseup',
-                                            allowCross=False,
-                                            min=-5,
-                                            max=5,
-                                            step=0.1,
-                                            value=[-0.1, 0.1]
-                                        ),
-                                        html.P(id='std-vals'),
-                                        html.Br(),
-                                        html.P('Range limits'),
-                                        dcc.RangeSlider(
-                                            id='range-slide',
-                                            updatemode='mouseup',
-                                            allowCross=False,
-                                            min=0,
-                                            max=2000,
-                                            step=5,
-                                            value=[10, 300]
-                                        ),
-                                        html.P(id='range-vals'),
-                                        html.Br(),
-                                        html.Br(),
-                                        html.Button(id='detect_faults-uni', children='Detect Faults'),
-                                        html.Br(),
-                                        html.Br(),
-                                    ], style={'width': '20%', 'display': 'inline-block', 'float': 'left'}
-                                ),
-                                html.Div(
-                                    id='uni-faults-field',
-                                    children=[
-                                        small_graph('uni-corr-graph', 'Correlation test'),
-                                        small_graph('uni-slope-graph', 'Slope test'),
-                                        small_graph('uni-std-graph', 'Standard deviation test'),
-                                        small_graph('uni-range-graph', 'Range test'),
-                                    ], style={'textAlign': 'center', 'width': '80%', 'display': 'inline-block'}
-                                )
-                            ],
-                        ),
-                        dcc.Tab(
-                            id='unitreated-graph-tab',
-                            label='Treated data',
-                            children=[
-                                dcc.Graph(id='uni-treated-graph'),
                                 html.Br(),
-                                html.P(id='faults-stats'),
-                                html.A(
-                                    'Save treated univariate data.',
-                                    id='save-unvivar-link',
+                            ]
+                        ),
+                        html.Br(),
+                        html.Hr(),
+                        html.Br(),
+                        html.Div(
+                            id='multivar-bottom',
+                            children=[
+                                dcc.Tabs(
+                                    children=[
+                                        dcc.Tab(
+                                            id='pca-tab',
+                                            label="PCA",
+                                            children=[
+                                                html.Div(
+                                                    children=[
+                                                        dcc.Graph(id='multivariate-pca-graph'),
+                                                    ], style={'width': '70%', 'display': 'inline-block', 'float': 'left'}
+                                                ),
+                                                html.Div(
+                                                    children=[
+                                                        html.Br(),
+                                                        html.P('Contribution of each variable to principal components'),
+                                                        html.Div(id='pc-table-loc'),
+                                                    ], style={'width': '30%', 'display': 'inline-block', 'float': 'right'}
+                                                ),
+                                            ]
+                                        ),
+                                        dcc.Tab(
+                                            id='residuals-tab',
+                                            label='Residuals',
+                                            children=[
+                                                html.Div(
+                                                    children=[
+                                                        dcc.Graph(id='multivariate-q-graph'),
+                                                    ], style={'width': '70%', 'display': 'inline-block', 'float': 'left'}
+                                                ),
+                                                html.Div(
+                                                    children=[
+
+                                                    ], style={'width': '30%', 'display': 'inline-block', 'float': 'right'}
+                                                ),
+                                            ]
+                                        ),
+                                        dcc.Tab(
+                                            id='multi-fautls-tab',
+                                            label='Fault detection',
+                                            children=[
+                                                html.Div(
+                                                    children=[
+                                                        dcc.Graph(id='multivariate-faults-graph'),
+                                                    ], style={'width': '100%', 'display': 'inline-block', 'float': 'left'}
+                                                ),
+                                            ]
+                                        ),
+                                    ]
                                 ),
                             ],
-                        )
+                            style={'width': '100%', 'display': 'inline-block'}
+                        ),
+                        html.Button(
+                            id='multi-save-button',
+                            children=[
+                                html.A(
+                                    id="multi-save-link",
+                                    children=['Save accepted to CSV']
+                                )
+                            ]
+                        ),
                     ]),
-                ]
-            ),
-            html.Hr(),
+                ]),
         ]),
-        dcc.Tab(label='Multivariate filter', value='multivar', children=[
-            html.Br(),
-            dcc.Dropdown(
-                id='multivar-select-dropdown',
-                multi=True,
-                placeholder='Pick a series to analyze here.',
-                options=[]
-            ),
-            html.Div(id='multivar-top-left', children=[
-                dcc.Graph(id='multivar-select-graph'),
-            ], style={'width': '70%', 'display': 'inline-block', 'float': 'left'}),
-            html.Div(id='multivar-top-right', children=[
-                html.Br(),
-                html.H6('Parameters'),
-                'Min explained variance',
-                dcc.Input(
-                    id='multivar-min-exp-var',
-                    type='number',
-                    min=0,
-                    max=1,
-                    step=0.01,
-                    value=0.95),
-                html.Br(),
-                'Alpha',
-                dcc.Input(
-                    id='multivar-alpha',
-                    type='number',
-                    min=0,
-                    max=1,
-                    step=0.01,
-                    value=0.95),
-                html.Br(),
-                html.Hr(),
-                html.H6('Calibration period'),
-                dcc.DatePickerRange(id='multivar-calib-range'),
-                html.Br(),
-                html.Br(),
-                html.Button(
-                    id='multivar-calibrate-button',
-                    children='Calibrate model'),
-            ], style={'width': '30%', 'display': 'inline-block', 'float': 'right'}),
-            html.Br(),
-            html.Div(id='multivariate-bottom-left', children=[
-                dcc.Graph(id='multivariate-pca-graph')
-            ], style={'width': '50%', 'display': 'inline-block', 'float': 'left'}),
-            html.Div(id='multivariate-bottom-right', children=[
-                dcc.Graph(id='multivariate-faults-graph')
-            ], style={'width': '50%', 'display': 'inline-block', 'float': 'right'}),
-            html.Button(id='multi-save-accepted-button', children='Save accepted to CSV')
-        ])
-    ], id="tabs", value='import'),
-    html.Div(id='output-data-upload', style={'display': 'none'}),
-    html.Div(id='tabs-content'),
     html.Hr(),
-
-], id='applayout')
+])
 
 
 ########################################################################
@@ -1352,6 +1446,35 @@ def show_multivar_list(data):
         options = [{'label': labels[i], 'value':ids[i]} for i in range(len(ids))]
         return options
 
+@app.callback(
+    Output('multivar-select-dropdown', 'value'),
+    [Input('select-raw-multivar-button', 'n_clicks'),
+        Input('select-treated-multivar-button', 'n_clicks')],
+    [State('multivar-select-dropdown', 'options')])
+def select_all_multivar(click_raw, click_treated, options):
+    if not options or (not click_raw and not click_treated):
+        raise PreventUpdate
+    else:
+        ctx = dash.callback_context
+        trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+
+        selection = []
+        if trigger == 'select-raw-multivar-button':
+            for option in options:
+                if 'raw' in option['value']:
+                    selection.append(option['value'])
+                else:
+                    pass
+        elif trigger == 'select-treated-multivar-button':
+            for option in options:
+                if 'treated' in option['value']:
+                    selection.append(option['value'])
+                else:
+                    pass
+        else:
+            raise PreventUpdate
+        return selection
+
 
 @app.callback(
     Output('multivar-select-graph', 'figure'),
@@ -1412,6 +1535,133 @@ def update_calib_store(end_field, start_field, current_data):
             return data
 
 
+@app.callback(
+    [Output('multivariate-data-store', 'data'),
+        Output('multivariate-limits-store', 'data'),
+        Output('multivariate-contrib', 'data')],
+    [Input('multivar-calibrate-button', 'n_clicks')],
+    [State('sensors-store', 'data'),
+        State('multivar-select-dropdown', 'value'),
+        State('multivariate-calib', 'data'),
+        State('multivar-min-exp-var', 'value'),
+        State('multivar-alpha', 'value')])
+def multivar_fit(click, sensor_data, series_info, calib_info, min_var_exp, alpha):
+    if not click or not sensor_data or not series_info or not calib_info or not min_var_exp or not alpha:
+        raise PreventUpdate
+    else:
+        df = regroup_multivar_data(sensor_data, series_info)
+        param_names = []
+        for column in df.columns:
+            typ, project, location, equipment, parameter, unit = column.split('-')
+            param_names.append('{}: {} {}'.format(typ, equipment, parameter))
+
+        start_cal = calib_info['start']
+        end_cal = calib_info['end']
+
+        treated_df, limits, contrib = Multivariate.fault_detection(
+            df, start_cal, end_cal, min_var_exp, alpha)
+
+        treated_df = treated_df.to_json(date_format='iso', orient='split')
+
+        size = contrib.shape
+        if len(size) < 2:
+            size = [size, 1]
+        else:
+            pass
+        pc_names = []
+        for i in range(1, size[1] + 1):
+            pc_names.append('PC {}'.format(i))
+        contrib = pd.DataFrame(
+            data=contrib,
+            columns=pc_names,
+            index=param_names
+        )
+        for column in contrib.columns:
+            contrib[column] = contrib[column].map('{:0.2f}'.format)
+        contrib.index.name = 'Series'
+        contrib.reset_index(drop=False, inplace=True)
+
+        contrib = contrib.to_json(orient='split')
+        return [treated_df, limits, contrib]
+
+
+@app.callback(
+    Output('multivariate-pca-graph', 'figure'),
+    [Input('multivariate-limits-store', 'data'),
+        Input('multivariate-data-store', 'data')])
+def plot_pca_scatter(limits, data):
+    if not data or not limits:
+        raise PreventUpdate
+    else:
+        df = pd.read_json(data, orient='split')
+        figure = PlottingTools.show_pca_plotly(df, limits)
+        return figure
+
+
+@app.callback(
+    Output('pc-table-loc', 'children'),
+    [Input('multivariate-contrib', 'data')])
+def build_contrib_table(contrib):
+    if not contrib:
+        raise PreventUpdate
+    else:
+        df = pd.read_json(contrib, orient='split')
+        table = dash_table.DataTable(
+            id='pc-table',
+            columns=[{"name": i, "id": i} for i in df.columns],
+            data=df.to_dict('records'),
+            style_data={'whiteSpace': 'normal'},
+            content_style='grow',
+            css=[
+                {'selector': 'td.cell--selected *, td.focused *', 'rule': 'text-align: center;'},
+                {'selector': '.dash-cell div.dash-cell-value',
+                    'rule': '''font-family: "Helvetica Neue";
+                        display: inline;
+                        white-space: inherit;
+                        overflow: inherit;
+                        text-overflow: inherit;
+                        font-size: 10px;'''},
+            ],
+            style_cell_conditional=[
+                {'if': {'column_id': 'Series'},
+                    'minWidth': '20%', 'maxWidth': '25%', 'textAlign': 'center'},
+            ],
+            style_header={
+                'backgroundColor': 'white',
+                'fontWeight': 'bold',
+                'textAlign': 'center',
+                'fontFamily': 'Helvetica Neue',
+                'fontSize': '12px',
+            },
+        )
+        return table
+
+@app.callback(
+    Output('multivariate-q-graph', 'figure'),
+    [Input('multivariate-limits-store', 'data'),
+        Input('multivariate-data-store', 'data')])
+def plot_q_scatter(limits, data):
+    if not data or not limits:
+        raise PreventUpdate
+    else:
+        df = pd.read_json(data, orient='split')
+        figure = PlottingTools.show_q_residuals_plotly(df, limits)
+        return figure
+
+
+@app.callback(
+    Output('multivariate-faults-graph', 'figure'),
+    [Input('multivariate-data-store', 'data')])
+def plot_mutivar_output(data):
+    if not data:
+        raise PreventUpdate
+    else:
+        df = pd.read_json(data, orient='split')
+        if 'fault_count' not in df.columns:
+            raise PreventUpdate
+        else:
+            figure = PlottingTools.show_multi_output_plotly(df)
+            return figure
 ###########################################################################
 # SAVE DATA ###############################################################
 ###########################################################################
@@ -1420,7 +1670,7 @@ def update_calib_store(end_field, start_field, current_data):
     [Input('sensors-store', 'data'),
         Input('select-series', 'value'),
         Input('select-method', 'value')])
-def update_link(data, channel_info, method):
+def update_link_univar(data, channel_info, method):
     if not data or not channel_info or not method:
         raise PreventUpdate
     else:
@@ -1434,11 +1684,11 @@ def update_link(data, channel_info, method):
                     'deleted' not in filtered.columns)):
                 raise PreventUpdate
             else:
-                filtered = filtered[['raw', 'treated', 'deleted']].to_json(date_format='iso', orient='split')
-                return '/dash/urlToDownload?value={}'.format(filtered)
+                filtered = filtered[['raw', 'treated', 'deleted']].to_csv()
+                return '/dash/download-univar?value={}'.format(filtered)
 
-@app.server.route('/dash/urlToDownload')
-def download_json():
+@app.server.route('/dash/download-univar')
+def download_csv_univar():
     value = flask.request.args.get('value')
     # create a dynamic json or file here using `StringIO`
     # (instead of writing to the file system)
@@ -1450,10 +1700,37 @@ def download_json():
     str_io.close()
     return flask.send_file(
         mem,
-        mimetype='text/json',
-        attachment_filename='downloadFile.json',
+        mimetype='text/csv',
+        attachment_filename='Univariate.json',
         as_attachment=True)
 
+
+@app.callback(
+    Output('multi-save-link', 'href'),
+    [Input('multivariate-data-store', 'data')])
+def update_link_multivar(data):
+    if not data:
+        raise PreventUpdate
+    else:
+        df = pd.read_json(data, orient='split').to_csv()
+        return '/dash/download-multivar?value={}'.format(df)
+
+@app.server.route('/dash/download-multivar')
+def download_csv_multivar():
+    value = flask.request.args.get('value')
+    # create a dynamic json or file here using `StringIO`
+    # (instead of writing to the file system)
+    str_io = io.StringIO()
+    str_io.write(str(value))
+    mem = io.BytesIO()
+    mem.write(str_io.getvalue().encode('utf-8'))
+    mem.seek(0)
+    str_io.close()
+    return flask.send_file(
+        mem,
+        mimetype='text/csv',
+        attachment_filename='Multivariate.csv',
+        as_attachment=True)
 
 if __name__ == '__main__':
     app.run_server(debug=True)

@@ -5,5 +5,5 @@ smooth.p
 parameters.p
 deserialized.json
 orig.json
-.vscode/settings.json
-
+.vscode/
+*.py[co]

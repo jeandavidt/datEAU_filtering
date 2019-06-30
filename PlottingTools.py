@@ -1,10 +1,28 @@
-def plotRaw_D_mpl(df):
-    import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-    from pandas.plotting import register_matplotlib_converters
+from itertools import cycle
 
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import plotly
+import plotly.graph_objs as go
+from matplotlib import cm
+from pandas.plotting import register_matplotlib_converters
+from plotly import tools
+
+COLOR_PALETTE = [
+    'rgb(31, 119, 180)',    # blue
+    'rgb(255, 127, 14)',    # orange
+    'rgb(44, 160, 44)',    # green
+    'rgb(214, 39, 40)',     # red
+    'rgb(148, 103, 189)',   # purple
+    'rgb(140, 86, 75)',     # taupe
+    'rgb(227, 119, 194)',   # pink
+    'rgb(127, 127, 127)',   # middle grey
+    'rgb(188, 189, 34)',    # greenish yellow
+    'rgb(23, 190, 207)']    # azure
+
+def plotRaw_D_mpl(df):
     register_matplotlib_converters()
 
     _, ax = plt.subplots(figsize=(12, 8))
@@ -25,28 +43,10 @@ def plotRaw_D_mpl(df):
     plt.show(block=False)
 
 def plotRaw_D_plotly(df):
-    import plotly
-    import plotly.graph_objs as go
-    import pandas as pd
-    import numpy as np
-    from itertools import cycle
-
     traces = []
     axes = []
     colors = []
-    color_palette = [
-        'rgb(31, 119, 180)',    # blue
-        'rgb(255, 127, 14)',    # orange
-        'rgb(44, 160, 44)',    # green
-        'rgb(214, 39, 40)',     # red
-        'rgb(148, 103, 189)',   # purple
-        'rgb(140, 86, 75)',     # taupe
-        'rgb(227, 119, 194)',   # pink
-        'rgb(127, 127, 127)',   # middle grey
-        'rgb(188, 189, 34)',    # greenish yellow
-        'rgb(23, 190, 207)',    # azure
-    ]
-    color_cycle = cycle(color_palette)
+    color_cycle = cycle(COLOR_PALETTE)
     dash_styles = ['solid', 'dash', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot']
     dash_cycle = cycle(dash_styles)
 
@@ -113,12 +113,6 @@ def plotRaw_D_plotly(df):
 
 
 def plotUnivar_mpl(channel):
-    import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-    from pandas.plotting import register_matplotlib_converters
-
     register_matplotlib_converters()
 
     _, ax = plt.subplots(figsize=(12, 8))
@@ -148,11 +142,6 @@ def plotUnivar_mpl(channel):
     plt.show(block=False)
 
 def plotUnivar_plotly(channel):
-    import plotly
-    import plotly.graph_objs as go
-    import pandas as pd
-    import numpy as np
-
     traces = []
     raw = channel.raw_data
     trace = go.Scattergl(
@@ -213,13 +202,6 @@ def plotUnivar_plotly(channel):
     return figure
 
 def plotOutliers_mpl(channel):
-    import datetime
-    import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    from pandas.plotting import register_matplotlib_converters
-
     register_matplotlib_converters()
 
     _, ax = plt.subplots(figsize=(12, 8))
@@ -269,11 +251,6 @@ def plotOutliers_mpl(channel):
     plt.show(block=False)
 
 def plotOutliers_plotly(channel):
-    import pandas as pd
-    import numpy as np
-    import plotly
-    import plotly.graph_objs as go
-
     filtration_method = channel.info['current_filtration_method']
     df = channel.filtered[filtration_method]
     raw = channel.raw_data['raw']
@@ -295,19 +272,6 @@ def plotOutliers_plotly(channel):
         to_plot['Smooth'] = df['Smoothed_AD']
 
     traces = []
-    # REFERENCE : plotly.colors.DEFAULT_PLOTLY_COLORS
-    '''[
-        'rgb(31, 119, 180)',    #blue
-        'rgb(255, 127, 14)',    #orange
-        'rgb(44, 160, 44)' ,    #green
-        'rgb(214, 39, 40)',     #red
-        'rgb(148, 103, 189)',   #purple
-        'rgb(140, 86, 75)',     #taupe
-        'rgb(227, 119, 194)',   #pink
-        'rgb(127, 127, 127)',   #middle grey
-        'rgb(188, 189, 34)',    #greenish yellow
-        'rgb(23, 190, 207)',    #azure
-    ]'''
     for name, series in to_plot.items():
 
         trace = go.Scattergl(
@@ -346,14 +310,6 @@ def plotOutliers_plotly(channel):
     return figure
 
 def plotDScore_mpl(channel):
-    import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-    from pandas.plotting import register_matplotlib_converters
-
-    register_matplotlib_converters()
-
     _, axes = plt.subplots(figsize=(12, 8), nrows=4, ncols=1)
     # This function allows to create several plots with the data feature.
     # For each data features, you need to change the limits. The whole are
@@ -447,11 +403,6 @@ def plotDScore_mpl(channel):
     plt.show(block=False)
 
 def plotTreatedD_plotly(channel):
-    import pandas as pd
-    import numpy as np
-    import plotly
-    import plotly.graph_objs as go
-
     filtration_method = channel.info['current_filtration_method']
     df = channel.filtered[filtration_method]
     raw = channel.raw_data['raw']
@@ -490,15 +441,7 @@ def plotTreatedD_plotly(channel):
     figure = go.Figure(data=traces, layout=layout)
     return figure
 
-
 def plotTreatedD_mpl(channel):
-    import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-    from pandas.plotting import register_matplotlib_converters
-    register_matplotlib_converters()
-
     filtration_method = channel.info['current_filtration_method']
 
     raw = channel.raw_data['raw'].copy(deep=True)
@@ -529,14 +472,7 @@ def plotTreatedD_mpl(channel):
     plt.legend(['Raw', 'Treated', 'Deleted'])
     plt.show(block=False)
 
-
 def plotD_plotly(params, testID, start=None, end=None, channel=None):
-    import pandas as pd
-    import numpy as np
-    import plotly
-    import plotly.graph_objs as go
-    from plotly import tools
-
     # This function allows to create several plots with the data feature.
     # For each data features, you need to change the limits. The whole are
     # defined in the DefaultParam function.
@@ -631,63 +567,11 @@ def plotD_plotly(params, testID, start=None, end=None, channel=None):
     #     figure.update(dict(layout=dict(yaxis=dict(type='log'))))
     return figure
 
-
-def show_pca_mpl(df, limits, svd, model):
-    import pandas as pd
-    import numpy as np
-    from matplotlib import cm
-    from matplotlib import pyplot as plt
-
-    fig, ax = plt.subplots(figsize=(10, 10), nrows=1, ncols=1)
-    plt.rc('lines', linewidth=1)
-    color = iter(cm.plasma(np.linspace(0, 1, 4)))
-    start = model['start_cal']
-    end = model['end_cal']
-    ax.plot(df['t_1'], df['t_2'], 'o', markersize=0.5, c=next(color))
-    ax.plot(
-        df['t_1'].loc[start:end],
-        df['t_2'].loc[start:end],
-        'o', markersize=0.5, c=next(color)
-    )
-    ax.set(
-        ylabel='PC 2',
-        xlabel='PC 1',
-        title='Principal components of calibration and complete data sets'
-    )
-    # ### drawing the ellipse
-
-    ellipse_a = np.sqrt(limits['T2']) * model['t_hat_stdev'][0]
-    ellipse_b = np.sqrt(limits['T2']) * model['t_hat_stdev'][1]
-    t = np.linspace(0, 2 * np.pi, 100)
-
-    ax.plot(ellipse_a * np.cos(t), ellipse_b * np.sin(t), c=next(color))
-    ax.grid(which='major', axis='both')
-    ax.legend(['complete', 'calibration', 'limit {}'.format(limits['alpha'])])
-    plt.gca().set_aspect('equal')
-    plt.show()
-
 def ini_multivar_plotly(df, start=None, end=None):
-    import pandas as pd
-    import plotly
-    import plotly.graph_objs as go
-    from itertools import cycle
-
     traces = []
     axes = []
     colors = []
-    color_palette = [
-        'rgb(31, 119, 180)',    # blue
-        'rgb(255, 127, 14)',    # orange
-        'rgb(44, 160, 44)',    # green
-        'rgb(214, 39, 40)',     # red
-        'rgb(148, 103, 189)',   # purple
-        'rgb(140, 86, 75)',     # taupe
-        'rgb(227, 119, 194)',   # pink
-        'rgb(127, 127, 127)',   # middle grey
-        'rgb(188, 189, 34)',    # greenish yellow
-        'rgb(23, 190, 207)',    # azure
-    ]
-    color_cycle = cycle(color_palette)
+    color_cycle = cycle(COLOR_PALETTE)
     dash_styles = ['solid', 'dash', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot']
     dash_cycle = cycle(dash_styles)
     for column in df.columns:
@@ -764,3 +648,323 @@ def ini_multivar_plotly(df, start=None, end=None):
         layout['shapes'] = [calib_shape]
     figure = go.Figure(layout=layout, data=traces)
     return figure
+
+
+def show_pca_plotly(df, limits):
+    traces = []
+    if 'pc_1' not in df.columns or 'pc_2' not in df.columns:
+        figure = go.Figure(data=[])
+    else:
+        start_cal = limits['start_cal']
+        end_cal = limits['end_cal']
+
+        start = df.first_valid_index()
+        end = df.last_valid_index()
+
+        x1 = df.loc[start_cal: end_cal, 'pc_1']
+        y1 = df.loc[start_cal: end_cal, 'pc_2']
+
+        x0_a = df.loc[start:start_cal, 'pc_1']
+        y0_a = df.loc[start:start_cal, 'pc_2']
+
+        x0_b = df.loc[end_cal:end, 'pc_1']
+        y0_b = df.loc[end_cal:end, 'pc_2']
+
+        x0 = pd.concat([x0_a, x0_b])
+        y0 = pd.concat([y0_a, y0_b])
+
+        trace1 = go.Scattergl(
+            x=x1,
+            y=y1,
+            mode='markers',
+            name='Calibration'
+        )
+        trace0 = go.Scattergl(
+            x=x0,
+            y=y0,
+            mode='markers',
+            name='Rest'
+        )
+        traces = [trace0, trace1]
+
+        ellipse_a = np.sqrt(limits['T2']) * limits['pc_std'][0]
+        ellipse_b = np.sqrt(limits['T2']) * limits['pc_std'][1]
+
+        layout = go.Layout(
+            shapes=[
+                dict(
+                    type='circle',
+                    xref='x',
+                    yref='y',
+                    x0=ellipse_a * -1,
+                    x1=ellipse_a,
+                    y0=ellipse_b * -1,
+                    y1=ellipse_b,
+                    line=dict(
+                        color='rgba(214, 39, 40, 1)',
+                        width=1
+                    ),
+                    fillcolor='rgba(214, 39, 40, 0.3)'
+                )
+            ],
+            title='Principal component scatter plot',
+            xaxis=dict(
+                title='PC 1',
+                range=[ellipse_a * -3, ellipse_a * 3]
+            ),
+            yaxis=dict(
+                title='PC 2',
+                range=[ellipse_b * -3, ellipse_b * 3]
+            ),
+        )
+        figure = go.Figure(data=traces, layout=layout)
+        return figure
+
+
+def show_q_residuals_plotly(df, limits):
+    Q_lim = limits['Q']
+    start = df.first_valid_index()
+    end = df.last_valid_index()
+    traces = []
+    if 'Q' not in df.columns:
+        layout = go.Layout(
+            title='PCA model residuals',
+            yaxis=dict(
+                title='Q (normalised units)'
+            ),
+            xaxis=dict(
+                title='Date and time'
+            )
+        )
+    else:
+        '''trace0 = go.Scattergl(
+            x=[start, end],
+            y=[Q_lim, Q_lim],
+            mode='lines',
+            line=dict(
+                dash='dashdot',
+                color=COLOR_PALETTE[3]  # red
+            ),
+        ),
+        traces.append(trace0)'''
+
+        y1 = df['Q'].loc[df['Q'] <= Q_lim]
+        x1 = y1.index
+        trace1 = go.Scattergl(
+            x=x1,
+            y=y1,
+            name='Accepted',
+            mode='markers',
+            marker=dict(
+                color=COLOR_PALETTE[2],
+                symbol='circle'
+            ),
+        )
+        traces.append(trace1)
+
+        y2 = df['Q'].loc[df['Q'] > Q_lim]
+        x2 = y2.index
+        trace2 = go.Scattergl(
+            x=x2,
+            y=y2,
+            name='Rejected',
+            mode='markers',
+            marker=dict(
+                color=COLOR_PALETTE[1],
+                symbol='x'
+            ),
+        )
+        traces.append(trace2)
+
+        if Q_lim is None:
+            layout = go.Layout(
+            title='PCA model residuals',
+            yaxis=dict(
+                title='Q (normalised units)',
+            ),
+            xaxis=dict(title='Date and time'),
+
+            shapes=[{
+                'type': 'line',
+                'xref': 'x',
+                'x0': start,
+                'x1': end,
+                'y0': Q_lim,
+                'y1': Q_lim,
+                'line': {
+                    'color': COLOR_PALETTE[3],
+                    'dash': 'dashdot',
+                    'width': 2
+                },
+            }],
+        )
+        else:
+            layout = go.Layout(
+                title='PCA model residuals',
+                yaxis=dict(
+                    title='Q (normalised units)',
+                    range=[0, 3 * Q_lim]
+                ),
+                xaxis=dict(title='Date and time'),
+
+                shapes=[{
+                    'type': 'line',
+                    'xref': 'x',
+                    'x0': start,
+                    'x1': end,
+                    'y0': Q_lim,
+                    'y1': Q_lim,
+                    'line': {
+                        'color': COLOR_PALETTE[3],
+                        'dash': 'dashdot',
+                        'width': 2
+                    },
+                }],
+            )
+
+    figure = go.Figure(layout=layout, data=traces)
+    return figure
+
+def show_pca_mpl(df, limits):
+    fig, ax = plt.subplots(figsize=(10, 10), nrows=1, ncols=1)
+    plt.rc('lines', linewidth=1)
+    color = iter(cm.plasma(np.linspace(0, 1, 4)))
+    start = limits['start_cal']
+    end = limits['end_cal']
+    ax.plot(df['pc_1'], df['pc_2'], 'o', markersize=0.5, c=next(color))
+    ax.plot(
+        df['pc_1'].loc[start:end],
+        df['pc_2'].loc[start:end],
+        'o', markersize=0.5, c=next(color)
+    )
+    ax.set(
+        ylabel='PC 2',
+        xlabel='PC 1',
+        title='Principal components of calibration and complete data sets'
+    )
+    # ### drawing the ellipse
+
+    ellipse_a = np.sqrt(limits['T2']) * limits['pc_std'][0]
+    ellipse_b = np.sqrt(limits['T2']) * limits['pc_std'][1]
+    t = np.linspace(0, 2 * np.pi, 100)
+
+    ax.plot(ellipse_a * np.cos(t), ellipse_b * np.sin(t), c=next(color))
+    ax.grid(which='major', axis='both')
+    ax.legend(['complete', 'calibration', 'limit {}'.format(limits['alpha'])])
+    plt.gca().set_aspect('equal')
+    plt.show()
+
+def show_multi_output_mpl(df):
+    register_matplotlib_converters()
+    cols_list = []
+    for column in df.columns:
+        if 'raw' in column or 'treated' in column:
+            cols_list.append(column)
+    fig, axes = plt.subplots(figsize=(20, 10), nrows=len(cols_list) + 1, ncols=1)
+    plt.rc('lines', linewidth=0.5)
+    color = iter(cm.plasma(np.linspace(0.05, 0.8, len(cols_list) + 1)))
+
+    fig.subplots_adjust(hspace=0.5)
+    fig.suptitle('Output of multivariate filter')
+    axes_array = np.array(axes).flatten()
+    for ax, feature in zip(axes_array, cols_list):
+
+        ax.plot(df.index, df[feature], c=next(color))
+        ax.set(ylabel=feature.split(' ')[0].upper())
+        ax.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
+
+    ax = axes_array[-1]
+    ax.plot(df.index, df['fault_count'], c='k')
+    ax.set(ylabel='fault count', xlabel='Date')
+    ax.set_xticklabels(df.index, rotation=45)
+    ax.xaxis.set_major_locator(mdates.MonthLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %y'))
+    plt.show()
+
+def show_multi_output_plotly(data):
+    traces = []
+    if 'fault_count' not in data.columns:
+        figure = go.Figure(data=[])
+    else:
+        cols_list = []
+        for column in data.columns:
+            if 'raw' in column or 'treated' in column:
+                cols_list.append(column)
+        df = data[cols_list]
+        traces = []
+        axes = []
+        colors_alpha = []
+        for color in COLOR_PALETTE:
+            color.replace('rgb', 'rgba')
+            c0 = color.replace(')', ', 1)')
+            c1 = color.replace(')', ', 0.5)')
+            c2 = color.replace(')', ', 0.1)')
+            color = [c0, c1, c2]
+            colors_alpha.append(color)
+        color_alpha_cycle = cycle(colors_alpha)
+        max_faults = data['fault_count'].max()
+        symbol_styles = ['x', 'square', 'triangle-up', 'circle', 'star']
+        symbol_cycle = cycle(symbol_styles)
+        dash_styles = ['solid', 'dash', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot']
+        dash_cycle = cycle(dash_styles)
+        for column in df.columns:
+            series, project, location, equipment, parameter, unit = column.split('-')
+            name = '{} ({})'.format(parameter, unit)
+            if name not in axes:
+                axes.append(name)
+                del dash_cycle
+                dash_cycle = cycle(dash_styles)
+                colors = next(color_alpha_cycle)
+                colors = cycle(colors)
+            else:
+                pass
+            for i in range(data.fault_count.max() + 1):
+                trace = go.Scattergl(
+                    x=df[column].loc[data.fault_count == i].index,
+                    y=df[column].loc[data.fault_count == i],
+                    yaxis='y{}'.format(axes.index(name) + 1),
+                    name='F{} {}: {}-{} ({})'.format(i, series, equipment, parameter, unit),
+                    mode='markers',
+                    marker=dict(
+                        symbol=next(symbol_cycle),
+                        color=(next(colors)),
+                        size=6
+                    ),
+                )
+                traces.append(trace)
+        n_axes = len(axes)
+        layout_axes = []
+        ax_pos = 0
+        color_alpha_cycle = cycle(colors_alpha)
+        for i in range(n_axes):
+            colors = next(color_alpha_cycle)
+            '''anchor='free',
+            overlaying='y',
+            side='left',
+            position=0.15'''
+            ax_pos = i * 0.10
+            layout_axes.append({
+                'yaxis{}'.format(i + 1): dict(
+                    title=axes[i],
+                    titlefont=dict(
+                        color=colors[0]
+                    ),
+                    tickfont=dict(
+                        color=colors[0]
+                    ),
+                    anchor='free',
+                    side='left',
+                    position=ax_pos
+                )
+            })
+        layout = {
+            'title': 'Multivariate data preparation',
+            'xaxis': {
+                'domain': [0.10 * (n_axes - 1), 1],
+                'title': 'Date and time'
+            }
+        }
+        for ax in layout_axes:
+            layout = {**layout, **ax}
+        figure = go.Figure(layout=layout, data=traces)
+        return figure
