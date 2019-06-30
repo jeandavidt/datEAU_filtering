@@ -153,15 +153,6 @@ def clean_up_pulled_data(df,project, location, equipment, parameter):
     df.sort_values('datetime',axis=0, inplace=True)
     parameter = parameter.replace('-','_')
     Unit = df.Unit[0]
-    if Unit == 'kg/m3':
-        df.measurement *= 1000
-        df.Unit='g/m3'
-    elif Unit == 'S/m':
-        df.measurement *=10**4
-        df.Unit = 'uS/cm'
-    elif Unit == 'ppm':
-        df.Unit = 'g/m3'
-    Unit = df.Unit[0]
     df.drop(['Timestamp','Project_name','par','Unit','equipment','Sampling_location'],axis=1, inplace=True)
     df.rename(columns={
         'measurement':'{}-{}-{}-{}-{}'.format(project, location, equipment, parameter, Unit),
@@ -171,7 +162,7 @@ def clean_up_pulled_data(df,project, location, equipment, parameter):
     return df
 
 
-def extract_data(connexion, extraction_list):
+def extract_data(connexion, extract_list):
     for i in range(len(extract_list)):
         query =build_query(extract_list[i]['Start'],
                                extract_list[i]['End'],
@@ -215,8 +206,8 @@ def plot_pulled_data(df):
     
     plt.show()
 
-# cursor, conn = create_connection()
-'''Start = date_to_epoch('2017-09-01 12:00:00')
+cursor, conn = create_connection()
+Start = date_to_epoch('2017-09-01 12:00:00')
 End = date_to_epoch('2017-10-01 12:00:00')
 Location = 'Primary settling tank effluent'
 Project = 'pilEAUte'
@@ -239,7 +230,7 @@ df = extract_data(conn, extract_list)
 print(len(df))
 print('plotting')
 plot_pulled_data(df)
-'''
-# name = 'influent3'
-# path = r"C:\Users\Jean-David Therrien\Desktop\\"
-# df.to_csv(path+name+'.csv',sep=';') 
+
+name = 'influent3'
+path = r"C:\Users\Jean-David Therrien\Desktop\\"
+df.to_csv(path+name+'.csv',sep=';') 

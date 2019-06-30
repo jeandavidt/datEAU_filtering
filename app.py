@@ -194,6 +194,10 @@ app.layout = html.Div([
             html.Button(
                 'Add to selection',
                 id='add-extract-button',
+            ),
+            html.Button(
+                'Graph preview',
+                id='graph-preview-button',
                 className='button-primary'
             ),
             html.Br(),
@@ -684,24 +688,62 @@ def populate_extract_dropdowns(tab, project, location, equipment, parameter):
     [State('project-drop', 'value'),
         State('location-drop','value'),
         State('equip-drop', 'value'),
-        State('parameter-drop', 'options'),
+        State('parameter-drop', 'value'),
+        State('unit-drop', 'value'),
         State('extract-dates', 'start_date'),
         State('extract-dates', 'end_date'),
         State('extract-list', 'options'),
         State('extract-list', 'value')])
-def extract_data(click, project, location, equipment, parameter, unit, start, end, options, value):
+def populate_extract_list(click, project, location, equipment, parameter, unit, start, end, options, value):
     if not click:
         raise PreventUpdate
     else:
-        if options is None:
-            options=[]
-        if value is None:
+        if options is None and value is None:
+            return [[],[]]
+        elif options is not None and value is None:
+            name = '-'.join([project, location, equipment, parameter, unit])
+            options.append({'label':'/'.join([equipment, parameter]), 'value':name})
             value=[]
+            return [options, value]
+        elif options is None and value is not None:
+            options = []
+            value = []
+            return [[], []]
         else:
             name = '-'.join([project, location, equipment, parameter, unit])
             options.append({'label':'/'.join([equipment, parameter]), 'value':name})
             value.append(name)
             return [options, value]
+
+'''@app.callback(
+    Output('sql-store', 'data'),
+    [Input('add-extract-button', 'n_clicks')],
+    [State('extract-dates', 'start_date'),
+        State('extract-dates', 'end_date'),
+        State('extract-list', 'value'),
+        State('sql-store', 'data')])
+def store_sql(click, start, end, extract, current_data):
+    if not click or not start or not end or not extract:
+        raise PreventUpdate
+    else:
+        extract_list={}
+        for i in range(len(extract)):
+            print(extract[i])
+            project, location, equipment, parameter, _ = extract[i].split('-')
+            extract_list[i] = {
+                'Start':start,
+                'End':end,
+                'Project':project,
+                'Location':location,
+                'Parameter':parameter,
+                'Equipment':equipment
+            }
+        df = Dateaubase.extract_data(conn, extract_list)
+        if not current_data:
+            return df.to_json(date_format='iso', orient='split')
+        else:
+            current_df = '''
+
 
 ########################################################################
 # IMPORT TAB #
