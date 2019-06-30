@@ -7,6 +7,7 @@
 
 # ############### Importing the required libraries #########################
 import time
+import json
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -45,7 +46,7 @@ raw_data.set_index('datetime', inplace=True, drop=True)
 Times['import_done'] = time.time()
 
 # Add new data
-# path1 = 'G:\Documents\......\New_data.csv'
+
 # other_data = pd.read_csv(path1,sep=';')
 # other_data.datetime = pd.to_datetime(other_data.datetime)
 # other_data.set_index('datetime', inplace=True, drop=True)
@@ -54,7 +55,7 @@ Times['import_done'] = time.time()
 # resamp_data= raw_data.asfreq('2 min')
 # data = resamp_data.fillna(method='ffill')
 # Times['resample_done'] = time.time()
-data = raw_data
+data = raw_data['15-09-2017 00:00:00':'15-04-2018 00:00:00']
 sensors = Sensors.parse_dataframe(data)
 
 # Plot raw data
@@ -101,23 +102,23 @@ Times['parameters set'] = time.time()
 flag = DataCoherence.data_coherence(channel)
 
 answer = None
-while answer not in ("y", "n"):
-    answer = input("Continue?")
-    if answer == "y":
-        pass
-    elif answer == "n":
-        exit()
-    else:
-        print("Please enter y or n.")
-Times['Data coherence checked'] = time.time()
-channel = DataCoherence.resample(channel, '2 min')
-flag = DataCoherence.data_coherence(channel)
+# while answer not in ("y", "n"):
+#     answer = input("Continue?")
+#     if answer == "y":
+#         pass
+#     elif answer == "n":
+#         exit()
+#     else:
+#         print("Please enter y or n.")
+# Times['Data coherence checked'] = time.time()
+# channel = DataCoherence.resample(channel, '2 min')
+# flag = DataCoherence.data_coherence(channel)
 
-channel = DataCoherence.sort_dat(channel)
-flag = DataCoherence.data_coherence(channel)
+# channel = DataCoherence.sort_dat(channel)
+# flag = DataCoherence.data_coherence(channel)
 
-channel = DataCoherence.fillna(channel)
-flag = DataCoherence.data_coherence(channel)
+# channel = DataCoherence.fillna(channel)
+# flag = DataCoherence.data_coherence(channel)
 
 # ############################ Outlier detection ##########################
 filtration_method = "Online_EWMA"
@@ -125,12 +126,14 @@ channel.params['outlier_detection']['method'] = filtration_method
 
 channel = OutlierDetection.outlier_detection(channel)
 
-Times['outlier detection done'] = time.time()
+# Times['outlier detection done'] = time.time()
 # Plot the outliers detected
 
-PlottingTools.plotOutliers_mpl(channel, filtration_method)
+# PlottingTools.plotOutliers_mpl(channel)
+# plt.show()
+
 # PlottingTools.Plot_Outliers(channel, filtration_method)(data, channel)
-Times['Outliers plotted'] = time.time()
+# Times['Outliers plotted'] = time.time()
 
 ###########################################################################
 # #########################  DATA SMOOTHER   ##############################
@@ -145,21 +148,25 @@ channel.params['data_smoother']['h_smoother'] = 10
 
 # data = Smoother.kernel_smoother(data, channel, channel.params)
 channel = Smoother.kernel_smoother(channel)
-Times['data smoothed'] = time.time()
+# Times['data smoothed'] = time.time()
 
 # Plot filtered data
-# PlottingTools.plotOutliers_mpl(channel, filtration_method)
+# with open('script.json', 'w') as outfile:
+#    json.dump(channel, outfile, indent=4, cls=Sensors.CustomEncoder)
+
+PlottingTools.plotOutliers_mpl(channel)
 # plt.show()
 fault_detect_time = time.time()
-Times['smoothed data plotted'] = time.time()
+# Times['smoothed data plotted'] = time.time()
+# with open('script.json') as json_file:
+#    channel = json.load(json_file, object_hook=Sensors.decode_object)
 
 ##########################################################################
 
 # ############################FAULT DETECTION#############################
 
 ##########################################################################
-# data = pickle.load(open('smooth.p','rb'))
-# channel.params = pickle.load(open('parameters.p','rb'))
+
 
 # Definition range (min and max)for Q_range:
 # minimum real expected value of the variable
@@ -169,45 +176,46 @@ channel.params['fault_detection_uni']['range_min'] = 50
 channel.params['fault_detection_uni']['range_max'] = 550
 
 # Definition limit of scores:
-channel.params['fault_detection_uni']['corr_min'] = -5
-channel.params['fault_detection_uni']['corr_max'] = 5
+channel.params['fault_detection_uni']['corr_min'] = -50
+channel.params['fault_detection_uni']['corr_max'] = 50
 
 # minimum expected slope based on good data series
-channel.params['fault_detection_uni']['slope_min'] = -1
+channel.params['fault_detection_uni']['slope_min'] = -10
 
 # maximum expected slope based on a good data series
-channel.params['fault_detection_uni']['slope_max'] = 1
+channel.params['fault_detection_uni']['slope_max'] = 10
 
 # Minimum variation between accepted data and smoothed data
-channel.params['fault_detection_uni']['std_min'] = -0.1
+channel.params['fault_detection_uni']['std_min'] = -10
 
 # Maximum variation between accepted data and smoothed data
-channel.params['fault_detection_uni']['std_max'] = 0.1
+channel.params['fault_detection_uni']['std_max'] = 10
 
 # Calcul Q_corr, Q_std, Q_slope, Q_range:
-# #data = FaultDetection.D_score(data, channel.params, channel)
-channel = FaultDetection.D_score(channel, filtration_method)
-Times['Faults detected'] = time.time()
+channel = FaultDetection.D_score(channel)
+# Times['Faults detected'] = time.time()
 
 # Plot scores
-PlottingTools.plotDScore_mpl(channel, filtration_method)
-Times['Detected faults plottted'] = time.time()
+# PlottingTools.plotDScore_mpl(channel)
+# plt.show()
+# Times['Detected faults plottted'] = time.time()
 ##########################################################################
 
 # ############################  TREATED DATA   ###########################
-'''
-#To allow to determinate the treated data and deleted data:
-Final_data = TreatedData.TreatedD(data, channel.params,channel)
-Times['Final data generated'] = time.time()
-#plot the raw data and treated data:
-PlottingTools.plotTreatedD(Final_data, channel)
-plt.show()
-Times['Final data plotted'] = time.time()
 
-Timedf = pd.DataFrame(data={'event':list(Times.keys()),'time':list(Times.values())})
+# To allow to determinate the treated data and deleted data:
+channel = TreatedData.TreatedD(channel)
+# Times['Final data generated'] = time.time()
+# plot the raw data and treated data:
+PlottingTools.plotTreatedD_mpl(channel)
+plt.show()
+# Times['Final data plotted'] = time.time()
+
+# Timedf = pd.DataFrame(data={'event': list(Times.keys()), 'time': list(Times.values())})
 
 # Percentage of outliers and deleted data
-Intervariable = TreatedData.InterpCalculator(Final_data, channel)
+filtration_method = channel.info['current_filtration_method']
+print(channel.info['filtration_results'][filtration_method])
 
 
-# save ('Sensor.mat')# Save the whole data '''
+# save ('Sensor.mat')# Save the whole data'''

@@ -21,13 +21,18 @@ def kernel_smoother(channel):
 
     param = channel.params
     h = param['data_smoother']['h_smoother']
-    method = param['outlier_detection']['method']
-    df = channel.filtered[method]
+    method = channel.info['current_filtration_method']
+    df = channel.filtered[method].copy(deep=True)
+    if 'Accepted' not in df.columns:
+        raise Exception('Outlier detection has not been done yet.')
     AD = np.array(df['Accepted']).flatten()
     n_dat = len(AD)
     # Smoothed values
     SmoothedAD = np.full((n_dat,), np.nan)
-
+    for col in ['Q_range', 'Q_slope', 'Q_std', 'Q_range', 'treated', 'deleted']:
+        if col in df.columns:
+            df = df.drop(col, axis=1)
+            print('cols dropped by smoother')
     idx = np.linspace(-h, h, 2 * h + 1)
     idx = [int(i) for i in idx]
 
@@ -60,4 +65,5 @@ def kernel_smoother(channel):
     df['Smoothed_AD'] = SmoothedAD
     df['err'] = err
     channel.filtered[method] = df
+    channel.info['send_to_multivar'] = 'Smoothed_AD'
     return channel

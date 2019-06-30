@@ -1,121 +1,66 @@
-def TreatedD(df, param, name ):
+def TreatedD(channel):
+    # def TreatedD(df, param, name):
     import numpy as np
     import pandas as pd
-    #SMOOTHED_ACCEPTEDDATA
-    #This function allows to validate or not the smoother data. For that, we
-    #compare the data feature calculation (Q_corr, Q_std, Q_slope, Q_Range and
-    #Q_mobilerange). 
-    #How accepted a data: 
-    #0: deleted data 1: treated data. 
+    # SMOOTHED_ACCEPTEDDATA
+    # This function allows to validate or not the smoother data. For that, we
+    # compare the data feature calculation (Q_corr, Q_std, Q_slope, Q_Range and
+    # Q_mobilerange).
+    # How accepted a data:
+    # 0: deleted data 1: treated data.
 
-    #INPUT: 
-    #nb_data: data number in the serie
-    #Data: raw data
-    #SMOOTHED_ACCEPTEDDATA: data smoothed for a parameter
-    #Q_corr: a calculated score
-    #Q_std: a calcultated score
-    #Q_range: a calculated score
-    #Q_slope: a calculated score
-    #Q_mobilerange: a calculated score
-    #param: parameters which find in the function "default_param"
+    # INPUT:
+    # nb_data: data number in the serie
+    # Data: raw data
+    # SMOOTHED_ACCEPTEDDATA: data smoothed for a parameter
+    # Q_corr: a calculated score
+    # Q_std: a calcultated score
+    # Q_range: a calculated score
+    # Q_slope: a calculated score
+    # Q_mobilerange: a calculated score
+    # param: parameters which find in the function "default_param"
 
-    #OUPUT: 
-    #a structure with the treated and deleted data. Two matrix: 
-    #Treateddata: treated data
-    #Deleteddata: deleted data 
+    # OUPUT:
+    # a structure with the treated and deleted data. Two matrix:
+    # Treateddata: treated data
+    # Deleteddata: deleted data
 
+    # Initialisation of Inputs: Here, it takes back the different scores and the
+    # smoothed data.
+    filtration_method = channel.info['current_filtration_method']
+    dat = channel.filtered[filtration_method].copy(deep=True)
+    params = channel.params
 
-    #Initialisation of Inputs: Here, it takes back the different scores and the
-    #smoothed data. 
-    Raw = np.array(df[name]).flatten()
-    outlier = np.array(df[name+"_outlier"]).flatten()
-    Smoothed_AD = np.array(df[name+"_Smoothed_AD"]).flatten()
-    Q_corr = np.array(df[name+"_Qcorr"]).flatten()
-    Q_slope = np.array(df[name+"_Qslope"]).flatten()
-    Q_std = np.array(df[name+"_Qstd"]).flatten()
-    Q_range = np.array(df[name+"_Qrange"]).flatten()
+    corr_min = params['fault_detection_uni']['corr_min']
+    corr_max = params['fault_detection_uni']['corr_max']
+    slope_min = params['fault_detection_uni']['slope_min']
+    slope_max = params['fault_detection_uni']['slope_max']
+    std_min = params['fault_detection_uni']['std_min']
+    std_max = params['fault_detection_uni']['std_max']
+    range_min = params['fault_detection_uni']['range_min']
+    range_max = params['fault_detection_uni']['range_max']
 
-    # Test correlation limits:
-    Val_corr_min = Q_corr > param['fault_detection_uni']['corr_min']
-    Val_corr_max = Q_corr < param['fault_detection_uni']['corr_max']
-    Val_slope_min = Q_slope > param['fault_detection_uni']['slope_min']
-    Val_slope_max = Q_slope < param['fault_detection_uni']['slope_max']
-    Val_std_min = Q_std > param['fault_detection_uni']['std_min']
-    Val_std_max = Q_std < param['fault_detection_uni']['std_max']
+    if 'raw' not in dat.columns:
+        dat = dat.join(channel.raw_data['raw'], how='left')
 
+    dat['val_corr'] = dat['Q_corr'].between(corr_min, corr_max)
+    dat['val_slope'] = dat['Q_slope'].between(slope_min, slope_max)
+    dat['val_std'] = dat['Q_std'].between(std_min, std_max)
+    dat['val_range'] = dat['Q_slope'].between(slope_min, slope_max)
+    dat['val_range'] = dat['Smoothed_AD'].between(range_min, range_max)
+    dat['treated'] = dat.val_corr & dat.val_slope & dat.val_std & dat.val_range
+    dat['deleted'] = ~ dat.treated
+    dat['treated'] = (dat['treated'] * dat['Smoothed_AD']).replace(0, np.nan)
+    dat['deleted'] = (dat['deleted'] * dat['Smoothed_AD']).replace(0, np.nan)
 
-    # Aggregate values that comply both with minimum correlation and maximum correlation.
-    idx_corr = Val_corr_min * Val_corr_max
-    idx_slope = Val_slope_min * Val_slope_max
-    idx_std = Val_std_min * Val_std_max
-    idx_range = Q_range
+    n_del = (dat['deleted'] > 0).sum()
+    n_dat = len(dat)
+    n_outlier = (dat['outlier'] > 0).sum()
+    dat.drop(['val_corr', 'val_slope', 'val_std', 'val_range', 'raw'], axis=1)
 
-    idx_tot = idx_corr * idx_slope * idx_std * idx_range
-
-
-    #Generation of outputs: 
-    Treateddata =  Smoothed_AD * idx_tot.astype('int')
-    Deleteddata = Smoothed_AD * ~idx_tot.astype('int')
-    
-    for i in range(len(Smoothed_AD)):#i=1:length (Smoothed_AD):
-        
-        if idx_tot[i] == 0:
-            Treateddata[i] = np.nan
-        
-        
-        elif idx_tot[i] == 1:
-            Deleteddata[i] = np.nan
-        
-    
-    
-    #Generalization of OUPUTS:
-    Final_D = pd.DataFrame(data={
-        name+"_raw":Raw,
-        name+'_outlier': outlier,
-        name+'_Treated':Treateddata, 
-        name+'_Deleted':Deleteddata
-        })
-  
-    return Final_D
-
-def InterpCalculator(final_df, name):
-    import numpy as np
-    import pandas as pd
-    #This function allows to calculate different variable to interprate the
-    #data filtration. 
-
-    #Input: 
-    # Data: Raw data 
-    # Outlier: the outlier obtained
-    # DataValidated: data 
-
-    #Output:
-    # PercenOutlier: Outlier percentage
-    #LosingData: number of data lose. 
-
-    #Initialization of INPUTS:
-    DATA = np.array(final_df[name+'_raw']).flatten()
-    Outlier = np.array(final_df[name+'_outlier']).flatten()
-    Deleteddata = np.array(final_df[name+'_Deleted']).flatten()
-
-    Datatot = len(DATA)
-
-    #Percentage Outliers:
-    Out = Outlier[Outlier==1]
-    Outtot = len(Out)
-    PercenOutlier = ( Outtot/ Datatot) * 100
-
-    #Percentage data losing
-    Deleted = len(Deleteddata[Deleteddata>0])
-
-    PerceletedData = (100-((Datatot - Deleted)/ Datatot) * 100)
-
-    #Generalization Outputs: 
-    Intervariable={}
-    Intervariable[name+'_PercenOutlier'] = PercenOutlier
-    Intervariable[name+'_PercenLosingData'] = PerceletedData
-
-    
-
-
-    return Intervariable
+    channel.filtered[filtration_method] = dat
+    channel.info['filtration_results'][filtration_method] = {}
+    channel.info['filtration_results'][filtration_method]['percent_outlier'] = n_outlier / n_dat * 100
+    channel.info['filtration_results'][filtration_method]['percent_loss'] = (n_del) / n_dat * 100
+    channel.info['send_to_multivar'] = 'treated'
+    return channel
