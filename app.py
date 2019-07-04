@@ -35,10 +35,7 @@ app.config['suppress_callback_exceptions'] = True
 ########################################################################
 # creating link to datEAUbase #
 ########################################################################
-try:
-    cursor, conn = Dateaubase.create_connection()
-except Exception:
-    pass
+
 ########################################################################
 # Table Building helper function #
 ########################################################################
@@ -230,9 +227,16 @@ app.layout = html.Div([
                             className='button-primary',
                         ),
                         html.Br(),
-                        dcc.Graph(
-                            id='extract-graph'
-                        ),
+                        html.Div([
+                            dcc.Graph(
+                                id='extract-graph',
+                                style={'width': '70%', 'display': 'inline-block'}
+                            ),
+                            html.Div(
+                                id='sql-info-div',
+                                style={'width': '30%', 'display': 'inline-block'})
+                        ]),
+                        
                         html.Br(),
                         html.Button(
                             'Use for analysis',
@@ -865,6 +869,10 @@ def show_layout(project):
         Input('equip-drop', 'value'),
         Input('parameter-drop','value')])
 def populate_extract_dropdowns(tab, project, location, equipment, parameter):
+    try:
+        cursor, conn = Dateaubase.create_connection()
+    except Exception:
+        raise PreventUpdate
     if tab != 'extract':
         raise PreventUpdate
     elif not project and not location and not equipment and not parameter:
@@ -959,6 +967,33 @@ def populate_extract_list(click, project, location, equipment, parameter, unit, 
             return [options, value]
 
 @app.callback(
+    Output('sql-info-div', 'children'),
+    [Input('unit-drop', 'value')],
+    [State('project-drop','value'),
+        State('location-drop','value'),
+        State('equip-drop', 'value'),
+        State('parameter-drop', 'value')]
+)
+def get_valid_dates(unit, project, location, equipment, parameter):
+    try:
+        cursor, conn = Dateaubase.create_connection()
+    except Exception:
+        raise PreventUpdate
+    if not unit or not location or not equipment or not parameter:
+        raise PreventUpdate
+    else:
+        try:
+            cursor, conn = Dateaubase.create_connection()
+            first, last = Dateaubase.get_span(conn, project, location, equipment, parameter)
+            return html.P('Data for this parameter spans from {} to {}.'.format(first, last))
+        except Exception:
+            raise PreventUpdate
+        
+        
+
+
+
+@app.callback(
     Output('extract-graph', 'figure'),
     [Input('sql-store', 'data')]
 )
@@ -977,6 +1012,11 @@ def graph_extracted(data):
         State('extract-dates', 'end_date'),
         State('extract-list', 'value')])
 def store_sql(click, start, end, extract):
+    try:
+        cursor, conn = Dateaubase.create_connection()
+    except Exception:
+        raise PreventUpdate
+
     if not click or not start or not end or not extract:
         raise PreventUpdate
     else:

@@ -148,27 +148,6 @@ AND dbo.project.Project_name = \'{}\'
 order by dbo.value.Value_ID;
 '''.format(start, end, location, parameter,equipment, project)
 
-def get_span(connection, project, location, equipment, parameter):
-    query ='''SELECT  MIN(dbo.value.Timestamp), MAX(dbo.value.Timestamp)
-    FROM dbo.parameter
-    left outer join dbo.metadata on dbo.parameter.Parameter_ID = dbo.metadata.Parameter_ID 
-    left outer join dbo.value on dbo.value.Metadata_ID = dbo.metadata.Metadata_ID
-    left outer join dbo.unit on dbo.parameter.Unit_ID = dbo.unit.Unit_ID
-    left outer join dbo.equipment on dbo.metadata.Equipment_ID = dbo.equipment.Equipment_ID
-    left outer join dbo.sampling_points on dbo.metadata.Sampling_point_ID = dbo.sampling_points.Sampling_point_ID
-    left outer join dbo.project on dbo.metadata.Project_ID = dbo.project.Project_ID
-    WHERE dbo.sampling_points.Sampling_location = \'{}\'
-    AND dbo.parameter.Parameter = \'{}\'
-    AND dbo.equipment.Equipment_identifier = \'{}\'
-    AND dbo.project.Project_name = \'{}\';
-    '''.format(location, parameter,equipment, project)
-
-    df = pd.read_sql(query, connection)
-    df.columns=['first','last']
-    first = epoch_to_pandas_datetime(df.at[0,'first'])
-    last = epoch_to_pandas_datetime(df.at[0,'last']) 
-    return first, last
-
 def clean_up_pulled_data(df,project, location, equipment, parameter):
     
 
