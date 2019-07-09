@@ -778,26 +778,26 @@ def show_q_residuals_plotly(df, limits):
 
         if Q_lim is None:
             layout = go.Layout(
-            title='PCA model residuals',
-            yaxis=dict(
-                title='Q (normalised units)',
-            ),
-            xaxis=dict(title='Date and time'),
+                title='PCA model residuals',
+                yaxis=dict(
+                    title='Q (normalised units)',
+                ),
+                xaxis=dict(title='Date and time'),
 
-            shapes=[{
-                'type': 'line',
-                'xref': 'x',
-                'x0': start,
-                'x1': end,
-                'y0': Q_lim,
-                'y1': Q_lim,
-                'line': {
-                    'color': COLOR_PALETTE[3],
-                    'dash': 'dashdot',
-                    'width': 2
-                },
-            }],
-        )
+                shapes=[{
+                    'type': 'line',
+                    'xref': 'x',
+                    'x0': start,
+                    'x1': end,
+                    'y0': Q_lim,
+                    'y1': Q_lim,
+                    'line': {
+                        'color': COLOR_PALETTE[3],
+                        'dash': 'dashdot',
+                        'width': 2
+                    },
+                }],
+            )
         else:
             layout = go.Layout(
                 title='PCA model residuals',
@@ -1035,5 +1035,5 @@ def extract_plotly(df):
         layout = {**layout, **ax}
 
     figure = go.Figure(data=traces, layout=layout)
-    
+
     return figure

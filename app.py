@@ -41,6 +41,12 @@ app.config['suppress_callback_exceptions'] = True
 ########################################################################
 
 
+def graph_div(_id):
+    div = html.Div(
+    )
+    return
+
+
 def build_param_table(_id):
     table = dash_table.DataTable(
         id=_id,
@@ -128,9 +134,9 @@ def small_graph(_id, title):
 
 def get_options(df):
     options = []
-    df.columns=['value']
+    df.columns = ['value']
     for _, row in df.iterrows():
-        options.append({'label':row['value'], 'value':row['value']})
+        options.append({'label': row['value'], 'value': row['value']})
     return options
 
 
@@ -157,8 +163,10 @@ app.layout = html.Div([
         id='tabs-content',
         children=[
             dcc.Tabs(
-                id="tabs", value='import', children=[
-                     dcc.Tab(label='Data Extraction', value='extract',children=[
+                id="tabs",
+                value='import',
+                children=[
+                    dcc.Tab(label='Data Extraction', value='extract', children=[
                         html.Br(),
                         dcc.Dropdown(
                             id='project-drop',
@@ -185,7 +193,6 @@ app.layout = html.Div([
                             options=[]
                         ),
                         html.Br(),
-                        
                         dcc.Dropdown(
                             id='parameter-drop',
                             multi=False,
@@ -218,7 +225,7 @@ app.layout = html.Div([
                             end_date=datetime.now(),
                             min_date_allowed=datetime(2016, 1, 1),
                             max_date_allowed=datetime.now(),
-                            initial_visible_month = datetime.now()
+                            initial_visible_month=datetime.now()
                         ),
                         html.Div(style={'width': '10%', 'display': 'inline-block'}),
                         html.Button(
@@ -852,10 +859,10 @@ def show_layout(project):
             html.Br(),
             html.Img(
                 src=app.get_asset_url('layout_pileaute.png'),
-                style={'width': '800px', 'padding-left': '10%','padding-right': '10%' , 'textAlign': 'center'})
+                style={'width': '800px', 'padding-left': '10%', 'padding-right': '10%', 'textAlign': 'center'})
         ]
     else:
-        return html.H6(dcc.Markdown('*Layout unavailable*'),style={'textAlign': 'center'})
+        return html.H6(dcc.Markdown('*Layout unavailable*'), style={'textAlign': 'center'})
 
 @app.callback(
     [Output('project-drop', 'options'),
@@ -865,9 +872,9 @@ def show_layout(project):
         Output('unit-drop', 'options')],
     [Input('tabs', 'value'),
         Input('project-drop', 'value'),
-        Input('location-drop','value'),
+        Input('location-drop', 'value'),
         Input('equip-drop', 'value'),
-        Input('parameter-drop','value')])
+        Input('parameter-drop', 'value')])
 def populate_extract_dropdowns(tab, project, location, equipment, parameter):
     try:
         cursor, conn = Dateaubase.create_connection()
@@ -879,7 +886,7 @@ def populate_extract_dropdowns(tab, project, location, equipment, parameter):
         projects = Dateaubase.get_projects(conn)
         opt_proj = get_options(projects)
         return [opt_proj, [], [], [], []]
-    elif project is not None and not location and not equipment  and not parameter:
+    elif project is not None and not location and not equipment and not parameter:
         projects = Dateaubase.get_projects(conn)
         opt_proj = get_options(projects)
 
@@ -887,7 +894,7 @@ def populate_extract_dropdowns(tab, project, location, equipment, parameter):
         opt_loc = get_options(locations)
         return [opt_proj, opt_loc, [], [], []]
 
-    elif project is not None and location is not None and not equipment  and not parameter:
+    elif project is not None and location is not None and not equipment and not parameter:
         projects = Dateaubase.get_projects(conn)
         opt_proj = get_options(projects)
 
@@ -937,7 +944,7 @@ def populate_extract_dropdowns(tab, project, location, equipment, parameter):
         Output('extract-list', 'value')],
     [Input('add-extract-button', 'n_clicks')],
     [State('project-drop', 'value'),
-        State('location-drop','value'),
+        State('location-drop', 'value'),
         State('equip-drop', 'value'),
         State('parameter-drop', 'value'),
         State('unit-drop', 'value'),
@@ -950,11 +957,11 @@ def populate_extract_list(click, project, location, equipment, parameter, unit, 
         raise PreventUpdate
     else:
         if options is None and value is None:
-            return [[],[]]
+            return [[], []]
         elif options is not None and value is None:
             name = '*'.join([project, location, equipment, parameter, unit])
-            options.append({'label':' '.join([equipment, parameter]), 'value':name})
-            value=[name]
+            options.append({'label': ' '.join([equipment, parameter]), 'value': name})
+            value = [name]
             return [options, value]
         elif options is None and value is not None:
             options = []
@@ -962,7 +969,7 @@ def populate_extract_list(click, project, location, equipment, parameter, unit, 
             return [[], []]
         else:
             name = '*'.join([project, location, equipment, parameter, unit])
-            options.append({'label':' '.join([equipment, parameter]), 'value':name})
+            options.append({'label': ' '.join([equipment, parameter]), 'value': name})
             value.append(name)
             return [options, value]
 
@@ -1020,17 +1027,17 @@ def store_sql(click, start, end, extract):
     if not click or not start or not end or not extract:
         raise PreventUpdate
     else:
-        extract_list={}
+        extract_list = {}
         for i in range(len(extract)):
             print(extract[i])
             project, location, equipment, parameter, _ = extract[i].split('*')
             extract_list[i] = {
-                'Start':Dateaubase.date_to_epoch(start),
-                'End':Dateaubase.date_to_epoch(end),
-                'Project':project,
-                'Location':location,
-                'Parameter':parameter,
-                'Equipment':equipment
+                'Start': Dateaubase.date_to_epoch(start),
+                'End': Dateaubase.date_to_epoch(end),
+                'Project': project,
+                'Location': location,
+                'Parameter': parameter,
+                'Equipment': equipment
             }
         df = Dateaubase.extract_data(conn, extract_list)
         return df.to_json(date_format='iso', orient='split')
@@ -1150,7 +1157,6 @@ def store_raw(click_import, data, series, start, end, sql_dat):
         raise PreventUpdate
     ctx = dash.callback_context
     trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-    
     if trigger == 'save-button':
         start = pd.to_datetime(start)
         end = pd.to_datetime(end)
@@ -1200,7 +1206,7 @@ def show_univar_list(data):
     [Input('session-store', 'data'),
         Input('modif-store', 'data'),
         Input('sql-store', 'data')])
-    #[State('upload-sensor-data', 'filename')])
+# [State('upload-sensor-data', 'filename')])
 def create_sensors(original_data, modif_data, sql_data):  # sensor_upload, sensor_filename
     ctx = dash.callback_context
     trigger = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -1224,7 +1230,6 @@ def create_sensors(original_data, modif_data, sql_data):  # sensor_upload, senso
         serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
         return serialized
 
-        
 @app.callback(
     Output('modif-store', 'data'),
     [Input('fillna-button', 'n_clicks'),
