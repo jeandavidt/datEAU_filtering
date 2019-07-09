@@ -44,6 +44,12 @@ except Exception:
 ########################################################################
 
 
+def graph_div(_id):
+    div = html.Div(
+    )
+    return
+
+
 def build_param_table(_id):
     table = dash_table.DataTable(
         id=_id,
