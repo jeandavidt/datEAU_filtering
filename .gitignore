@@ -12,3 +12,5 @@ login.txt
 *.pyc
 clip.py
 /__pycache__
+*.svg
+figures/figure-1.svg

@@ -128,9 +128,9 @@ def small_graph(_id, title):
 
 def get_options(df):
     options = []
-    df.columns=['value']
+    df.columns = ['value']
     for _, row in df.iterrows():
-        options.append({'label':row['value'], 'value':row['value']})
+        options.append({'label': row['value'], 'value': row['value']})
     return options
 
 
@@ -158,98 +158,99 @@ app.layout = html.Div([
         children=[
             dcc.Tabs(
                 id="tabs", value='import', children=[
-                     dcc.Tab(label='Data Extraction', value='extract',children=[
-                        html.Br(),
-                        dcc.Dropdown(
-                            id='project-drop',
-                            multi=False,
-                            placeholder='Select a model*EAU* project.',
-                        ),
-                        html.Br(),
-                        html.Div(
-                            id='proj-layout-div',
-                            style={'width': '100%', 'display': 'inline-block', 'verticalAlign': 'middle'}
-                        ),
-                        html.Br(),
-                        dcc.Dropdown(
-                            id='location-drop',
-                            multi=False,
-                            placeholder='Select a sensor location.',
-                            options=[]
-                        ),
-                        html.Br(),
-                        dcc.Dropdown(
-                            id='equip-drop',
-                            multi=False,
-                            placeholder='Select a sensor.',
-                            options=[]
-                        ),
-                        html.Br(),
-                        
-                        dcc.Dropdown(
-                            id='parameter-drop',
-                            multi=False,
-                            placeholder='Select a water quality parameter.',
-                            options=[],
-                        ),
-                        html.Br(),
-                        dcc.Dropdown(
-                            id='unit-drop',
-                            multi=False,
-                            placeholder='Select the desired units.',
-                            options=[],
-                        ),
-                        html.Br(),
-                        html.Button(
-                            'Add to selection',
-                            id='add-extract-button',
-                        ),
-                        html.Br(),
-                        html.Hr(),
-                        dcc.Dropdown(
-                            id='extract-list',
-                            multi=True,
-                            placeholder='Selected data series will appear here',
-                            options=[]
-                        ),
-                        dcc.DatePickerRange(
-                            id='extract-dates',
-                            start_date=datetime.now() - timedelta(days=7),
-                            end_date=datetime.now(),
-                            min_date_allowed=datetime(2016, 1, 1),
-                            max_date_allowed=datetime.now(),
-                            initial_visible_month = datetime.now()
-                        ),
-                        html.Div(style={'width': '10%', 'display': 'inline-block'}),
-                        html.Button(
-                            'Extract data',
-                            id='extract-button',
-                            className='button-primary',
-                        ),
-                        html.Br(),
-                        html.Div([
-                            dcc.Graph(
-                                id='extract-graph',
-                                style={'width': '70%', 'display': 'inline-block'}
+                    dcc.Tab(
+                        label='Data Extraction',
+                        value='extract',
+                        children=[
+                            html.Br(),
+                            dcc.Dropdown(
+                                id='project-drop',
+                                multi=False,
+                                placeholder='Select a model*EAU* project.',
                             ),
+                            html.Br(),
                             html.Div(
-                                id='sql-info-div',
-                                style={'width': '30%', 'display': 'inline-block'})
-                        ]),
-                        
-                        html.Br(),
-                        html.Button(
-                            'Use for analysis',
-                            id='send-extract-to-analysis-button'
-                        ),
-                        html.Button(
-                            html.A(
-                                'Download raw data',
-                                id='download-raw-link'
+                                id='proj-layout-div',
+                                style={'width': '100%', 'display': 'inline-block', 'verticalAlign': 'middle'}
                             ),
-                            id='download-raw-button'
-                        )
-                    ]),
+                            html.Br(),
+                            dcc.Dropdown(
+                                id='location-drop',
+                                multi=False,
+                                placeholder='Select a sensor location.',
+                                options=[]
+                            ),
+                            html.Br(),
+                            dcc.Dropdown(
+                                id='equip-drop',
+                                multi=False,
+                                placeholder='Select a sensor.',
+                                options=[]
+                            ),
+                            html.Br(),
+                            dcc.Dropdown(
+                                id='parameter-drop',
+                                multi=False,
+                                placeholder='Select a water quality parameter.',
+                                options=[],
+                            ),
+                            html.Br(),
+                            dcc.Dropdown(
+                                id='unit-drop',
+                                multi=False,
+                                placeholder='Select the desired units.',
+                                options=[],
+                            ),
+                            html.Br(),
+                            html.Button(
+                                'Add to selection',
+                                id='add-extract-button',
+                            ),
+                            html.Br(),
+                            html.Hr(),
+                            dcc.Dropdown(
+                                id='extract-list',
+                                multi=True,
+                                placeholder='Selected data series will appear here',
+                                options=[]
+                            ),
+                            dcc.DatePickerRange(
+                                id='extract-dates',
+                                start_date=datetime.now() - timedelta(days=7),
+                                end_date=datetime.now(),
+                                min_date_allowed=datetime(2016, 1, 1),
+                                max_date_allowed=datetime.now(),
+                                initial_visible_month=datetime.now()
+                            ),
+                            html.Div(style={'width': '10%', 'display': 'inline-block'}),
+                            html.Button(
+                                'Extract data',
+                                id='extract-button',
+                                className='button-primary',
+                            ),
+                            html.Br(),
+                            html.Div([
+                                dcc.Graph(
+                                    id='extract-graph',
+                                    style={'width': '70%', 'display': 'inline-block', 'float': 'left'}
+                                ),
+                                html.Div(
+                                    id='sql-info-div',
+                                    style={'width': '25%', 'display': 'inline-block', 'float': 'right'})
+                            ]),
+                            html.Br(),
+                            html.Button(
+                                'Use for analysis',
+                                id='send-extract-to-analysis-button'
+                            ),
+                            html.Button(
+                                html.A(
+                                    'Download raw data',
+                                    id='download-raw-link'
+                                ),
+                                id='download-raw-button'
+                            )
+                        ]),
                     dcc.Tab(label='Data Import', value='import', children=[
                         html.Div([
                             html.H3('Import data'),
@@ -852,10 +853,10 @@ def show_layout(project):
             html.Br(),
             html.Img(
                 src=app.get_asset_url('layout_pileaute.png'),
-                style={'width': '800px', 'padding-left': '10%','padding-right': '10%' , 'textAlign': 'center'})
+                style={'width': '800px', 'padding-left': '10%', 'padding-right': '10%', 'textAlign': 'center'})
         ]
     else:
-        return html.H6(dcc.Markdown('*Layout unavailable*'),style={'textAlign': 'center'})
+        return html.H6(dcc.Markdown('*Layout unavailable*'), style={'textAlign': 'center'})
 
 @app.callback(
     [Output('project-drop', 'options'),
@@ -865,12 +866,12 @@ def show_layout(project):
         Output('unit-drop', 'options')],
     [Input('tabs', 'value'),
         Input('project-drop', 'value'),
-        Input('location-drop','value'),
+        Input('location-drop', 'value'),
         Input('equip-drop', 'value'),
-        Input('parameter-drop','value')])
+        Input('parameter-drop', 'value')])
 def populate_extract_dropdowns(tab, project, location, equipment, parameter):
     try:
-        cursor, conn = Dateaubase.create_connection()
+        _, conn = Dateaubase.create_connection()
     except Exception:
         raise PreventUpdate
     if tab != 'extract':
@@ -879,7 +880,7 @@ def populate_extract_dropdowns(tab, project, location, equipment, parameter):
         projects = Dateaubase.get_projects(conn)
         opt_proj = get_options(projects)
         return [opt_proj, [], [], [], []]
-    elif project is not None and not location and not equipment  and not parameter:
+    elif project is not None and not location and not equipment and not parameter:
         projects = Dateaubase.get_projects(conn)
         opt_proj = get_options(projects)
 
@@ -887,7 +888,7 @@ def populate_extract_dropdowns(tab, project, location, equipment, parameter):
         opt_loc = get_options(locations)
         return [opt_proj, opt_loc, [], [], []]
 
-    elif project is not None and location is not None and not equipment  and not parameter:
+    elif project is not None and location is not None and not equipment and not parameter:
         projects = Dateaubase.get_projects(conn)
         opt_proj = get_options(projects)
 
@@ -937,7 +938,7 @@ def populate_extract_dropdowns(tab, project, location, equipment, parameter):
         Output('extract-list', 'value')],
     [Input('add-extract-button', 'n_clicks')],
     [State('project-drop', 'value'),
-        State('location-drop','value'),
+        State('location-drop', 'value'),
         State('equip-drop', 'value'),
         State('parameter-drop', 'value'),
         State('unit-drop', 'value'),
@@ -950,11 +951,11 @@ def populate_extract_list(click, project, location, equipment, parameter, unit, 
         raise PreventUpdate
     else:
         if options is None and value is None:
-            return [[],[]]
+            return [[], []]
         elif options is not None and value is None:
             name = '*'.join([project, location, equipment, parameter, unit])
-            options.append({'label':' '.join([equipment, parameter]), 'value':name})
-            value=[name]
+            options.append({'label': ' '.join([equipment, parameter]), 'value': name})
+            value = [name]
             return [options, value]
         elif options is None and value is not None:
             options = []
@@ -962,36 +963,41 @@ def populate_extract_list(click, project, location, equipment, parameter, unit, 
             return [[], []]
         else:
             name = '*'.join([project, location, equipment, parameter, unit])
-            options.append({'label':' '.join([equipment, parameter]), 'value':name})
+            options.append({'label': ' '.join([equipment, parameter]), 'value': name})
             value.append(name)
             return [options, value]
 
 @app.callback(
     Output('sql-info-div', 'children'),
     [Input('unit-drop', 'value')],
-    [State('project-drop','value'),
-        State('location-drop','value'),
+    [State('project-drop', 'value'),
+        State('location-drop', 'value'),
         State('equip-drop', 'value'),
         State('parameter-drop', 'value')]
 )
 def get_valid_dates(unit, project, location, equipment, parameter):
     try:
-        cursor, conn = Dateaubase.create_connection()
+        _, conn = Dateaubase.create_connection()
     except Exception:
         raise PreventUpdate
     if not unit or not location or not equipment or not parameter:
         raise PreventUpdate
     else:
         try:
-            cursor, conn = Dateaubase.create_connection()
+            _, conn = Dateaubase.create_connection()
             first, last = Dateaubase.get_span(conn, project, location, equipment, parameter)
-            return html.P('Data for this parameter spans from {} to {}.'.format(first, last))
+            return [
+                html.H6('Valid dates for {}-{}:'.format(equipment, parameter)),
+                html.Br(),
+                html.Strong('First valid date'),
+                html.Br(),
+                html.P(str(first)),
+                html.Strong('Last valid date'),
+                html.Br(),
+                html.P(str(last)),
+            ]
         except Exception:
             raise PreventUpdate
-        
-        
-
-
 
 @app.callback(
     Output('extract-graph', 'figure'),
@@ -1013,24 +1019,24 @@ def graph_extracted(data):
         State('extract-list', 'value')])
 def store_sql(click, start, end, extract):
     try:
-        cursor, conn = Dateaubase.create_connection()
+        _, conn = Dateaubase.create_connection()
     except Exception:
         raise PreventUpdate
 
     if not click or not start or not end or not extract:
         raise PreventUpdate
     else:
-        extract_list={}
+        extract_list = {}
         for i in range(len(extract)):
             print(extract[i])
             project, location, equipment, parameter, _ = extract[i].split('*')
             extract_list[i] = {
-                'Start':Dateaubase.date_to_epoch(start),
-                'End':Dateaubase.date_to_epoch(end),
-                'Project':project,
-                'Location':location,
-                'Parameter':parameter,
-                'Equipment':equipment
+                'Start': Dateaubase.date_to_epoch(start),
+                'End': Dateaubase.date_to_epoch(end),
+                'Project': project,
+                'Location': location,
+                'Parameter': parameter,
+                'Equipment': equipment
             }
         df = Dateaubase.extract_data(conn, extract_list)
         return df.to_json(date_format='iso', orient='split')
@@ -1150,7 +1156,7 @@ def store_raw(click_import, data, series, start, end, sql_dat):
         raise PreventUpdate
     ctx = dash.callback_context
     trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-    
+
     if trigger == 'save-button':
         start = pd.to_datetime(start)
         end = pd.to_datetime(end)
@@ -1200,7 +1206,7 @@ def show_univar_list(data):
     [Input('session-store', 'data'),
         Input('modif-store', 'data'),
         Input('sql-store', 'data')])
-    #[State('upload-sensor-data', 'filename')])
+# [State('upload-sensor-data', 'filename')])
 def create_sensors(original_data, modif_data, sql_data):  # sensor_upload, sensor_filename
     ctx = dash.callback_context
     trigger = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -1224,7 +1230,7 @@ def create_sensors(original_data, modif_data, sql_data):  # sensor_upload, senso
         serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
         return serialized
 
-        
+
 @app.callback(
     Output('modif-store', 'data'),
     [Input('fillna-button', 'n_clicks'),
@@ -1601,8 +1607,6 @@ def update_faults_figures(
         raise PreventUpdate
     else:
         channel = get_channel(data, series)
-        start = channel.raw_data.first_valid_index()
-        end = channel.raw_data.last_valid_index()
         method = channel.info['current_filtration_method']
         fig_list = {'corr': corr_fig, 'slope': slope_fig, 'std': std_fig, 'range': range_fig}
         if 'Q_range' in channel.filtered[method].columns:
@@ -1857,7 +1861,7 @@ def multivar_fit(click, sensor_data, series_info, calib_info, min_var_exp, alpha
         df = regroup_multivar_data(sensor_data, series_info)
         param_names = []
         for column in df.columns:
-            typ, project, location, equipment, parameter, unit = column.split('-')
+            typ, _, _, equipment, parameter, _ = column.split('-')
             param_names.append('{}: {} {}'.format(typ, equipment, parameter))
 
         start_cal = calib_info['start']
