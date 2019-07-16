@@ -36,7 +36,7 @@ def build_pca(x_bar, min_var_exp):
     explained = 0.
     for i in range(n_components):
         explained += svd_feat['exp_var'][i]
-        if (i > 1 and explained > min_var_exp):
+        if (i >= 1 and explained > min_var_exp):
             model['n_comp'] = i + 1
             model['exp_var'] = explained
             break

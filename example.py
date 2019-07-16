@@ -105,10 +105,10 @@ def update_link(value):
 @app.server.route('/dash/urlToDownload')
 def download_csv():
     value = flask.request.args.get('value')
-    # create a dynamic json or file here using `StringIO`
-    # (instead of writing to the file system)
+    df = pd.read_json(value)
+    down = df.to_csv(sep=';')
     str_io = io.StringIO()
-    str_io.write(str(value))
+    str_io.write(str(down))
     mem = io.BytesIO()
     mem.write(str_io.getvalue().encode('utf-8'))
     mem.seek(0)

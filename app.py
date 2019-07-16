@@ -1028,7 +1028,6 @@ def store_sql(click, start, end, extract):
     else:
         extract_list = {}
         for i in range(len(extract)):
-            print(extract[i])
             project, location, equipment, parameter, _ = extract[i].split('*')
             extract_list[i] = {
                 'Start': Dateaubase.date_to_epoch(start),
@@ -1045,8 +1044,6 @@ def store_sql(click, start, end, extract):
 ########################################################################
 # IMPORT TAB #
 ########################################################################
-
-
 @app.callback(
     Output('output-data-upload', 'children'),
     [Input('upload-data', 'contents')],
@@ -1151,12 +1148,11 @@ def check_if_ready_to_save(series):
         State('import-dates', 'start_date'),
         State('import-dates', 'end_date')]
 )
-def store_raw(click_import, data, series, start, end, sql_dat):
+def store_raw(click_import, data, series, start, end):
     if not click_import:
         raise PreventUpdate
     ctx = dash.callback_context
     trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-
     if trigger == 'save-button':
         start = pd.to_datetime(start)
         end = pd.to_datetime(end)
@@ -1167,8 +1163,6 @@ def store_raw(click_import, data, series, start, end, sql_dat):
         filtered = df.loc[start:end, series]
         to_save = filtered.to_json(date_format='iso', orient='split')
         return to_save
-    elif trigger == 'send-extract-to-analysis-button':
-        return sql_dat
 
 
 ########################################################################
@@ -1205,13 +1199,22 @@ def show_univar_list(data):
     Output('sensors-store', 'data'),
     [Input('session-store', 'data'),
         Input('modif-store', 'data'),
-        Input('sql-store', 'data')])
+        Input('send-extract-to-analysis-button', 'n_clicks')],
+    [State('sql-store', 'data')])
 # [State('upload-sensor-data', 'filename')])
-def create_sensors(original_data, modif_data, sql_data):  # sensor_upload, sensor_filename
+def create_sensors(original_data, modif_data, extr_butt, sql_data):  # sensor_upload, sensor_filename
     ctx = dash.callback_context
     trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-    if trigger == 'session-store':
-        if not original_data:
+    if trigger == 'send-extract-to-analysis-button':
+        if sql_data is None:
+            raise PreventUpdate
+        else:
+            df = pd.read_json(sql_data, orient='split')
+            sensors = Sensors.parse_dataframe(df)
+            serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
+            return serialized
+    else:
+        if not original_data and not modif_data:
             raise PreventUpdate
         elif modif_data == original_data:
             raise PreventUpdate
@@ -1220,16 +1223,8 @@ def create_sensors(original_data, modif_data, sql_data):  # sensor_upload, senso
             sensors = Sensors.parse_dataframe(df)
             serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
             return serialized
-        elif modif_data == original_data:
-            raise PreventUpdate
         else:
             return modif_data
-    elif trigger == 'sql-store':
-        df = pd.read_json(sql_data, orient='split')
-        sensors = Sensors.parse_dataframe(df)
-        serialized = json.dumps(sensors, indent=4, cls=Sensors.CustomEncoder)
-        return serialized
-
 
 @app.callback(
     Output('modif-store', 'data'),
@@ -1262,12 +1257,11 @@ def modify_sensors(
         sensor_data, channel_info, frequency, par_outlier, par_smooth,
         par_f_uni, calib_start, corr, slope, std, _range):
     ctx = dash.callback_context
+    trigger = ctx.triggered[0]['prop_id'].split('.')[0]
     if not sensor_data:
         raise PreventUpdate
     else:
         sensors, sensor_index, channel = get_sensors_and_channel(sensor_data, channel_info)
-        trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-
         if trigger == 'fillna-button':
             channel = DataCoherence.fillna(channel)
 
@@ -1531,7 +1525,7 @@ def add_interval_fit(selection):
     [Input('select-series', 'value'),
         Input('sensors-store', 'data')])
 def fill_params_table(channel_info, data):
-    if channel_info is None:
+    if channel_info is None or data is None:
         raise PreventUpdate
     else:
         channel = get_channel(data, channel_info)
@@ -1975,6 +1969,32 @@ def plot_mutivar_output(data):
 # SAVE DATA ###############################################################
 ###########################################################################
 @app.callback(
+    Output('download-raw-link', 'href'),
+    [Input('sql-store', 'data')])
+def update_link_rawdb(data):
+    if not data:
+        raise PreventUpdate
+    else:
+        return '/dash/download-rawdb?value={}'.format(data)
+
+@app.server.route('/dash/download-rawdb')
+def download_csv_rawdb():
+    value = flask.request.args.get('value')
+    df = pd.read_json(value, orient='split')
+    down = df.to_csv(sep=';')
+    str_io = io.StringIO()
+    str_io.write(str(down))
+    mem = io.BytesIO()
+    mem.write(str_io.getvalue().encode('utf-8'))
+    mem.seek(0)
+    str_io.close()
+    return flask.send_file(
+        mem,
+        mimetype='text/csv',
+        attachment_filename='download_raw.csv',
+        as_attachment=True)
+
+@app.callback(
     Output('save-unvivar-link', 'href'),
     [Input('sensors-store', 'data'),
         Input('select-series', 'value'),
@@ -1993,16 +2013,16 @@ def update_link_univar(data, channel_info, method):
                     'deleted' not in filtered.columns)):
                 raise PreventUpdate
             else:
-                filtered = filtered[['raw', 'treated', 'deleted']].to_csv()
+                filtered = filtered[['raw', 'treated', 'deleted']].to_json(date_format='iso', orient='split')
                 return '/dash/download-univar?value={}'.format(filtered)
 
 @app.server.route('/dash/download-univar')
 def download_csv_univar():
     value = flask.request.args.get('value')
-    # create a dynamic json or file here using `StringIO`
-    # (instead of writing to the file system)
+    df = pd.read_json(value, orient='split')
+    down = df.to_csv(sep=';')
     str_io = io.StringIO()
-    str_io.write(str(value))
+    str_io.write(str(down))
     mem = io.BytesIO()
     mem.write(str_io.getvalue().encode('utf-8'))
     mem.seek(0)
@@ -2010,7 +2030,7 @@ def download_csv_univar():
     return flask.send_file(
         mem,
         mimetype='text/csv',
-        attachment_filename='Univariate.json',
+        attachment_filename='download_univar.csv',
         as_attachment=True)
 
 
@@ -2021,16 +2041,15 @@ def update_link_multivar(data):
     if not data:
         raise PreventUpdate
     else:
-        df = pd.read_json(data, orient='split').to_csv()
-        return '/dash/download-multivar?value={}'.format(df)
+        return '/dash/download-multivar?value={}'.format(data)
 
 @app.server.route('/dash/download-multivar')
 def download_csv_multivar():
     value = flask.request.args.get('value')
-    # create a dynamic json or file here using `StringIO`
-    # (instead of writing to the file system)
+    df = pd.read_json(value, orient='split')
+    down = df.to_csv(sep=';')
     str_io = io.StringIO()
-    str_io.write(str(value))
+    str_io.write(str(down))
     mem = io.BytesIO()
     mem.write(str_io.getvalue().encode('utf-8'))
     mem.seek(0)
@@ -2038,7 +2057,7 @@ def download_csv_multivar():
     return flask.send_file(
         mem,
         mimetype='text/csv',
-        attachment_filename='Multivariate.csv',
+        attachment_filename='download_multivar.csv',
         as_attachment=True)
 
 if __name__ == '__main__':
