@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import os
 import time
 import urllib.parse
 
@@ -12,6 +13,7 @@ import flask
 import pandas as pd
 import numpy as np
 import plotly.graph_objs as go
+import plotly.io as pio
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from datetime import datetime, timedelta
@@ -40,6 +42,24 @@ app.config['suppress_callback_exceptions'] = True
 # Table Building helper function #
 ########################################################################
 
+def build_graph(name):
+    div = html.Div(
+        id=name + '-div',
+        children=[
+            dcc.Graph(id=name + '-graph'),
+            html.Button(
+                id=name + '-btn',
+                children=[
+                    html.A(
+                        id=name + '-link',
+                        children='Save Plot',
+                    ),
+                ],
+                style={'display': 'inline-block', 'float': 'right'}
+            )
+        ]
+    )
+    return div
 
 def build_param_table(_id):
     table = dash_table.DataTable(
@@ -99,31 +119,46 @@ def small_button(_id, label):
 
 
 def small_graph(_id, title):
-    graph = dcc.Graph(
-        id=_id,
-        figure={
-            'layout': go.Layout(
-                title=title,
-                autosize=True,
-                # width=800,
-                height=250,
-                margin=go.layout.Margin(
-                    l=50,
-                    r=50,
-                    b=30,
-                    t=50,
-                    pad=4
-                ),
-                xaxis=dict(
-                    zeroline=False,
-                    showline=False,
-                    ticks='',
-                    showticklabels=False
-                ),
+    div = html.Div(
+        id=_id + '-div',
+        children=[
+            dcc.Graph(
+                id=_id + '-graph',
+                figure={
+                    'layout': go.Layout(
+                        title=title,
+                        autosize=True,
+                        # width=800,
+                        height=250,
+                        margin=go.layout.Margin(
+                            l=50,
+                            r=50,
+                            b=30,
+                            t=50,
+                            pad=4
+                        ),
+                        xaxis=dict(
+                            zeroline=False,
+                            showline=False,
+                            ticks='',
+                            showticklabels=False
+                        ),
+                    )
+                },
+            ),
+            html.Button(
+                id=_id + '-btn',
+                children=[
+                    html.A(
+                        id=_id + '-link',
+                        children='Save Plot',
+                    ),
+                ],
+                style={'display': 'inline-block', 'float': 'right'}
             )
-        },
+        ],
     )
-    return graph
+    return div
 
 
 def get_options(df):
@@ -230,8 +265,11 @@ app.layout = html.Div([
                             ),
                             html.Br(),
                             html.Div([
-                                dcc.Graph(
-                                    id='extract-graph',
+                                html.Div(
+                                    id='extract-graph-div',
+                                    children=[
+                                        build_graph('extract')
+                                    ],
                                     style={'width': '70%', 'display': 'inline-block', 'float': 'left'}
                                 ),
                                 html.Div(
@@ -372,7 +410,7 @@ app.layout = html.Div([
                                 html.Div(
                                     id='uni-up-center',
                                     children=[
-                                        dcc.Graph(id='initial_uni_graph'),
+                                        build_graph('initial-uni'),
                                         html.P([
                                             'Use the Box Select tool to',
                                             ' choose a range of data with which to',
@@ -456,7 +494,7 @@ app.layout = html.Div([
                                             html.Div(
                                                 id='uni-outlier-center',
                                                 children=[
-                                                    dcc.Graph(id='uni-outlier-graph')
+                                                    build_graph('uni-outlier'),
                                                 ], style={'width': '80%', 'display': 'inline-block'}
                                             )
                                         ]),
@@ -523,10 +561,10 @@ app.layout = html.Div([
                                             html.Div(
                                                 id='uni-faults-field',
                                                 children=[
-                                                    small_graph('uni-corr-graph', 'Correlation test'),
-                                                    small_graph('uni-slope-graph', 'Slope test'),
-                                                    small_graph('uni-std-graph', 'Standard deviation test'),
-                                                    small_graph('uni-range-graph', 'Range test'),
+                                                    small_graph('uni-corr', 'Correlation test'),
+                                                    small_graph('uni-slope', 'Slope test'),
+                                                    small_graph('uni-std', 'Standard deviation test'),
+                                                    small_graph('uni-range', 'Range test'),
                                                 ], style={'textAlign': 'center', 'width': '80%', 'display': 'inline-block'}
                                             )
                                         ],
@@ -535,7 +573,7 @@ app.layout = html.Div([
                                         id='unitreated-graph-tab',
                                         label='Treated data',
                                         children=[
-                                            dcc.Graph(id='uni-treated-graph'),
+                                            build_graph('uni-treated'),
                                             html.Br(),
                                             html.P(id='faults-stats'),
                                             html.Button(
@@ -574,7 +612,7 @@ app.layout = html.Div([
                             id='multivar-top',
                             children=[
                                 html.Div(id='multivar-top-left', children=[
-                                    dcc.Graph(id='multivar-select-graph'),
+                                    build_graph('multivar-select'),
                                 ], style={'width': '70%', 'display': 'inline-block', 'float': 'left'}),
                                 html.Div(
                                     id='multivar-top-right',
@@ -627,7 +665,7 @@ app.layout = html.Div([
                                             children=[
                                                 html.Div(
                                                     children=[
-                                                        dcc.Graph(id='multivariate-pca-graph'),
+                                                        build_graph('multivariate-pca'),
                                                     ], style={'width': '70%', 'display': 'inline-block', 'float': 'left'}
                                                 ),
                                                 html.Div(
@@ -645,7 +683,7 @@ app.layout = html.Div([
                                             children=[
                                                 html.Div(
                                                     children=[
-                                                        dcc.Graph(id='multivariate-q-graph'),
+                                                        build_graph('multivariate-q'),
                                                     ], style={'width': '70%', 'display': 'inline-block', 'float': 'left'}
                                                 ),
                                                 html.Div(
@@ -661,7 +699,7 @@ app.layout = html.Div([
                                             children=[
                                                 html.Div(
                                                     children=[
-                                                        dcc.Graph(id='multivariate-faults-graph'),
+                                                        build_graph('multivariate-faults'),
                                                     ], style={'width': '100%', 'display': 'inline-block', 'float': 'left'}
                                                 ),
                                             ]
@@ -788,35 +826,38 @@ def display_parameter_value(parameter):
     else:
         return str(parameter)
 
-
+params_interchange = {
+    'method': 'Detection method',
+    'nb_s': 'Interval width (x * std.)',
+    'nb_reject': 'Max. streak of rejects before reinitialization.',
+    'nb_backward': 'Reinitialization position (Last rejected - x)',
+    'MAD_ini': 'Initial mean absolute deviation',
+    'min_MAD': 'Min. mean absolute deviation',
+    'N_Reset': 'No. periods to use to restart filter (max 5)',
+    'lambda_z': 'Forgetting factor for data',
+    'lambda_MAD': 'Forgetting factor for confidence interval',
+    'h_smoother': 'Smoother window size',
+    'moving_window': 'Runs test window size',
+    'reading_interval': 'N. points for slope calc.',
+    'range_min': 'Min. sensor value',
+    'range_max': 'Max. sensor value',
+    'slope_min': 'Min. slope',
+    'slope_max': 'Max. slope',
+    'std_min': 'Min. standard dev.',
+    'std_max': 'Max. standard dev.',
+    'corr_min': 'Max. streak of neg. residuals',
+    'corr_max': 'Max. streak of pos. residuals',
+}
 def display_parameter_name(parameter):
-    interchange = {
-        'method': 'Detection method',
-        'nb_s': 'Interval width (x * std.)',
-        'nb_reject': 'Max. streak of rejects before reinitialization.',
-        'nb_backward': 'Reinitialization position (Last rejected - x)',
-        'MAD_ini': 'Initial mean absolute deviation',
-        'min_MAD': 'Min. mean absolute deviation',
-        'N_reset': 'No. periods to use to restart filter (max 5)',
-        'lambda_z': 'Forgetting factor for data',
-        'lambda_MAD': 'Forgetting factor for confidence interval',
-        'h_smoother': 'Smoother window size',
-        'moving_window': 'Runs test window size',
-        'reading_interval': 'N. points for slope calc.',
-        'range_min': 'Min. sensor value',
-        'range_max': 'Max. sensor value',
-        'slope_min': 'Min. slope',
-        'slope_max': 'Max. slope',
-        'std_min': 'Min. standard dev.',
-        'std_max': 'Max. standard dev.',
-        'corr_min': 'Max. streak of neg. residuals',
-        'corr_max': 'Max. streak of pos. residuals',
-    }
-    if parameter in interchange:
-        return interchange[parameter]
+    if parameter in params_interchange:
+        return params_interchange[parameter]
     else:
         return parameter
 
+def get_back_params(name):
+    for key, val in params_interchange.items():
+        if name == val:
+            return key
 
 def regroup_multivar_data(data, data_ID):
     df = None
@@ -1001,8 +1042,7 @@ def get_valid_dates(unit, project, location, equipment, parameter):
 
 @app.callback(
     Output('extract-graph', 'figure'),
-    [Input('sql-store', 'data')]
-)
+    [Input('sql-store', 'data')])
 def graph_extracted(data):
     if not data:
         raise PreventUpdate
@@ -1061,13 +1101,27 @@ def update_output(contents, filename):
     [State('upload-button', 'n_clicks')])
 def update_upload_fig(data, n_clicks):
     if not n_clicks:
-        return dcc.Graph(id='upload-graph')
+        return build_graph('upload')
     else:
         df = pd.read_json(data, orient='split')
         figure = PlottingTools.plotRaw_D_plotly(df)
         figure.update(dict(layout=dict(clickmode='event+select')))
-
-        return dcc.Graph(id='upload-graph', figure=figure),
+        return html.Div(
+            id='upload' + '-div',
+            children=[
+                dcc.Graph(id='upload' + '-graph', figure=figure),
+                html.Button(
+                    id='upload' + '-btn',
+                    children=[
+                        html.A(
+                            id='upload' + '-link',
+                            children='Save Plot',
+                        ),
+                    ],
+                    style={'display': 'inline-block', 'float': 'right'}
+                )
+            ]
+        )
 
 
 @app.callback(
@@ -1290,13 +1344,16 @@ def modify_sensors(
             new_params['general'] = default_params['general']
             for row in par_outlier:
                 valu = parse_parameter(row['Value'])
-                new_params['outlier_detection'][row['Parameter']] = valu
+                par_name = get_back_params(row['Parameter'])
+                new_params['outlier_detection'][par_name] = valu
             for row in par_smooth:
                 valu = parse_parameter(row['Value'])
-                new_params['data_smoother'][row['Parameter']] = valu
+                par_name = get_back_params(row['Parameter'])
+                new_params['data_smoother'][par_name] = valu
             for row in par_f_uni:
                 valu = parse_parameter(row['Value'])
-                new_params['fault_detection_uni'][row['Parameter']] = valu
+                par_name = get_back_params(row['Parameter'])
+                new_params['fault_detection_uni'][par_name] = valu
             channel.params = new_params
 
         elif trigger == 'reset-button':
@@ -1317,6 +1374,7 @@ def modify_sensors(
 
         elif trigger == 'select-method':
             channel.info['current_filtration_method'] = filtration_method
+            channel.params['outlier_detection']['method'] = filtration_method
 
         elif trigger == 'detect_faults-uni':
             channel.params['fault_detection_uni']['corr_min'] = corr[0]
@@ -1351,7 +1409,7 @@ def modify_sensors(
 
 
 @app.callback(
-    Output('initial_uni_graph', 'figure'),
+    Output('initial-uni-graph', 'figure'),
     [Input('select-series', 'value'),
         Input('sensors-store', 'data')]
 )
@@ -1501,7 +1559,7 @@ def flag4(flag):
 @app.callback(
     [Output('fit-range', 'start_date'),
         Output('fit-range', 'end_date')],
-    [Input('initial_uni_graph', 'selectedData')])
+    [Input('initial-uni-graph', 'selectedData')])
 def add_interval_fit(selection):
     if selection is None:
         raise PreventUpdate
@@ -2059,6 +2117,201 @@ def download_csv_multivar():
         mimetype='text/csv',
         attachment_filename='download_multivar.csv',
         as_attachment=True)
+
+# ###################################################
+# Save figures
+# ###################################################
+@app.callback(
+    Output('extract-link', 'href'),
+    [Input('extract-btn', 'n_clicks')],
+    [State('extract-graph', 'figure')])
+def extract_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'extract-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('initial-uni-link', 'href'),
+    [Input('initial-uni-btn', 'n_clicks')],
+    [State('initial-uni-graph', 'figure')])
+def initial_uni_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'initial-uni-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('uni-outlier-link', 'href'),
+    [Input('uni-outlier-btn', 'n_clicks')],
+    [State('uni-outlier-graph', 'figure')])
+def uni_outlier_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'uni-outlier-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('uni-treated-link', 'href'),
+    [Input('uni-treated-btn', 'n_clicks')],
+    [State('uni-treated-graph', 'figure')])
+def uni_treated_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'uni-treated-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('multivar-select-link', 'href'),
+    [Input('multivar-select-btn', 'n_clicks')],
+    [State('multivar-select-graph', 'figure')])
+def multivar_select_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'multivar-select-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('multivariate-pca-link', 'href'),
+    [Input('multivariate-pca-btn', 'n_clicks')],
+    [State('multivariate-pca-graph', 'figure')])
+def multivariate_pca_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'multivariate-pca-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('multivariate-q-link', 'href'),
+    [Input('multivariate-q-btn', 'n_clicks')],
+    [State('multivariate-q-graph', 'figure')])
+def multivariate_q_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'multivariate-q-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('multivariate-faults-link', 'href'),
+    [Input('multivariate-faults-btn', 'n_clicks')],
+    [State('multivariate-faults-graph', 'figure')])
+def multivariate_faults_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'multivariate-faults-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('upload-link', 'href'),
+    [Input('upload-btn', 'n_clicks')],
+    [State('upload-graph', 'figure')])
+def upload_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'upload-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('uni-corr-link', 'href'),
+    [Input('uni-corr-btn', 'n_clicks')],
+    [State('uni-corr-graph', 'figure')])
+def uni_corr_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'uni-corr-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('uni-slope-link', 'href'),
+    [Input('uni-slope-btn', 'n_clicks')],
+    [State('uni-slope-graph', 'figure')])
+def uni_slope_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'uni-slope-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('uni-std-link', 'href'),
+    [Input('uni-std-btn', 'n_clicks')],
+    [State('uni-std-graph', 'figure')])
+def uni_std_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'uni-std-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.callback(
+    Output('uni-range-link', 'href'),
+    [Input('uni-range-btn', 'n_clicks')],
+    [State('uni-range-graph', 'figure')])
+def uni_range_img(click, figure):
+    if not click or not figure:
+        raise PreventUpdate
+    else:
+        fig_name = 'uni-range-figure-{}.svg'.format(click)
+        relative_filename = os.path.join('figures', fig_name)
+        absolute_filename = os.path.join(os.getcwd(), relative_filename)
+        pio.write_image(figure, absolute_filename)
+        return '/{}'.format(relative_filename)
+
+@app.server.route('/figures/<path:path>')
+def serve_static(path):
+    root_dir = os.getcwd()
+    return flask.send_from_directory(
+        os.path.join(root_dir, 'figures'),
+        path,
+        attachment_filename=path,
+        as_attachment=True
+    )
 
 if __name__ == '__main__':
     app.run_server(debug=True)

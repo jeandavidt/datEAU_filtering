@@ -88,7 +88,6 @@ def parse_dataframe(df):
 class CustomEncoder(json.JSONEncoder):
     import Sensors
     import pandas as pd
-
     def default(self, o):
         if (isinstance(o, Sensor) or isinstance(o, Channel)):
             return {'__{}__'.format(o.__class__.__name__): o.__dict__}

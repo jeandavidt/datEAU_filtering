@@ -129,6 +129,7 @@ def resample(channel, timestep):
         data = channel.raw_data
     else:
         data = pd.DataFrame(channel.processed_data[series])
+    data = data[~data.index.duplicated()]
     resampled = data.asfreq(timestep)  # write seconds as 'x s', minutes as 'x min'
     resampled.columns = ['resampled']
 
