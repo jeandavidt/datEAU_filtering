@@ -145,6 +145,7 @@ def small_graph(_id, title):
                         ),
                     )
                 },
+                style={'width': '80%', 'display': 'inline-block', 'verticalAlign': 'left'}
             ),
             html.Button(
                 id=_id + '-btn',
@@ -154,7 +155,7 @@ def small_graph(_id, title):
                         children='Save Plot',
                     ),
                 ],
-                style={'display': 'inline-block', 'float': 'right'}
+                style={'width': '20%', 'display': 'inline-block', 'verticalAlign': 'right'}
             )
         ],
     )

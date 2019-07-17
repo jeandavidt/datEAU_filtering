@@ -485,10 +485,10 @@ def plotD_plotly(params, testID, start=None, end=None, channel=None):
     min_val = params[0]
     max_val = params[1]
     titles = {
-        'Q_corr': 'Residual correlation',
-        'Q_slope': 'Slope',
-        'Q_std': 'Standard deviation',
-        'Q_range': 'Data range'
+        'Q_corr': 'Runs test',
+        'Q_slope': 'Slope test',
+        'Q_std': 'Standard deviation test',
+        'Q_range': 'Data range test'
     }
     # if testID == 'Q_std':
     #     min_val = 10 ** min_val
@@ -1025,7 +1025,7 @@ def extract_plotly(df):
             )
         })
     layout = {
-        'title': 'Data to extract data',
+        'title': 'Data to extract',
         'xaxis': {
             'domain': [0.075 * (n_axes - 1), 1],
             'title': 'Date and time'
