@@ -11,6 +11,8 @@ login.txt
 *.pyo
 *.pyc
 clip.py
-/__pycache__
+*__pycache__
 *.svg
 figures/figure-1.svg
+
+.ipynb_checkpoints/Data filling-checkpoint.ipynb
