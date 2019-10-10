@@ -2,8 +2,6 @@ import base64
 import io
 import json
 import os
-import time
-import urllib.parse
 
 import dash
 import dash_core_components as dcc
@@ -11,12 +9,12 @@ import dash_html_components as html
 import dash_table
 import flask
 import pandas as pd
-import numpy as np
 import plotly.graph_objs as go
 import plotly.io as pio
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from datetime import datetime, timedelta
+
 
 import DataCoherence
 import DefaultSettings
@@ -29,18 +27,17 @@ import Smoother
 import TreatedData
 import Multivariate
 
+# Default plotting theme
+pio.templates.default = "plotly_white"
 # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
+# external_scripts = ['https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js']
 app = dash.Dash(__name__)
 app.config['suppress_callback_exceptions'] = True
 
 ########################################################################
-# creating link to datEAUbase #
-########################################################################
-
-########################################################################
 # Table Building helper function #
 ########################################################################
+
 
 def build_graph(name):
     div = html.Div(
@@ -61,6 +58,7 @@ def build_graph(name):
     )
     return div
 
+
 def build_param_table(_id):
     table = dash_table.DataTable(
         id=_id,
@@ -74,7 +72,7 @@ def build_param_table(_id):
             'overflowY': 'scroll'
         },
         style_data={'whiteSpace': 'normal'},
-        content_style='grow',
+        # content_style='grow',
         css=[
             {'selector': 'td.cell--selected *, td.focused *', 'rule': 'text-align: center;'},
             {'selector': '.dash-cell div.dash-cell-value',
@@ -282,13 +280,15 @@ app.layout = html.Div([
                                 'Use for analysis',
                                 id='send-extract-to-analysis-button'
                             ),
-                            html.Button(
-                                html.A(
-                                    'Download raw data',
-                                    id='download-raw-link'
-                                ),
-                                id='download-raw-button'
-                            )
+                            html.Br(),
+                            html.A(
+                                'Download raw data',
+                                id='download-raw-link',
+                            ),
+                            html.Div(
+                                id='download-raw-target',
+                                style=dict(display='none')
+                            ),
                         ]),
                     dcc.Tab(label='Data Import', value='import', children=[
                         html.Div([
@@ -321,7 +321,7 @@ app.layout = html.Div([
                     dcc.Tab(label='Univariate filter', value='univar', children=[
                         html.Div([
                             html.H3('Univariate fault detection'),
-                            'Pick a series to anlayze.',
+                            'Pick a series to analyze.',
                             html.Br(),
                             # dcc.Upload(
                             #    id='upload-sensor-data',
@@ -529,7 +529,7 @@ app.layout = html.Div([
                                                     ),
                                                     html.P(id='slope-vals'),
                                                     html.Br(),
-                                                    html.P('Standard devation limits'),
+                                                    html.P('Standard deviation limits'),
                                                     dcc.RangeSlider(
                                                         id='std-slide',
                                                         updatemode='mouseup',
@@ -695,7 +695,7 @@ app.layout = html.Div([
                                             ]
                                         ),
                                         dcc.Tab(
-                                            id='multi-fautls-tab',
+                                            id='multi-faults-tab',
                                             label='Fault detection',
                                             children=[
                                                 html.Div(
@@ -733,6 +733,7 @@ app.layout = html.Div([
 
 def transform_value(value):  # To transform slider value into its log. Unused at the moment.
     return 10 ** value
+
 
 def parse_contents(contents, filename):
     _, content_string = contents.split(',')
@@ -827,6 +828,7 @@ def display_parameter_value(parameter):
     else:
         return str(parameter)
 
+
 params_interchange = {
     'method': 'Detection method',
     'nb_s': 'Interval width (x * std.)',
@@ -849,16 +851,20 @@ params_interchange = {
     'corr_min': 'Max. streak of neg. residuals',
     'corr_max': 'Max. streak of pos. residuals',
 }
+
+
 def display_parameter_name(parameter):
     if parameter in params_interchange:
         return params_interchange[parameter]
     else:
         return parameter
 
+
 def get_back_params(name):
     for key, val in params_interchange.items():
         if name == val:
             return key
+
 
 def regroup_multivar_data(data, data_ID):
     df = None
@@ -878,6 +884,8 @@ def regroup_multivar_data(data, data_ID):
         else:
             df = df.join(selection, how='left')
     return df
+
+
 ########################################################################
 # EXTRACT TAB #
 ########################################################################
@@ -895,10 +903,11 @@ def show_layout(project):
             html.Br(),
             html.Img(
                 src=app.get_asset_url('layout_pileaute.png'),
-                style={'width': '800px', 'padding-left': '10%', 'padding-right': '10%', 'textAlign': 'center'})
+                style={'width': '800px', 'paddingLeft': '10%', 'paddingRight': '10%', 'textAlign': 'center'})
         ]
     else:
         return html.H6(dcc.Markdown('*Layout unavailable*'), style={'textAlign': 'center'})
+
 
 @app.callback(
     [Output('project-drop', 'options'),
@@ -1009,6 +1018,7 @@ def populate_extract_list(click, project, location, equipment, parameter, unit, 
             value.append(name)
             return [options, value]
 
+
 @app.callback(
     Output('sql-info-div', 'children'),
     [Input('unit-drop', 'value')],
@@ -1041,6 +1051,7 @@ def get_valid_dates(unit, project, location, equipment, parameter):
         except Exception:
             raise PreventUpdate
 
+
 @app.callback(
     Output('extract-graph', 'figure'),
     [Input('sql-store', 'data')])
@@ -1051,6 +1062,7 @@ def graph_extracted(data):
         df = pd.read_json(data, orient='split')
         figure = PlottingTools.extract_plotly(df)
         return figure
+
 
 @app.callback(
     Output('sql-store', 'data'),
@@ -1085,6 +1097,8 @@ def store_sql(click, start, end, extract):
 ########################################################################
 # IMPORT TAB #
 ########################################################################
+
+
 @app.callback(
     Output('output-data-upload', 'children'),
     [Input('upload-data', 'contents')],
@@ -1281,6 +1295,7 @@ def create_sensors(original_data, modif_data, extr_butt, sql_data):  # sensor_up
         else:
             return modif_data
 
+
 @app.callback(
     Output('modif-store', 'data'),
     [Input('fillna-button', 'n_clicks'),
@@ -1426,6 +1441,7 @@ def update_top_univariate_figure(value, data):
 
 ###########################################################################
 # DATA COHERENCE ERROR MESSAGES ###########################################
+###########################################################################
 
 
 @app.callback(
@@ -1461,7 +1477,7 @@ def flag_0(flag):
             ]
         else:
             return[
-                'You should probaly work on the data some more.',
+                'You should probably work on the data some more.',
                 html.Img(src=app.get_asset_url('cross.png'), width='18px')
             ]
 
@@ -1555,6 +1571,7 @@ def flag4(flag):
 
 ###########################################################################
 # UNIVARIATE FILTER CALIBRATION ###########################################
+###########################################################################
 
 
 @app.callback(
@@ -1633,7 +1650,8 @@ def update_second_univariate_figure(value, data):
 
 
 ###########################################################################
-# PLOT FAULT DETECTION ######################################################
+# PLOT FAULT DETECTION ####################################################
+###########################################################################
 
 @app.callback(
     [Output('uni-corr-graph', 'figure'),
@@ -1714,6 +1732,7 @@ def update_faults_figures(
             else:
                 raise PreventUpdate
 
+
 # Update the sliders text
 @app.callback(Output('corr-vals', 'children'),
               [Input('corr-slide', 'value')])
@@ -1722,6 +1741,7 @@ def display_value_corr(value):
         raise PreventUpdate
     else:
         return 'Min: {:0.2f}, Max: {:0.2f}'.format(value[0], value[1])
+
 
 @app.callback(Output('slope-vals', 'children'),
               [Input('slope-slide', 'value')])
@@ -1781,6 +1801,7 @@ def update_treated_uni_fig(data, series):
 # MULTIVARIATE TAB #
 ########################################################################
 
+
 @app.callback(
     Output('multivar-select-dropdown', 'options'),
     [Input('sensors-store', 'data')])
@@ -1807,6 +1828,7 @@ def show_multivar_list(data):
                     ids.append('-'.join([to_multi, project, location, equipment, parameter, unit]))
         options = [{'label': labels[i], 'value':ids[i]} for i in range(len(ids))]
         return options
+
 
 @app.callback(
     Output('multivar-select-dropdown', 'value'),
@@ -1973,7 +1995,6 @@ def build_contrib_table(contrib):
             columns=[{"name": i, "id": i} for i in df.columns],
             data=df.to_dict('records'),
             style_data={'whiteSpace': 'normal'},
-            content_style='grow',
             css=[
                 {'selector': 'td.cell--selected *, td.focused *', 'rule': 'text-align: center;'},
                 {'selector': '.dash-cell div.dash-cell-value',
@@ -1997,6 +2018,7 @@ def build_contrib_table(contrib):
             },
         )
         return table
+
 
 @app.callback(
     Output('multivariate-q-graph', 'figure'),
@@ -2024,9 +2046,13 @@ def plot_mutivar_output(data):
         else:
             figure = PlottingTools.show_multi_output_plotly(df)
             return figure
+
+
 ###########################################################################
 # SAVE DATA ###############################################################
 ###########################################################################
+
+
 @app.callback(
     Output('download-raw-link', 'href'),
     [Input('sql-store', 'data')])
@@ -2035,6 +2061,7 @@ def update_link_rawdb(data):
         raise PreventUpdate
     else:
         return '/dash/download-rawdb?value={}'.format(data)
+
 
 @app.server.route('/dash/download-rawdb')
 def download_csv_rawdb():
@@ -2052,6 +2079,7 @@ def download_csv_rawdb():
         mimetype='text/csv',
         attachment_filename='download_raw.csv',
         as_attachment=True)
+
 
 @app.callback(
     Output('save-unvivar-link', 'href'),
@@ -2074,6 +2102,7 @@ def update_link_univar(data, channel_info, method):
             else:
                 filtered = filtered[['raw', 'treated', 'deleted']].to_json(date_format='iso', orient='split')
                 return '/dash/download-univar?value={}'.format(filtered)
+
 
 @app.server.route('/dash/download-univar')
 def download_csv_univar():
@@ -2102,6 +2131,7 @@ def update_link_multivar(data):
     else:
         return '/dash/download-multivar?value={}'.format(data)
 
+
 @app.server.route('/dash/download-multivar')
 def download_csv_multivar():
     value = flask.request.args.get('value')
@@ -2122,6 +2152,8 @@ def download_csv_multivar():
 # ###################################################
 # Save figures
 # ###################################################
+
+
 @app.callback(
     Output('extract-link', 'href'),
     [Input('extract-btn', 'n_clicks')],
@@ -2135,6 +2167,7 @@ def extract_img(click, figure):
         absolute_filename = os.path.join(os.getcwd(), relative_filename)
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
+
 
 @app.callback(
     Output('initial-uni-link', 'href'),
@@ -2150,6 +2183,7 @@ def initial_uni_img(click, figure):
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
 
+
 @app.callback(
     Output('uni-outlier-link', 'href'),
     [Input('uni-outlier-btn', 'n_clicks')],
@@ -2163,6 +2197,7 @@ def uni_outlier_img(click, figure):
         absolute_filename = os.path.join(os.getcwd(), relative_filename)
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
+
 
 @app.callback(
     Output('uni-treated-link', 'href'),
@@ -2178,6 +2213,7 @@ def uni_treated_img(click, figure):
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
 
+
 @app.callback(
     Output('multivar-select-link', 'href'),
     [Input('multivar-select-btn', 'n_clicks')],
@@ -2191,6 +2227,7 @@ def multivar_select_img(click, figure):
         absolute_filename = os.path.join(os.getcwd(), relative_filename)
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
+
 
 @app.callback(
     Output('multivariate-pca-link', 'href'),
@@ -2206,6 +2243,7 @@ def multivariate_pca_img(click, figure):
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
 
+
 @app.callback(
     Output('multivariate-q-link', 'href'),
     [Input('multivariate-q-btn', 'n_clicks')],
@@ -2219,6 +2257,7 @@ def multivariate_q_img(click, figure):
         absolute_filename = os.path.join(os.getcwd(), relative_filename)
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
+
 
 @app.callback(
     Output('multivariate-faults-link', 'href'),
@@ -2234,6 +2273,7 @@ def multivariate_faults_img(click, figure):
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
 
+
 @app.callback(
     Output('upload-link', 'href'),
     [Input('upload-btn', 'n_clicks')],
@@ -2247,6 +2287,7 @@ def upload_img(click, figure):
         absolute_filename = os.path.join(os.getcwd(), relative_filename)
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
+
 
 @app.callback(
     Output('uni-corr-link', 'href'),
@@ -2262,6 +2303,7 @@ def uni_corr_img(click, figure):
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
 
+
 @app.callback(
     Output('uni-slope-link', 'href'),
     [Input('uni-slope-btn', 'n_clicks')],
@@ -2275,6 +2317,7 @@ def uni_slope_img(click, figure):
         absolute_filename = os.path.join(os.getcwd(), relative_filename)
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
+
 
 @app.callback(
     Output('uni-std-link', 'href'),
@@ -2290,6 +2333,7 @@ def uni_std_img(click, figure):
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
 
+
 @app.callback(
     Output('uni-range-link', 'href'),
     [Input('uni-range-btn', 'n_clicks')],
@@ -2304,6 +2348,7 @@ def uni_range_img(click, figure):
         pio.write_image(figure, absolute_filename)
         return '/{}'.format(relative_filename)
 
+
 @app.server.route('/figures/<path:path>')
 def serve_static(path):
     root_dir = os.getcwd()
@@ -2313,6 +2358,7 @@ def serve_static(path):
         attachment_filename=path,
         as_attachment=True
     )
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)

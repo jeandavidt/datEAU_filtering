@@ -234,8 +234,8 @@ def plot_pulled_data(df):
     plt.legend([sensors[i] + ' (' + units[i] + ')' for i in range(len(sensors))])
     plt.xticks(rotation=45)
     plt.show()
-'''
-cursor, conn = create_connection()
+
+'''cursor, conn = create_connection()
 Start = date_to_epoch('2017-09-01 12:00:00')
 End = date_to_epoch('2017-10-01 12:00:00')
 Location = 'Primary settling tank effluent'
@@ -256,5 +256,6 @@ for i in range(len(param_list)):
     }
 print('ready to extract')
 df = extract_data(conn, extract_list)
-print(len(df))
- '''
+print(len(df))'''
+
+

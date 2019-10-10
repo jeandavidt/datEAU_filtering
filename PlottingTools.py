@@ -655,12 +655,14 @@ def show_pca_plotly(df, limits):
     if 'pc_1' not in df.columns or 'pc_2' not in df.columns:
         figure = go.Figure(data=[])
     else:
-        start_cal = limits['start_cal']
-        end_cal = limits['end_cal']
+        
+        start_cal = pd.Timestamp(limits['start_cal'])
+        end_cal = pd.Timestamp(limits['end_cal'])
 
-        start = df.first_valid_index()
-        end = df.last_valid_index()
-
+        start = df.first_valid_index().replace(tzinfo=None)
+        end = df.last_valid_index().replace(tzinfo=None)
+        print(start, type(start))
+        print(start_cal, type(start_cal))
         x1 = df.loc[start_cal: end_cal, 'pc_1']
         y1 = df.loc[start_cal: end_cal, 'pc_2']
 

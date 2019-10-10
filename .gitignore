@@ -5,12 +5,11 @@ smooth.p
 parameters.p
 deserialized.json
 orig.json
-
 .vscode/settings.json
 login.txt
 *.pyo
 *.pyc
 clip.py
-/__pycache__
+*/__pycache__
 *.svg
 figures/figure-1.svg
