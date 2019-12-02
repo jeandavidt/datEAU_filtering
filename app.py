@@ -15,6 +15,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from datetime import datetime, timedelta
 
+
 import DataCoherence
 import DefaultSettings
 import FaultDetection
@@ -26,14 +27,12 @@ import Smoother
 import TreatedData
 import Multivariate
 
+# Default plotting theme
+pio.templates.default = "plotly_white"
 # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
+# external_scripts = ['https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js']
 app = dash.Dash(__name__)
 app.config['suppress_callback_exceptions'] = True
-
-########################################################################
-# creating link to datEAUbase #
-########################################################################
 
 ########################################################################
 # Table Building helper function #
@@ -73,7 +72,7 @@ def build_param_table(_id):
             'overflowY': 'scroll'
         },
         style_data={'whiteSpace': 'normal'},
-        content_style='grow',
+        # content_style='grow',
         css=[
             {'selector': 'td.cell--selected *, td.focused *', 'rule': 'text-align: center;'},
             {'selector': '.dash-cell div.dash-cell-value',
@@ -281,13 +280,15 @@ app.layout = html.Div([
                                 'Use for analysis',
                                 id='send-extract-to-analysis-button'
                             ),
-                            html.Button(
-                                html.A(
-                                    'Download raw data',
-                                    id='download-raw-link'
-                                ),
-                                id='download-raw-button'
-                            )
+                            html.Br(),
+                            html.A(
+                                'Download raw data',
+                                id='download-raw-link',
+                            ),
+                            html.Div(
+                                id='download-raw-target',
+                                style=dict(display='none')
+                            ),
                         ]),
                     dcc.Tab(label='Data Import', value='import', children=[
                         html.Div([
@@ -883,6 +884,8 @@ def regroup_multivar_data(data, data_ID):
         else:
             df = df.join(selection, how='left')
     return df
+
+
 ########################################################################
 # EXTRACT TAB #
 ########################################################################
@@ -900,7 +903,7 @@ def show_layout(project):
             html.Br(),
             html.Img(
                 src=app.get_asset_url('layout_pileaute.png'),
-                style={'width': '800px', 'padding-left': '10%', 'padding-right': '10%', 'textAlign': 'center'})
+                style={'width': '800px', 'paddingLeft': '10%', 'paddingRight': '10%', 'textAlign': 'center'})
         ]
     else:
         return html.H6(dcc.Markdown('*Layout unavailable*'), style={'textAlign': 'center'})
@@ -1094,6 +1097,8 @@ def store_sql(click, start, end, extract):
 ########################################################################
 # IMPORT TAB #
 ########################################################################
+
+
 @app.callback(
     Output('output-data-upload', 'children'),
     [Input('upload-data', 'contents')],
@@ -1436,6 +1441,7 @@ def update_top_univariate_figure(value, data):
 
 ###########################################################################
 # DATA COHERENCE ERROR MESSAGES ###########################################
+###########################################################################
 
 
 @app.callback(
@@ -1565,6 +1571,7 @@ def flag4(flag):
 
 ###########################################################################
 # UNIVARIATE FILTER CALIBRATION ###########################################
+###########################################################################
 
 
 @app.callback(
@@ -1643,7 +1650,8 @@ def update_second_univariate_figure(value, data):
 
 
 ###########################################################################
-# PLOT FAULT DETECTION ######################################################
+# PLOT FAULT DETECTION ####################################################
+###########################################################################
 
 @app.callback(
     [Output('uni-corr-graph', 'figure'),
@@ -1724,6 +1732,7 @@ def update_faults_figures(
             else:
                 raise PreventUpdate
 
+
 # Update the sliders text
 @app.callback(Output('corr-vals', 'children'),
               [Input('corr-slide', 'value')])
@@ -1732,6 +1741,7 @@ def display_value_corr(value):
         raise PreventUpdate
     else:
         return 'Min: {:0.2f}, Max: {:0.2f}'.format(value[0], value[1])
+
 
 @app.callback(Output('slope-vals', 'children'),
               [Input('slope-slide', 'value')])
@@ -1790,6 +1800,7 @@ def update_treated_uni_fig(data, series):
 ########################################################################
 # MULTIVARIATE TAB #
 ########################################################################
+
 
 @app.callback(
     Output('multivar-select-dropdown', 'options'),
@@ -1984,7 +1995,6 @@ def build_contrib_table(contrib):
             columns=[{"name": i, "id": i} for i in df.columns],
             data=df.to_dict('records'),
             style_data={'whiteSpace': 'normal'},
-            content_style='grow',
             css=[
                 {'selector': 'td.cell--selected *, td.focused *', 'rule': 'text-align: center;'},
                 {'selector': '.dash-cell div.dash-cell-value',
@@ -2036,6 +2046,8 @@ def plot_mutivar_output(data):
         else:
             figure = PlottingTools.show_multi_output_plotly(df)
             return figure
+
+
 ###########################################################################
 # SAVE DATA ###############################################################
 ###########################################################################
