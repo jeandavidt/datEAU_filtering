@@ -11,7 +11,7 @@ import flask
 import pandas as pd
 import plotly.graph_objs as go
 import plotly.io as pio
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, ClientsideFunction
 from dash.exceptions import PreventUpdate
 from datetime import datetime, timedelta
 
@@ -30,9 +30,11 @@ import Multivariate
 # Default plotting theme
 pio.templates.default = "plotly_white"
 # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-# external_scripts = ['https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js']
-app = dash.Dash(__name__)
+external_scripts = ['https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js']
+app = dash.Dash(__name__, external_scripts=external_scripts,)
 app.config['suppress_callback_exceptions'] = True
+
+cursor, conn = Dateaubase.create_connection()
 
 ########################################################################
 # Table Building helper function #
@@ -2052,34 +2054,39 @@ def plot_mutivar_output(data):
 # SAVE DATA ###############################################################
 ###########################################################################
 
+app.clientside_callback(
+    ClientsideFunction('download', 'csvDownload'),
+    Output('placeholder', 'children'),
+    [Input('download-raw-link', 'n_clicks')],
+    [State('sql-store', 'data')])
 
-@app.callback(
-    Output('download-raw-link', 'href'),
-    [Input('sql-store', 'data')])
-def update_link_rawdb(data):
-    if not data:
-        raise PreventUpdate
-    else:
-        return '/dash/download-rawdb?value={}'.format(data)
+# @app.callback(
+#    Output('download-raw-link', 'href'),
+#    [Input('sql-store', 'data')])
+# def update_link_rawdb(data):
+#    if not data:
+#        raise PreventUpdate
+#    else:
+#        return '/dash/download-rawdb?value={}'.format(data)
 
 
-@app.server.route('/dash/download-rawdb')
-def download_csv_rawdb():
-    value = flask.request.args.get('value')
-    df = pd.read_json(value, orient='split')
-    down = df.to_csv(sep=';')
-    str_io = io.StringIO()
-    str_io.write(str(down))
-    mem = io.BytesIO()
-    mem.write(str_io.getvalue().encode('utf-8'))
-    mem.seek(0)
-    str_io.close()
-    return flask.send_file(
-        mem,
-        mimetype='text/csv',
-        attachment_filename='download_raw.csv',
-        as_attachment=True)
-
+# @app.server.route('/dash/download-rawdb')
+# def download_csv_rawdb():
+#    value = flask.request.args.get('value')
+#    df = pd.read_json(value, orient='split')
+#    down = df.to_csv(sep=';')
+#    str_io = io.StringIO()
+#    str_io.write(str(down))
+#    mem = io.BytesIO()
+#    mem.write(str_io.getvalue().encode('utf-8'))
+#    mem.seek(0)
+#    str_io.close()
+#    return flask.send_file(
+#        mem,
+#        mimetype='text/csv',
+#        attachment_filename='download_raw.csv',
+#        as_attachment=True)
+#
 
 @app.callback(
     Output('save-unvivar-link', 'href'),
