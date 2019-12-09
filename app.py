@@ -713,13 +713,8 @@ app.layout = html.Div([
                             style={'width': '100%', 'display': 'inline-block'}
                         ),
                         html.Button(
-                            id='multi-save-button',
-                            children=[
-                                html.A(
-                                    id="multi-save-link",
-                                    children=['Save accepted to CSV']
-                                )
-                            ]
+                            id='save-multivar-btn',
+                            children=['Save accepted to CSV']
                         ),
                     ]),
                 ]),
@@ -2068,49 +2063,13 @@ app.clientside_callback(
         State('select-method', 'value'),
         State('sensors-store', 'data')])
 
-""" @app.callback(
-    Output('save-unvivar-link', 'href'),
-    [Input('sensors-store', 'data'),
-        Input('select-series', 'value'),
-        Input('select-method', 'value')])
-def update_link_univar(data, channel_info, method):
-    if not data or not channel_info or not method:
-        raise PreventUpdate
-    else:
-        channel = get_channel(data, channel_info)
-        if channel.filtered is None:
-            raise PreventUpdate
-        else:
-            filtered = channel.filtered[method]
-            if (('raw' not in filtered.columns) or (
-                'treated' not in filtered.columns) or (
-                    'deleted' not in filtered.columns)):
-                raise PreventUpdate
-            else:
-                filtered = filtered[['raw', 'treated', 'deleted']].to_json(date_format='iso', orient='split')
-                return '/dash/download-univar?value={}'.format(filtered)
+app.clientside_callback(
+    ClientsideFunction('download', 'rawDownload'),
+    Output('multivariate-download-placeholder', 'children'),
+    [Input('save-multivar-btn', 'n_clicks')],
+    [State('multivariate-data-store', 'data')])
 
-
-@app.server.route('/dash/download-univar')
-def download_csv_univar():
-    value = flask.request.args.get('value')
-    df = pd.read_json(value, orient='split')
-    down = df.to_csv(sep=';')
-    str_io = io.StringIO()
-    str_io.write(str(down))
-    mem = io.BytesIO()
-    mem.write(str_io.getvalue().encode('utf-8'))
-    mem.seek(0)
-    str_io.close()
-    return flask.send_file(
-        mem,
-        mimetype='text/csv',
-        attachment_filename='download_univar.csv',
-        as_attachment=True)
- """
-
-
-@app.callback(
+'''@app.callback(
     Output('multi-save-link', 'href'),
     [Input('multivariate-data-store', 'data')])
 def update_link_multivar(data):
@@ -2136,7 +2095,7 @@ def download_csv_multivar():
         mimetype='text/csv',
         attachment_filename='download_multivar.csv',
         as_attachment=True)
-
+'''
 # ###################################################
 # Save figures
 # ###################################################

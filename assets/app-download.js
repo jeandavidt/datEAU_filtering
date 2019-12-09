@@ -77,6 +77,7 @@ window.dash_clientside.download = {
         trigger,
         storeData
     ) {
+        console.log("Function triggered");
         return this.rawDownload(
             trigger,
             storeData
