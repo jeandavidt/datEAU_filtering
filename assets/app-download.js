@@ -7,7 +7,7 @@ const SAVE_FILE_NAME = "download_test";
 
 
 window.dash_clientside.download = {
-    csvDownload: function(
+    rawDownload: function(
         trigger,
         storeData
     ) {
@@ -18,6 +18,7 @@ window.dash_clientside.download = {
             console.log("storeData is undefined");
             return false;
         }
+        console.log("We're parsin'!");
         // generate file and send through file-saver
         storeJson = JSON.parse(storeData);
         //console.log("The JSON looks like this");
@@ -64,5 +65,33 @@ window.dash_clientside.download = {
         //console.log("downloading figure data to csv.");
         saveAs(file, SAVE_FILE_NAME + ".csv");
     },
-    
+
+    multiDownload: function(
+        trigger,
+        storeData
+    ) {
+        return this.rawDownload(
+            trigger,
+            storeData
+        );
+    },
+
+    uniDownload: function(
+        trigger,
+        sensorStore
+    ) {
+        if (typeof trigger == 'undefined') {
+            console.log("Trigger is undefined");
+            return false;
+        } else if (typeof sensorStore == 'undefined') {
+            console.log("storeData is undefined");
+            return false;
+        }
+        // generate file and send through file-saver
+        storeJson = JSON.parse(sensorStore);
+        
+        console.log("The JSON looks like this");
+        console.log(storeJson);
+    }
+
 };

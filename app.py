@@ -111,9 +111,9 @@ def small_button(_id, label):
         style={
             'height': '24px',
             'padding': '0 10px',
-            'font-size': '9px',
-            'font-weight': '500',
-            'line-height': '24px',
+            'fontSize': '9px',
+            'fontWeight': '500',
+            'lineHeight': '24px',
         })
     return button
 
@@ -186,7 +186,9 @@ app.layout = html.Div([
     dcc.Store(id='multivariate-limits-store'),
     dcc.Store(id='multivariate-calib'),
     dcc.Store(id='multivariate-contrib'),
-    html.Div(id='placeholder', style={'display': 'none'}),
+    html.Div(id='raw-download-placeholder', style={'display': 'none'}),
+    html.Div(id='univariate-download-placeholder', style={'display': 'none'}),
+    html.Div(id='multivariate-download-placeholder', style={'display': 'none'}),
     html.Div(id='output-data-upload', style={'display': 'none'}),
     html.H1(dcc.Markdown('dat*EAU* filtration'), id='header'),
     html.Div(
@@ -373,7 +375,7 @@ app.layout = html.Div([
                                                     html.Tr([
                                                         html.Td(id='err2-status'),
                                                         html.Td(id='err2-msg', children=[])
-                                                    ], style={'line-height': '24px'}),
+                                                    ], style={'lineHeight': '24px'}),
                                                     html.Tr([
                                                         html.Td(id='err3-status'),
                                                         html.Td(id='err3-msg', children=[])
@@ -383,9 +385,9 @@ app.layout = html.Div([
                                                         html.Td(id='err4-msg', children=[])
                                                     ])
                                                 ], style={
-                                                    'font-size': '9px',
-                                                    'font-weight': '200',
-                                                    'line-height': '12px'
+                                                    'fontSize': '9px',
+                                                    'fontWeight': '200',
+                                                    'lineHeight': '12px'
                                                 }),
                                                 html.Button(id='sort-button', children=['Sort indices']),
                                                 html.Br(),
@@ -580,12 +582,10 @@ app.layout = html.Div([
                                             html.Br(),
                                             html.P(id='faults-stats'),
                                             html.Button(
+                                                id='save-univar-btn',
                                                 children=[
-                                                    html.A(
-                                                        'Save treated univariate data.',
-                                                        id='save-unvivar-link',
-                                                    ),
-                                                ],
+                                                    'Save treated univariate data.',
+                                                ]
                                             ),
                                         ],
                                     )
@@ -2002,10 +2002,10 @@ def build_contrib_table(contrib):
                 {'selector': '.dash-cell div.dash-cell-value',
                     'rule': '''font-family: "Helvetica Neue";
                         display: inline;
-                        white-space: inherit;
+                        whiteSpace: inherit;
                         overflow: inherit;
-                        text-overflow: inherit;
-                        font-size: 10px;'''},
+                        textOverflow: inherit;
+                        fontSize: 10px;'''},
             ],
             style_cell_conditional=[
                 {'if': {'column_id': 'Series'},
@@ -2055,40 +2055,18 @@ def plot_mutivar_output(data):
 ###########################################################################
 
 app.clientside_callback(
-    ClientsideFunction('download', 'csvDownload'),
-    Output('placeholder', 'children'),
+    ClientsideFunction('download', 'rawDownload'),
+    Output('raw-download-placeholder', 'children'),
     [Input('download-raw-link', 'n_clicks')],
     [State('sql-store', 'data')])
 
-# @app.callback(
-#    Output('download-raw-link', 'href'),
-#    [Input('sql-store', 'data')])
-# def update_link_rawdb(data):
-#    if not data:
-#        raise PreventUpdate
-#    else:
-#        return '/dash/download-rawdb?value={}'.format(data)
+app.clientside_callback(
+    ClientsideFunction('download', 'uniDownload'),
+    Output('univariate-download-placeholder', 'children'),
+    [Input('save-univar-btn', 'n_clicks')],
+    [State('sensors-store', 'data')])
 
-
-# @app.server.route('/dash/download-rawdb')
-# def download_csv_rawdb():
-#    value = flask.request.args.get('value')
-#    df = pd.read_json(value, orient='split')
-#    down = df.to_csv(sep=';')
-#    str_io = io.StringIO()
-#    str_io.write(str(down))
-#    mem = io.BytesIO()
-#    mem.write(str_io.getvalue().encode('utf-8'))
-#    mem.seek(0)
-#    str_io.close()
-#    return flask.send_file(
-#        mem,
-#        mimetype='text/csv',
-#        attachment_filename='download_raw.csv',
-#        as_attachment=True)
-#
-
-@app.callback(
+""" @app.callback(
     Output('save-unvivar-link', 'href'),
     [Input('sensors-store', 'data'),
         Input('select-series', 'value'),
@@ -2127,6 +2105,7 @@ def download_csv_univar():
         mimetype='text/csv',
         attachment_filename='download_univar.csv',
         as_attachment=True)
+ """
 
 
 @app.callback(

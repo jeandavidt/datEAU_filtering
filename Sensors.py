@@ -1,7 +1,7 @@
-import numpy as np
 import pandas as pd
 import DefaultSettings
 import json
+
 
 class Channel:
     def __init__(self, project, location, equipment, parameter, unit, frame=None):
@@ -38,6 +38,7 @@ class Channel:
         }
         self.calib = None
         self.filtered = None
+
 
 class Sensor:
     def __init__(self, project, location, equipment, frame=None):
@@ -88,6 +89,7 @@ def parse_dataframe(df):
 class CustomEncoder(json.JSONEncoder):
     import Sensors
     import pandas as pd
+
     def default(self, o):
         if (isinstance(o, Sensor) or isinstance(o, Channel)):
             return {'__{}__'.format(o.__class__.__name__): o.__dict__}
@@ -97,6 +99,7 @@ class CustomEncoder(json.JSONEncoder):
             return {'__DataFrame__': o.to_json(date_format='iso', orient='split')}
         else:
             return json.JSONEncoder.default(self, o)
+
 
 def decode_object(o):
     import Sensors
@@ -127,6 +130,7 @@ def decode_object(o):
         return pd.to_datetime(o['__Timestamp__'])
     else:
         return o
+
 
 # Debugging code
 '''
