@@ -2064,7 +2064,9 @@ app.clientside_callback(
     ClientsideFunction('download', 'uniDownload'),
     Output('univariate-download-placeholder', 'children'),
     [Input('save-univar-btn', 'n_clicks')],
-    [State('sensors-store', 'data')])
+    [State('select-series', 'value'),
+        State('select-method', 'value'),
+        State('sensors-store', 'data')])
 
 """ @app.callback(
     Output('save-unvivar-link', 'href'),
