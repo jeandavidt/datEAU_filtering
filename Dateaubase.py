@@ -1,11 +1,12 @@
 # ## ATTENTION: This script only works on Windows with
 # ## a VPN connection opened to the DatEAUbase Server
-import getpass
+# import getpass
+# import numpy as np
 import pandas as pd
 import pyodbc
 import time
-import numpy as np
 from matplotlib import pyplot as plt
+
 
 def create_connection():
     with open('login.txt') as f:
@@ -49,6 +50,7 @@ FROM project
 ORDER BY Project_name ASC;'''
     df = pd.read_sql(query, connection)
     return df
+
 
 def get_locations(connection, project):
     query = '''
@@ -100,6 +102,7 @@ def get_parameters(connection, project, location, equipment):
     parameters = pd.read_sql(query, connection)
     return parameters
 
+
 def get_units(connection, project, location, equipment, parameter):
     query = '''
     SELECT dbo.unit.Unit
@@ -121,6 +124,7 @@ def get_units(connection, project, location, equipment, parameter):
     '''.format(project, location, equipment, parameter)
     units = pd.read_sql(query, connection)
     return units
+
 
 def build_query(start, end, project, location, equipment, parameter):
     return '''SELECT dbo.value.Timestamp,
@@ -147,6 +151,7 @@ AND dbo.project.Project_name = \'{}\'
 order by dbo.value.Value_ID;
 '''.format(start, end, location, parameter, equipment, project)
 
+
 def get_span(connection, project, location, equipment, parameter):
     query = '''SELECT  MIN(dbo.value.Timestamp), MAX(dbo.value.Timestamp)
     FROM dbo.parameter
@@ -167,6 +172,7 @@ def get_span(connection, project, location, equipment, parameter):
     first = epoch_to_pandas_datetime(df.at[0, 'first'])
     last = epoch_to_pandas_datetime(df.at[0, 'last'])
     return first, last
+
 
 def clean_up_pulled_data(df, project, location, equipment, parameter):
     df['datetime'] = [epoch_to_pandas_datetime(x) for x in df.Timestamp]
@@ -220,6 +226,7 @@ def extract_data(connexion, extract_list):
             df = df[~df.index.duplicated(keep='first')]
     return df
 
+
 def plot_pulled_data(df):
     from pandas.plotting import register_matplotlib_converters
     register_matplotlib_converters()
@@ -234,6 +241,7 @@ def plot_pulled_data(df):
     plt.legend([sensors[i] + ' (' + units[i] + ')' for i in range(len(sensors))])
     plt.xticks(rotation=45)
     plt.show()
+
 
 '''cursor, conn = create_connection()
 Start = date_to_epoch('2017-09-01 12:00:00')
@@ -257,5 +265,3 @@ for i in range(len(param_list)):
 print('ready to extract')
 df = extract_data(conn, extract_list)
 print(len(df))'''
-
-
