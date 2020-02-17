@@ -1,17 +1,13 @@
-
-.ipynb_checkpoints/Multivariate-checkpoint.ipynb
-.ipynb_checkpoints/Univariate data treatment-checkpoint.ipynb
 smooth.p
 parameters.p
 deserialized.json
 orig.json
 .vscode/settings.json
 login.txt
-*.pyo
-*.pyc
+.pyo
+.pyc
 clip.py
 *__pycache__
-*.svg
+.svg
 figures/figure-1.svg
-
-.ipynb_checkpoints/Data filling-checkpoint.ipynb
+.ipynb_checkpoints

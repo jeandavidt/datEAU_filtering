@@ -7,10 +7,9 @@
 
 # ############### Importing the required libraries #########################
 import time
-import json
 
 import matplotlib.pyplot as plt
-import numpy as np
+
 import pandas as pd
 from pandas.plotting import register_matplotlib_converters
 
@@ -81,7 +80,7 @@ TF = channel.end
 # Set parameters: Example
 channel.params['outlier_detection']['nb_reject'] = 100
 # ############### Select a subset of the data for calibration ###############
-# The susbset should be as large as possible to better represent the system
+# The subset should be as large as possible to better represent the system
 # and sensor behavior
 
 Tini = '15 January 2018'
@@ -144,7 +143,7 @@ channel = OutlierDetection.outlier_detection(channel)
 # Set parameters
 channel.params['data_smoother']['h_smoother'] = 10
 
-# Data filtration ==> kernel_smoother fucntion.
+# Data filtration ==> kernel_smoother function.
 
 # data = Smoother.kernel_smoother(data, channel, channel.params)
 channel = Smoother.kernel_smoother(channel)
@@ -198,12 +197,12 @@ channel = FaultDetection.D_score(channel)
 # Plot scores
 # PlottingTools.plotDScore_mpl(channel)
 # plt.show()
-# Times['Detected faults plottted'] = time.time()
+# Times['Detected faults plotted'] = time.time()
 ##########################################################################
 
 # ############################  TREATED DATA   ###########################
 
-# To allow to determinate the treated data and deleted data:
+# To see the treated data and the deleted data:
 channel = TreatedData.TreatedD(channel)
 # Times['Final data generated'] = time.time()
 # plot the raw data and treated data:

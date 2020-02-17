@@ -4,7 +4,6 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import plotly
 import plotly.graph_objs as go
 from matplotlib import cm
 from pandas.plotting import register_matplotlib_converters
@@ -321,7 +320,8 @@ def plotDScore_mpl(channel):
     df = channel.filtered[filtration_method].copy(deep=True)
 
     df.reset_index(inplace=True)
-    df['t'] = df['index'].apply(lambda x: pd.Timestamp(str(x)))
+    
+    df['t'] = df['datetime'].apply(lambda x: pd.Timestamp(str(x)))
     df.set_index(df['t'], drop=True)
 
     params = channel.params
