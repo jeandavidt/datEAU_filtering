@@ -1,5 +1,5 @@
 def kernel_smoother(channel):
-    # A kernel smoother with a bandwith H is used to smooth the data serie. The
+    # A kernel smoother with a bandwith H is used to smooth the data series. The
     # filter does not consider the time step between observations. If the
     # timestep is not constant or close to constant, unrealistic results may
     # arise.
@@ -14,10 +14,9 @@ def kernel_smoother(channel):
     # SMOOTHED_ACCEPTEDDATA : The final smooth data without outlier.
     # ERR           : Difference between the smoothed data and the accepted
     #                 data.
-    import pandas as pd
     import numpy as np
 
-    # Initilization of INPUT:
+    # Initialization of INPUT:
 
     param = channel.params
     h = param['data_smoother']['h_smoother']

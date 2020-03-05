@@ -8,15 +8,15 @@ def data_coherence(channel):
     # PARAM: The structure containing the parameters of the filter. Some
     #        parameters allow to classify problematic situations as warning or
     #        errors.
-    # FLAG : The flag returns a code that deps on the DATA. If no error or
-    #        warning is encontered, 0 is returned. A warning has a value > 0
+    # FLAG : The flag returns a code that depends on the DATA. If no error or
+    #        warning is encountered, 0 is returned. A warning has a value > 0
     #        and an error has a value < 0. Multiple warnings/errors are
     #        returned in a vector.
-    #   0: No error was encontered.
+    #   0: No error was encountered.
     #   1: NaN were detected in the dates or in the observations. A NAN
     #      prevents the outlier filter to work properly, but the filter can
     #      recover once more than NB_REJECT real values are present. The
-    #      weigthed average filter do not filter NAN values (they are rejected
+    #      weighted average filter do not filter NAN values (they are rejected
     #      from calculation).
     #   2: A variable time step was detected. The filter is not designed
     #      for varying time step.
@@ -35,7 +35,6 @@ def data_coherence(channel):
 
     import pandas as pd
     import numpy as np
-    import json
 
     series = channel.info['last-processed']
     if series == 'raw':
@@ -46,11 +45,11 @@ def data_coherence(channel):
     nb_reject = channel.params['outlier_detection']['nb_reject']
     param = channel.params
 
-    definition_0 = 'No error was encontered'
+    definition_0 = 'No error was encountered'
     definition_1 = 'NaN were detected in the dates or in the observations.'
     # A NAN prevents the outlier filter to work properly, but the filter
     # can recover once more than NB_REJECT real values are present.
-    # The weigthed average filter do not filter NAN values (they are rejected from calculation).
+    # The weighted average filter do not filter NAN values (they are rejected from calculation).
 
     definition_2 = 'A variable time step was detected.'
     # The filter is not designed for varying time step. '
@@ -103,6 +102,7 @@ def data_coherence(channel):
 
     return flag
 
+
 def sort_dat(channel):
     import pandas as pd
     series = channel.info['last-processed']
@@ -122,6 +122,7 @@ def sort_dat(channel):
     channel.info['send_to_multivar'] = 'sorted'
     return channel
 
+
 def resample(channel, timestep):
     import pandas as pd
     series = channel.info['last-processed']
@@ -137,6 +138,7 @@ def resample(channel, timestep):
     channel.info['last-processed'] = 'resampled'
     channel.info['send_to_multivar'] = 'resampled'
     return channel
+
 
 def fillna(channel):
     import pandas as pd
