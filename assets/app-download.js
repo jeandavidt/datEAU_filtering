@@ -23,7 +23,7 @@ window.dash_clientside.download = {
         };
         // csv variable is a long string. Lines are cut by \n character
         var firstLine = [];
-        firstLine.push('index');
+        firstLine.push('datetime');
         firstLine = firstLine.concat(columnNames);
         firstLine.push('\n');
         firstLine = firstLine.join(',');

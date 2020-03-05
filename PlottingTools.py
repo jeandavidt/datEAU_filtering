@@ -422,13 +422,13 @@ def plotTreatedD_plotly(channel):
         )
         if name == 'Treated':
             trace['mode'] = 'lines+markers'
-            trace['marker'] = dict(opacity=0, color='rgb(44, 160, 44)')  # green
+            trace['marker'] = dict(opacity=0)  # green
         elif name == 'Deleted':
             trace['mode'] = 'lines+markers'
-            trace['marker'] = dict(opacity=0, color='rgb(214, 39, 40)')  # red
+            trace['marker'] = dict(opacity=0)  # red
         elif name == 'Raw':
             trace['mode'] = 'markers'
-            trace['marker'] = dict(opacity=0.8, color='rgb(127, 127, 127)', size=5)  # grey
+            trace['marker'] = dict(opacity=0.95, size=5)  # grey
         traces.append(trace)
 
     layout = go.Layout(

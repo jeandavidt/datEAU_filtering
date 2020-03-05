@@ -1,48 +1,46 @@
 # ## ATTENTION: This script only works on Windows with
 # ## a VPN connection opened to the DatEAUbase Server
+# import getpass
+# import numpy as np
 import pandas as pd
 import pyodbc
+import time
+from matplotlib import pyplot as plt
 
 
-def create_connection(trusted=False):
-    if trusted:
-        conn_str = (
-            r'Driver={SQL Server};'
-            r'Server=localhost;'
-            r'Database=dateaubase2020;'
-            r'Trusted_Connection=yes;'
-        )
-    else:
-        with open('login.txt') as f:
-            usr = f.readline().strip()
-            pwd = f.readline().strip()
-        config = dict(
-            server='10.10.10.10',  # change this to your SQL Server hostname or IP address
-            port=1433,  # change this to your SQL Server port number [1433 is the default]
-            database='dateaubase2020',
-            username=usr,
-            password=pwd,
-        )
-        conn_str = (
-            'SERVER={server},{port};'
-            + 'DATABASE={database};'
-            + 'UID={username};'
-            + 'PWD={password}'
-        ).format(**config)
-        conn_str = r'DRIVER={ODBC Driver 13 for SQL Server};' + conn_str
-    conn = pyodbc.connect(conn_str)
+def create_connection():
+    with open('login.txt') as f:
+        usr = f.readline().strip()
+        pwd = f.readline().strip()
+    username = usr  # input("Enter username")
+    password = pwd  # getpass.getpass(prompt="Enter password")
+    config = dict(
+        server='10.10.10.10',  # change this to your SQL Server hostname or IP address
+        port=1433,  # change this to your SQL Server port number [1433 is the default]
+        database='dateaubase2020',
+        username=username,
+        password=password)
+    conn_str = (
+        'SERVER={server},{port};'
+        + 'DATABASE={database};'
+        + 'UID={username};'
+        + 'PWD={password}')
+    conn = pyodbc.connect(
+        r'DRIVER={ODBC Driver 13 for SQL Server};'
+        + conn_str.format(**config))
     cursor = conn.cursor()
     return cursor, conn
 
 
 def date_to_epoch(date):
-    datetime = pd.to_datetime(date)
-    return int(datetime.value / 10**9)
+    naive_datetime = pd.to_datetime(date)
+    local_datetime = naive_datetime.tz_localize(tz='US/Eastern')
+    return int(local_datetime.value / 10**9)
 
 
 def epoch_to_pandas_datetime(epoch):
-    timestamp = pd.to_datetime(epoch * 10 ** 9)
-    return timestamp
+    local_time = time.localtime(epoch)
+    return pd.Timestamp(*local_time[:6])
 
 
 def get_projects(connection):
@@ -229,27 +227,41 @@ def extract_data(connexion, extract_list):
     return df
 
 
-if __name__ == '__main__':
-    cursor, conn = create_connection()
+def plot_pulled_data(df):
+    from pandas.plotting import register_matplotlib_converters
+    register_matplotlib_converters()
+    sensors = []
+    units = []
+    plt.figure(figsize=(12, 8))
+    for column in df.columns:
+        sensors.append(column.split('-')[-2])
+        units.append(column.split('-')[-1])
+        plt.plot(df[column], alpha=0.8)
+    sensors = [sensor.replace('_', '-') for sensor in sensors]
+    plt.legend([sensors[i] + ' (' + units[i] + ')' for i in range(len(sensors))])
+    plt.xticks(rotation=45)
+    plt.show()
 
-    Start = date_to_epoch('2020-02-24 17:00:00')
-    End = date_to_epoch('2020-02-26 17:00:00')
-    Location = 'Pilote reactor 4'
-    Project = 'pilEAUte'
 
-    param_list = ['Flowrate (Gas)']
-    equip_list = ['FIT-420']
+'''cursor, conn = create_connection()
+Start = date_to_epoch('2017-09-01 12:00:00')
+End = date_to_epoch('2017-10-01 12:00:00')
+Location = 'Primary settling tank effluent'
+Project = 'pilEAUte'
 
-    extract_list = {}
-    for i in range(len(param_list)):
-        extract_list[i] = {
-            'Start': Start,
-            'End': End,
-            'Project': Project,
-            'Location': Location,
-            'Parameter': param_list[i],
-            'Equipment': equip_list[i]
-        }
-    print('ready to extract')
-    df = extract_data(conn, extract_list)
-    print(df.head())
+param_list = ['COD','CODf','NH4-N','K']
+equip_list = ['Spectro_010','Spectro_010','Ammo_005','Ammo_005']
+
+extract_list={}
+for i in range(len(param_list)):
+    extract_list[i] = {
+        'Start':Start,
+        'End':End,
+        'Project':Project,
+        'Location':Location,
+        'Parameter':param_list[i],
+        'Equipment':equip_list[i]
+    }
+print('ready to extract')
+df = extract_data(conn, extract_list)
+print(len(df))'''
