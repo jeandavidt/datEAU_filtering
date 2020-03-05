@@ -739,13 +739,16 @@ def parse_contents(contents, filename):
         if 'csv' in filename:
             # Assume that the user uploaded a CSV file
             df = pd.read_csv(
-                io.StringIO(decoded.decode('utf-8')), sep=';')
+                io.StringIO(decoded.decode('utf-8')), sep=',')
         elif 'xls' in filename:
             # Assume that the user uploaded an excel file
             df = pd.read_excel(io.BytesIO(decoded))
 
         df.datetime = pd.to_datetime(df.datetime)
         df.set_index('datetime', inplace=True, drop=True)
+        cols = [col for col in df.columns if 'Unnamed' not in col]
+        df = df[cols]
+        print(df.columns)
     except Exception as e:
         print(e)
         return html.Div([
@@ -2069,33 +2072,7 @@ app.clientside_callback(
     [Input('save-multivar-btn', 'n_clicks')],
     [State('multivariate-data-store', 'data')])
 
-'''@app.callback(
-    Output('multi-save-link', 'href'),
-    [Input('multivariate-data-store', 'data')])
-def update_link_multivar(data):
-    if not data:
-        raise PreventUpdate
-    else:
-        return '/dash/download-multivar?value={}'.format(data)
 
-
-@app.server.route('/dash/download-multivar')
-def download_csv_multivar():
-    value = flask.request.args.get('value')
-    df = pd.read_json(value, orient='split')
-    down = df.to_csv(sep=';')
-    str_io = io.StringIO()
-    str_io.write(str(down))
-    mem = io.BytesIO()
-    mem.write(str_io.getvalue().encode('utf-8'))
-    mem.seek(0)
-    str_io.close()
-    return flask.send_file(
-        mem,
-        mimetype='text/csv',
-        attachment_filename='download_multivar.csv',
-        as_attachment=True)
-'''
 # ###################################################
 # Save figures
 # ###################################################

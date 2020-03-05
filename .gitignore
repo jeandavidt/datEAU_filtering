@@ -15,3 +15,4 @@ clip.py
 figures/figure-1.svg
 
 .ipynb_checkpoints/Data filling-checkpoint.ipynb
+__pycache__/DataCoherence.cpython-37.pyc
