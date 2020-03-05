@@ -8,7 +8,7 @@ login.txt
 .pyc
 clip.py
 *__pycache__
-.svg
+*.svg
 figures/figure-1.svg
 
 .ipynb_checkpoints/Data filling-checkpoint.ipynb
